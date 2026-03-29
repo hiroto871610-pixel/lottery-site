@@ -15,9 +15,10 @@ def generate_loto6_patterns():
 def fetch_latest_result():
     try:
         url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         res = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        res.encoding = 'euc-jp'
+        soup = BeautifulSoup(res.text, 'html.parser')
         text = soup.get_text()
 
         kai_match = re.search(r'第\d+回', text)
@@ -26,12 +27,13 @@ def fetch_latest_result():
         date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
         date = date_match.group() if date_match else "最新"
 
-        hon_match = re.search(r'本数字\s*([\d\-]+)', text)
+        hon_match = re.search(r'本数字\s*([\d]{1,2}(?:-[\d]{1,2})+)', text)
         main_nums = "----"
         if hon_match:
-            main_nums = ", ".join([n.zfill(2) for n in hon_match.group(1).split('-')])
+            nums = [n.zfill(2) for n in hon_match.group(1).split('-') if n.isdigit()]
+            main_nums = ", ".join(nums)
 
-        bonus_match = re.search(r'ボーナス数字\s*([()\d\s]+)', text)
+        bonus_match = re.search(r'ボーナス数字\s*(\(\d{1,2}\))', text)
         bonus_nums = ""
         if bonus_match:
             b_nums = re.findall(r'\d+', bonus_match.group(1))
@@ -43,7 +45,7 @@ def fetch_latest_result():
 
     except Exception as e:
         print(f"⚠️ LOTO6 データ取得エラー: {e}")
-        return "最新回", "データ取得中", "現在結果を集計中...", ""
+        return "最新回", "データ取得中", "----", ""
 
 def build_html():
     kai, date, main_nums, bonus_nums = fetch_latest_result()
