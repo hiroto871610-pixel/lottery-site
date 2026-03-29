@@ -24,36 +24,20 @@ def generate_numbers_patterns():
 
 def fetch_latest_result():
     try:
-        url = "https://www.mizuhobank.co.jp/retail/takarakuji/numbers/numbers4/index.html"
-        res = requests.get(url, timeout=10)
-        res.encoding = 'Shift_JIS'
-        soup = BeautifulSoup(res.text, 'html.parser')
+        url = "https://takarakuji.rakuten.co.jp/backnumber/numbers4/"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.content, 'html.parser')
+        text = soup.get_text()
 
-        kai_th = soup.find('th', string=re.compile(r'第\d+回'))
-        if not kai_th: raise ValueError("回号が見つかりません")
-        kai = kai_th.text.strip()
-        date_td = kai_th.find_next_sibling('td')
-        date = date_td.text.strip() if date_td else "最新"
+        kai_match = re.search(r'第\d+回', text)
+        kai = kai_match.group() if kai_match else "最新回"
 
-        # 【本番用】当選番号を柔軟に抽出（抽せん数字 または 当せん番号）
-        win_th = soup.find(['th', 'td'], string=re.compile(r'抽せん数字|当せん番号|当せん数字|抽せん番号'))
-        win_num = "----"
-        if win_th:
-            win_td = win_th.find_next_sibling(['td', 'th'])
-            if win_td:
-                nums_only = re.sub(r'\D', '', win_td.text)
-                if nums_only: win_num = nums_only
-            
-            # 隣に見つからなければ次の行(tr)を探す
-            if win_num == "----":
-                tr_head = win_th.find_parent('tr')
-                if tr_head:
-                    tr_next = tr_head.find_next_sibling('tr')
-                    if tr_next:
-                        tds = tr_next.find_all('td')
-                        if tds:
-                            nums_only = re.sub(r'\D', '', tds[0].text)
-                            if nums_only: win_num = nums_only
+        date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
+        date = date_match.group() if date_match else "最新"
+
+        win_match = re.search(r'当せん番号\s*(\d{4})', text)
+        win_num = win_match.group(1) if win_match else "----"
 
         print(f"📡 ナンバーズ4 データ取得成功: {kai} ({date}) | 当選番号: {win_num}")
         return kai, date, win_num
