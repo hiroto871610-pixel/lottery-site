@@ -1,9 +1,9 @@
-name: Weekly Lottery Update
+name: Lottery Auto Update
 
 on:
   schedule:
-    # 毎週金曜日の日本時間 21:05頃に実行
-    - cron: '5 12 * * 5'
+    # 月曜〜金曜の日本時間 20:30 (協定世界時 11:30) に実行
+    - cron: '30 11 * * 1-5'
   workflow_dispatch:
 
 env:
@@ -16,18 +16,24 @@ jobs:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
 
+      # ★次回から追加する「スクレイピング」のための準備を追加しています
       - name: Pythonをセットアップ
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: ロト7の予想を更新
+      - name: 必要なライブラリのインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: ロト7の予想と速報を更新
         run: python update_loto7.py
 
-      - name: ロト6の予想を更新
+      - name: ロト6の予想と速報を更新
         run: python update_loto6.py
 
-      - name: ナンバーズの予想を更新
+      - name: ナンバーズの予想と速報を更新
         run: python update_numbers.py
 
       - name: 更新された全ファイルをGitHubに保存
@@ -35,5 +41,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Auto Update: All Lottery Predictions" || exit 0
+          git commit -m "Auto Update: Predictions & Results" || exit 0
           git push
