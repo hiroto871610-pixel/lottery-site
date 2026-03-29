@@ -2,9 +2,12 @@ name: Weekly Lottery Update
 
 on:
   schedule:
-    # 毎週金曜日の日本時間 21:05頃に実行（世界標準時の12:05）
+    # 毎週金曜日の日本時間 21:05頃に実行
     - cron: '5 12 * * 5'
-  workflow_dispatch: # 手動で実行ボタンを押せるようにもします
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update:
@@ -18,15 +21,19 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Pythonプログラムを実行（予想更新）
+      - name: ロト7の予想を更新
         run: python update_loto7.py
 
-      - name: 更新されたファイルをGitHubに保存
+      - name: ロト6の予想を更新
+        run: python update_loto6.py
+
+      - name: ナンバーズの予想を更新
+        run: python update_numbers.py
+
+      - name: 更新された全ファイルをGitHubに保存
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Auto Update: Lottery Prediction" || exit 0
+          git commit -m "Auto Update: All Lottery Predictions" || exit 0
           git push
-          env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
