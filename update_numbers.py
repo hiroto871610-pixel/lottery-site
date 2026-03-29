@@ -3,7 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-# 1. ナンバーズの予想番号生成
 def generate_numbers_patterns():
     html = '            \n'
     html += '            <h2 class="section-header" style="margin-top: 0;">🔢 次回 ナンバーズ4 予想</h2>\n'
@@ -14,18 +13,15 @@ def generate_numbers_patterns():
         balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
         html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div>{tags[i]}</div>\n'
     html += '            </div>\n'
-
     html += '            <h2 class="section-header" style="margin-top: 40px;">🔢 次回 ナンバーズ3 予想</h2>\n'
     html += '            <div class="prediction-box">\n'
     for i, label in enumerate(['予想A', '予想B', '予想C']):
         nums = [str(random.randint(0, 9)) for _ in range(3)]
         balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
         html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div>{tags[i]}</div>\n'
-    html += '            </div>\n'
-    html += '            '
+    html += '            </div>\n            '
     return html
 
-# 2. 最新の抽選結果を取得（スクレイピング）
 def fetch_latest_result():
     try:
         url = "https://www.mizuhobank.co.jp/retail/takarakuji/numbers/numbers4/index.html"
@@ -34,25 +30,40 @@ def fetch_latest_result():
         soup = BeautifulSoup(res.text, 'html.parser')
 
         kai_th = soup.find('th', string=re.compile(r'第\d+回'))
-        if not kai_th:
-            raise ValueError("回号が見つかりません")
-        
+        if not kai_th: raise ValueError("回号が見つかりません")
         kai = kai_th.text.strip()
         date_td = kai_th.find_next_sibling('td')
         date = date_td.text.strip() if date_td else "最新"
 
-        win_num = "8153" # ダミー
-        
-        print(f"📡 ナンバーズ データ取得成功: {kai} ({date})")
+        # 【本番用】当選番号を柔軟に抽出（抽せん数字 または 当せん番号）
+        win_th = soup.find(['th', 'td'], string=re.compile(r'抽せん数字|当せん番号|当せん数字|抽せん番号'))
+        win_num = "----"
+        if win_th:
+            win_td = win_th.find_next_sibling(['td', 'th'])
+            if win_td:
+                nums_only = re.sub(r'\D', '', win_td.text)
+                if nums_only: win_num = nums_only
+            
+            # 隣に見つからなければ次の行(tr)を探す
+            if win_num == "----":
+                tr_head = win_th.find_parent('tr')
+                if tr_head:
+                    tr_next = tr_head.find_next_sibling('tr')
+                    if tr_next:
+                        tds = tr_next.find_all('td')
+                        if tds:
+                            nums_only = re.sub(r'\D', '', tds[0].text)
+                            if nums_only: win_num = nums_only
+
+        print(f"📡 ナンバーズ4 データ取得成功: {kai} ({date}) | 当選番号: {win_num}")
         return kai, date, win_num
+
     except Exception as e:
         print(f"⚠️ ナンバーズ データ取得エラー: {e}")
         return "最新回", "データ取得中", "----"
 
-# 3. HTML構築と保存
 def build_html():
     kai, date, win_num = fetch_latest_result()
-    
     template_before = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -107,9 +118,7 @@ def build_html():
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
         <div class="section-card">
 """
-
-    template_after = f"""
-        </div>
+    template_after = f"""        </div>
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (0〜9の数字)</h2>
             <div class="hc-container">
@@ -134,11 +143,7 @@ def build_html():
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>"""
-    
     return template_before + generate_numbers_patterns() + template_after
 
-final_html = build_html()
-with open('numbers.html', 'w', encoding='utf-8') as f:
-    f.write(final_html)
-
-print("✨ ナンバーズのスクレイピング＆自動更新が完了しました！")
+with open('numbers.html', 'w', encoding='utf-8') as f: f.write(build_html())
+print("✨ [本番データ] ナンバーズ の更新が完了しました！")
