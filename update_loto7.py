@@ -15,47 +15,40 @@ def generate_all_patterns():
 def fetch_latest_result():
     try:
         url = "https://www.mizuhobank.co.jp/retail/takarakuji/loto/loto7/index.html"
-        # 【追加】普通のブラウザ（Chrome）からのアクセスだと銀行側に思わせる魔法のパスポート
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        
+        # 変更点1: 文字化け対策（res.contentを使ってBeautifulSoupに自動判別させる）
         res = requests.get(url, headers=headers, timeout=10)
-        res.encoding = 'Shift_JIS'
-        soup = BeautifulSoup(res.text, 'html.parser')
+        soup = BeautifulSoup(res.content, 'html.parser')
 
-        # 【改良】目に見えないスペースや改行を無視して「第〇〇回」を執念深く探す
-        kai = None
-        kai_node = None
-        for node in soup.find_all(['th', 'td']):
-            txt = node.get_text(strip=True)
-            if re.search(r'第\d+回', txt) and len(txt) < 15:
-                kai = re.search(r'第\d+回', txt).group()
-                kai_node = node
-                break
-                
-        if not kai_node: 
-            raise ValueError("回号が見つかりません（銀行のサイト構造が特殊です）")
-            
-        date_node = kai_node.find_next_sibling(['td', 'th'])
-        date = date_node.get_text(strip=True) if date_node else "最新"
+        # 変更点2: タグの構造を無視して、ページ内の全文字の中から力技で探す
+        all_text = soup.get_text(separator=' ')
+        
+        kai_match = re.search(r'第\s*([0-9]+)\s*回', all_text)
+        kai = f"第{kai_match.group(1)}回" if kai_match else "最新回"
+        
+        date_match = re.search(r'(20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日)', all_text)
+        date = date_match.group(1) if date_match else "最新"
 
-        # 【改良】本数字とボーナス数字の抽出も超柔軟に対応
-        hon_th = None
-        for node in soup.find_all(['th', 'td']):
-            if '本数字' in node.get_text():
-                hon_th = node
-                break
-
+        # 変更点3: 「本数字」という文字がある表から、1〜2桁の数字だけを順番に抜き出す
         main_nums = "----"
         bonus_nums = ""
-        if hon_th:
-            tr_head = hon_th.find_parent('tr')
-            if tr_head:
-                tr_nums = tr_head.find_next_sibling('tr')
-                if tr_nums:
-                    tds = tr_nums.find_all('td')
-                    nums = [re.sub(r'\D', '', td.text) for td in tds if re.sub(r'\D', '', td.text)]
-                    if len(nums) >= 9:
-                        main_nums = ", ".join(nums[:7])
-                        bonus_nums = f"(B: {nums[7]}, {nums[8]})"
+        hon_tags = soup.find_all(string=re.compile('本数字'))
+        
+        for tag in hon_tags:
+            table = tag.find_parent('table')
+            if table:
+                tds = table.find_all('td')
+                nums = []
+                for td in tds:
+                    num_str = re.sub(r'\D', '', td.get_text())
+                    if num_str and len(num_str) <= 2: # 1桁か2桁の数字のみ（金額や日付を除外）
+                        nums.append(num_str.zfill(2))
+                
+                if len(nums) >= 9: # ロト7は本数字7個＋ボーナス2個＝最初に出現する9個が正解
+                    main_nums = ", ".join(nums[:7])
+                    bonus_nums = f"(B: {nums[7]}, {nums[8]})"
+                    break
 
         print(f"📡 LOTO7 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
