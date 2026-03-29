@@ -14,31 +14,23 @@ def generate_loto6_patterns():
 
 def fetch_latest_result():
     try:
-        url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/"
+        headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=10)
-        res.encoding = 'euc-jp'
-        soup = BeautifulSoup(res.text, 'html.parser')
-        text = soup.get_text()
-
-        kai_match = re.search(r'第\d+回', text)
-        kai = kai_match.group() if kai_match else "最新回"
-
-        date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
-        date = date_match.group() if date_match else "最新"
-
-        hon_match = re.search(r'本数字\s*([\d]{1,2}(?:-[\d]{1,2})+)', text)
-        main_nums = "----"
-        if hon_match:
-            nums = [n.zfill(2) for n in hon_match.group(1).split('-') if n.isdigit()]
-            main_nums = ", ".join(nums)
-
-        bonus_match = re.search(r'ボーナス数字\s*(\(\d{1,2}\))', text)
-        bonus_nums = ""
-        if bonus_match:
-            b_nums = re.findall(r'\d+', bonus_match.group(1))
-            if b_nums:
-                bonus_nums = f"(B: {b_nums[0].zfill(2)})"
+        soup = BeautifulSoup(res.content, 'html.parser')
+        
+        latest_row = soup.find('table').find_all('tr')[1]
+        cells = latest_row.find_all(['th', 'td'])
+        
+        c0_nums = re.findall(r'\d+', cells[0].get_text(separator=' '))
+        kai = f"第{c0_nums[0]}回" if len(c0_nums) > 0 else "最新回"
+        date = f"{c0_nums[1]}/{c0_nums[2].zfill(2)}/{c0_nums[3].zfill(2)}" if len(c0_nums) >= 4 else "最新"
+        
+        main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
+        main_nums = ", ".join([n.zfill(2) for n in main_raw])
+        
+        bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
+        bonus_nums = f"(B: {bonus_raw[0].zfill(2)})" if bonus_raw else ""
 
         print(f"📡 LOTO6 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
