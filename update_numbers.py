@@ -2,26 +2,33 @@ import random
 import requests
 from bs4 import BeautifulSoup
 
+# 1. 予想番号を生成する機能（N4とN3をそれぞれA〜Cの3つずつ生成）
 def generate_numbers_patterns():
     html = '            \n'
+    
+    # --- ナンバーズ4 ---
     html += '            <h2 class="section-header" style="margin-top: 0;">🔢 次回 ナンバーズ4 予想</h2>\n'
     html += '            <div class="prediction-box">\n'
-    tags = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span>']
+    tags4 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span>']
     for i, label in enumerate(['予想A', '予想B', '予想C']):
         nums = [str(random.randint(0, 9)) for _ in range(4)]
         balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
-        html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div>{tags[i]}</div>\n'
+        html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div>{tags4[i]}</div>\n'
     html += '            </div>\n'
+    
+    # --- ナンバーズ3 ---
     html += '            <h2 class="section-header" style="margin-top: 40px;">🔢 次回 ナンバーズ3 予想</h2>\n'
     html += '            <div class="prediction-box">\n'
+    tags3 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ミニ推奨</span>']
     for i, label in enumerate(['予想A', '予想B', '予想C']):
         nums = [str(random.randint(0, 9)) for _ in range(3)]
         balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
-        html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div>{tags[i]}</div>\n'
+        html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div>{tags3[i]}</div>\n'
     html += '            </div>\n            '
+    
     return html
 
-# 汎用的にデータを取得する関数（URLと名前を渡すと取得してくれる）
+# 2. 楽天のサイトから最新結果を取得する共通機能
 def fetch_single_numbers(url, name):
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
@@ -53,17 +60,19 @@ def fetch_single_numbers(url, name):
         print(f"⚠️ {name} データ取得エラー: {e}")
         return "最新回", "データ取得中", "----"
 
-# ナンバーズ4と3の両方を取得する
+# 3. ナンバーズ4と3の両方を連続で取得
 def fetch_both_results():
     print("🔄 ナンバーズのデータ取得を開始します...")
     n4_kai, n4_date, n4_win = fetch_single_numbers("https://takarakuji.rakuten.co.jp/backnumber/numbers4/lastresults/", "ナンバーズ4")
     n3_kai, n3_date, n3_win = fetch_single_numbers("https://takarakuji.rakuten.co.jp/backnumber/numbers3/lastresults/", "ナンバーズ3")
     
-    # ナンバーズは3も4も同じ回号・日付なので、N4のものをベースに返す
+    # 日付や回号は共通なのでN4のものを返す
     return n4_kai, n4_date, n4_win, n3_win
 
+# 4. 取得したデータをHTMLに合体させる
 def build_html():
     kai, date, n4_win, n3_win = fetch_both_results()
+    
     template_before = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -118,6 +127,7 @@ def build_html():
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
         <div class="section-card">
 """
+    
     template_after = f"""        </div>
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (0〜9の数字)</h2>
@@ -150,7 +160,11 @@ def build_html():
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>"""
+    
     return template_before + generate_numbers_patterns() + template_after
 
-with open('numbers.html', 'w', encoding='utf-8') as f: f.write(build_html())
-print("✨ [本番データ] ナンバーズ3＆4 のダブル更新が完了しました！")
+# 5. ファイルを完全に上書き保存する
+with open('numbers.html', 'w', encoding='utf-8') as f: 
+    f.write(build_html())
+
+print("✨ [本番データ] ナンバーズ3＆4 のダブル更新が完了し、重複バグも解消されました！")
