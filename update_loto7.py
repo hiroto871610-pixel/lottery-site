@@ -6,10 +6,9 @@ import json
 import os
 from collections import Counter
 
-# データベースの代わりになるファイル
 HISTORY_FILE = 'history_loto7.json'
 
-# --- 1. 過去データの取得（約1年分・50回）と最新結果の取得 ---
+# --- 1. 過去データの取得（約1年分・50回） ---
 def fetch_history_data():
     url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -91,8 +90,7 @@ def manage_history(latest_data, new_predictions):
         try:
             with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
                 history_record = json.load(f)
-        except Exception as e:
-            print(f"⚠️ 履歴ファイルが破損しているため、新しく作成します。")
+        except Exception:
             history_record = []
             
     latest_kai = latest_data['kai']
@@ -128,7 +126,6 @@ def manage_history(latest_data, new_predictions):
     next_kai_num = int(re.search(r'\d+', latest_kai).group()) + 1
     next_kai = f"第{next_kai_num}回"
     
-    # 同じ回号が2重に記録されないようにブロック
     if not any(r.get('target_kai') == next_kai for r in history_record):
         history_record.insert(0, {
             "target_kai": next_kai,
@@ -145,18 +142,18 @@ def manage_history(latest_data, new_predictions):
         
     return history_record
 
-# --- 5. 一切重複しないHTML構築 ---
+# --- 5. HTML構築（重複しないようにブロック分け） ---
 def build_html():
     print("🔄 データ取得＆アルゴリズム解析を開始...")
-    history_data = fetch_history_data() # 約50回分(1年分)のデータ
+    history_data = fetch_history_data()
     latest_data = history_data[0]
-    
     hot, cold = analyze_trends(history_data)
     predictions = generate_algo_predictions(hot, cold)
     history_record = manage_history(latest_data, predictions)
     
     print(f"📡 LOTO7 データ取得成功: {latest_data['kai']} ({latest_data['date']})")
     
+    # 共通ヘッダーとCSS
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -193,12 +190,9 @@ def build_html():
         th {{ background-color: #f8fafc; color: #475569; font-weight: bold; }}
         .result-win {{ color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 4px 8px; border-radius: 4px; }}
         .result-lose {{ color: #94a3b8; }}
-        
-        /* 1年分の履歴用スクロールテーブル */
         .scroll-table-container {{ max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 15px; }}
         .scroll-table-container table {{ margin-top: 0; border-collapse: separate; border-spacing: 0; }}
         .scroll-table-container th {{ position: sticky; top: 0; z-index: 1; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }}
-        
         footer {{ background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }}
     </style>
 </head>
@@ -213,7 +207,10 @@ def build_html():
     </nav>
     <div class="container">
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
-        
+"""
+
+    # ▼ エリア1：次回のAI予想
+    html += f"""
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト7の予想</h2>
             <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
@@ -223,11 +220,9 @@ def build_html():
     for i, pred in enumerate(predictions):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
-    
-    html += """            </div>
-        </div>
+    html += "            </div>\n        </div>\n"
 
-        """
+    # ▼ エリア2：最新の抽選結果
     html += f"""
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
@@ -245,22 +240,24 @@ def build_html():
                     </div>
                 </div>
             </div>
-        </div>
+        </div>\n"""
 
+    # ▼ エリア3：ホット＆コールド
+    html += """
         <div class="section-card">
             <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>
             <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>"""
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>
+"""
     for n, count in hot:
         html += f'<span class="hc-number">{n} ({count}回)</span>'
-    html += """</div>
-                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>"""
+    html += """</div>\n                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>\n"""
     for n, count in cold:
         html += f'<span class="hc-number">{n} ({count}回)</span>'
-    html += """</div>
-            </div>
-        </div>
+    html += "</div>\n            </div>\n        </div>\n"
 
+    # ▼ エリア4：過去のAI予想と成績履歴 (重複解消)
+    html += """
         <div class="section-card">
             <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
             <table>
@@ -274,11 +271,10 @@ def build_html():
                         <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{record.get('actual_main', '----')}</span><br><span style="color:#888; font-size:12px;">{record.get('actual_bonus', '')}</span></td>
                         <td><span class="{res_class}">{record.get('best_result', '----')}</span></td>
                     </tr>\n"""
+    html += "                </tbody>\n            </table>\n        </div>\n"
 
-    html += """                </tbody>
-            </table>
-        </div>
-
+    # ▼ エリア5：過去1年間の実際のデータ (スクロール機能付き)
+    html += """
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
             <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
@@ -289,14 +285,12 @@ def build_html():
                     </thead>
                     <tbody>
 """
-    # history_dataから最大50回分をテーブル行にする
     for row in history_data[:50]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
                             <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{", ".join(row['main'])}</span></td>
                             <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: {", ".join(row['bonus'])})</span></td>
                         </tr>\n"""
-
     html += """                    </tbody>
                 </table>
             </div>
@@ -312,4 +306,4 @@ def build_html():
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全版] ロト7 の自動更新が完了しました！")
+print("✨ [完全版] ロト7 の自動更新が完了しました！重複バグも解消済みです！")
