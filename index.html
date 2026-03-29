@@ -26,29 +26,26 @@
         .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .section-card h2 { border-left: 6px solid #1e3a8a; padding-left: 15px; margin-top: 0; font-size: 24px; color: #1e3a8a; }
         
-        /* ロト7専用カラー */
         #loto7 h2 { border-left-color: #d97706; color: #d97706; }
-        /* ロト6専用カラー */
         #loto6 h2 { border-left-color: #0284c7; color: #0284c7; }
-        /* ナンバーズ専用カラー */
         #numbers h2 { border-left-color: #16a34a; color: #16a34a; }
-        /* ジャンボ専用カラー */
         #jumbo h2 { border-left-color: #be123c; color: #be123c; }
 
         /* 予想生成ボタン */
         .btn { display: block; width: 100%; max-width: 350px; margin: 20px auto; padding: 15px; font-size: 18px; font-weight: bold; color: white; background-color: #2563eb; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3); }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4); }
-        .btn:active { transform: translateY(0); }
         
-        /* ボタンの色分け */
         .btn-loto7 { background-color: #f59e0b; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3); }
         .btn-loto6 { background-color: #0ea5e9; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.3); }
         .btn-numbers { background-color: #22c55e; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.3); }
 
-        /* 結果表示エリア */
-        .result-display { background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 8px; color: #334155; min-height: 40px; margin-top: 15px; }
+        /* 結果表示エリア（複数行対応に修正） */
+        .result-display { background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; font-size: 22px; font-weight: bold; letter-spacing: 3px; color: #334155; min-height: 40px; margin-top: 15px; text-align: center; }
+        /* 1行ごとのデザイン */
+        .pattern-line { padding: 8px 0; border-bottom: 1px dashed #cbd5e1; }
+        .pattern-line:last-child { border-bottom: none; }
+        .pattern-label { font-size: 16px; color: #64748b; margin-right: 15px; }
 
-        /* フッター（免責事項など） */
         footer { background-color: #333; color: #ccc; text-align: center; padding: 30px 20px; margin-top: 50px; font-size: 12px; line-height: 1.6; }
     </style>
 </head>
@@ -67,60 +64,109 @@
     </nav>
 
     <div class="container">
-        <div class="ad-space">
-            【広告エリア】Google AdSense（バナー広告）を配置します
-        </div>
+        <div class="ad-space">【広告エリア】Google AdSense（バナー広告）を配置します</div>
 
         <div id="loto7" class="section-card">
             <h2>🎰 ロト7 (LOTO7) 予想</h2>
-            <p>1〜37の数字の中から7個の数字を選びます。キャリーオーバー発生時の爆発力が魅力です。</p>
-            <button class="btn btn-loto7">ロト7の予想番号を生成</button>
-            <div class="result-display">-- -- -- -- -- -- --</div>
+            <p>1〜37の中から7つの数字を5パターン生成します。</p>
+            <button class="btn btn-loto7" onclick="generateLoto7()">ロト7の予想番号を生成</button>
+            <div id="result-loto7" class="result-display">ボタンを押して生成開始</div>
         </div>
 
         <div id="loto6" class="section-card">
             <h2>🎲 ロト6 (LOTO6) 予想</h2>
-            <p>1〜43の数字の中から6個の数字を選びます。週2回チャンスがある人気のくじです。</p>
-            <button class="btn btn-loto6">ロト6の予想番号を生成</button>
-            <div class="result-display">-- -- -- -- -- --</div>
+            <p>1〜43の中から6つの数字を5パターン生成します。</p>
+            <button class="btn btn-loto6" onclick="generateLoto6()">ロト6の予想番号を生成</button>
+            <div id="result-loto6" class="result-display">ボタンを押して生成開始</div>
         </div>
 
         <div id="numbers" class="section-card">
             <h2>🔢 ナンバーズ3 ＆ ナンバーズ4 予想</h2>
-            <p>平日毎日抽選！独自の出現パターン分析から今日のストレート・ボックスを狙います。</p>
+            <p>0〜9の数字から構成される5パターンを生成します。</p>
             
             <h3 style="margin-top:30px;">ナンバーズ4 (4桁)</h3>
-            <button class="btn btn-numbers">ナンバーズ4を生成</button>
-            <div class="result-display" style="letter-spacing: 15px;">----</div>
+            <button class="btn btn-numbers" onclick="generateNumbers4()">ナンバーズ4を生成</button>
+            <div id="result-num4" class="result-display" style="letter-spacing: 10px;">待機中...</div>
 
             <h3 style="margin-top:30px;">ナンバーズ3 (3桁)</h3>
-            <button class="btn btn-numbers">ナンバーズ3を生成</button>
-            <div class="result-display" style="letter-spacing: 15px;">---</div>
+            <button class="btn btn-numbers" onclick="generateNumbers3()">ナンバーズ3を生成</button>
+            <div id="result-num3" class="result-display" style="letter-spacing: 10px;">待機中...</div>
         </div>
 
-        <div class="ad-space">
-            【広告エリア】金運アップグッズや占いサイトのアフィリエイトリンクを配置します
-        </div>
+        <div class="ad-space">【広告エリア】金運アップグッズなどのアフィリエイトリンクを配置します</div>
 
         <div id="jumbo" class="section-card">
             <h2>🎯 ジャンボ宝くじ 特設ページ</h2>
             <p>バレンタイン、ドリーム、サマー、ハロウィン、年末ジャンボの攻略情報です。</p>
-            <ul>
-                <li>今年の最強の吉日（一粒万倍日・天赦日）カレンダー</li>
-                <li>「縦バラ」「特バラ」など、確率を上げる買い方解説</li>
-                <li>過去の高額当選売り場データ分析</li>
-            </ul>
-            <p style="color: #666; font-size: 14px;">※ジャンボ宝くじのコンテンツは随時更新予定です。</p>
         </div>
     </div>
 
     <footer>
         <p><strong>【免責事項】</strong><br>
-        当サイトで提供する予想番号および分析データは、宝くじの当選を保証するものではありません。<br>
-        くじの購入はご自身の自己責任で行っていただきますようお願いいたします。<br>
-        当サイトの利用により生じた損害について、運営者は一切の責任を負いません。</p>
-        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        当サイトで提供する予想番号は、宝くじの当選を保証するものではありません。<br>
+        くじの購入はご自身の自己責任で行っていただきますようお願いいたします。</p>
+        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p>
     </footer>
 
+    <script>
+        // ロト用の被りなしランダム数字を生成する関数
+        function getUniqueNumbers(count, max) {
+            let nums = new Set();
+            while(nums.size < count) {
+                nums.add(Math.floor(Math.random() * max) + 1);
+            }
+            // 数字を小さい順に並び替え、1ケタの場合は先頭に0をつける(例: 03)
+            return Array.from(nums).sort((a,b) => a - b).map(n => String(n).padStart(2, '0'));
+        }
+
+        // ナンバーズ用のランダム数字（被りあり）を生成する関数
+        function getNumbersDigits(count) {
+            let digits = "";
+            for(let i=0; i<count; i++) {
+                digits += Math.floor(Math.random() * 10);
+            }
+            return digits;
+        }
+
+        // ロト7を5パターン生成して画面に表示
+        function generateLoto7() {
+            let html = "";
+            for(let i=1; i<=5; i++) {
+                let nums = getUniqueNumbers(7, 37); // 1〜37の中から7個
+                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${nums.join(' - ')}</div>`;
+            }
+            document.getElementById('result-loto7').innerHTML = html;
+        }
+
+        // ロト6を5パターン生成して画面に表示
+        function generateLoto6() {
+            let html = "";
+            for(let i=1; i<=5; i++) {
+                let nums = getUniqueNumbers(6, 43); // 1〜43の中から6個
+                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${nums.join(' - ')}</div>`;
+            }
+            document.getElementById('result-loto6').innerHTML = html;
+        }
+
+        // ナンバーズ4を5パターン生成して画面に表示
+        function generateNumbers4() {
+            let html = "";
+            for(let i=1; i<=5; i++) {
+                let num = getNumbersDigits(4); // 4桁
+                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${num}</div>`;
+            }
+            document.getElementById('result-num4').innerHTML = html;
+        }
+
+        // ナンバーズ3を5パターン生成して画面に表示
+        function generateNumbers3() {
+            let html = "";
+            for(let i=1; i<=5; i++) {
+                let num = getNumbersDigits(3); // 3桁
+                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${num}</div>`;
+            }
+            document.getElementById('result-num3').innerHTML = html;
+        }
+    </script>
 </body>
 </html>
