@@ -25,20 +25,20 @@ def generate_numbers_patterns():
 def fetch_latest_result():
     try:
         url = "https://takarakuji.rakuten.co.jp/backnumber/numbers4/"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=10)
-        res.encoding = 'euc-jp'
-        soup = BeautifulSoup(res.text, 'html.parser')
-        text = soup.get_text()
+        soup = BeautifulSoup(res.content, 'html.parser')
+        
+        text = soup.get_text(separator=' ')
+        
+        # res.contentのおかげで文字化けが直っているので、正規表現で確実に抜く
+        kai_match = re.search(r'第\s*(\d+)\s*回', text)
+        kai = f"第{kai_match.group(1)}回" if kai_match else "最新回"
 
-        kai_match = re.search(r'第\d+回', text)
-        kai = kai_match.group() if kai_match else "最新回"
+        date_match = re.search(r'(\d{4})\s*/\s*(\d{2})\s*/\s*(\d{2})', text)
+        date = f"{date_match.group(1)}/{date_match.group(2)}/{date_match.group(3)}" if date_match else "最新"
 
-        date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
-        date = date_match.group() if date_match else "最新"
-
-        # 【修正】ルール説明を回避し、きっちり4桁の数字だけを狙う
-        win_match = re.search(r'当せん番号\s*(\d{4})', text)
+        win_match = re.search(r'当せん番号\D*(\d{4})', text)
         win_num = win_match.group(1) if win_match else "----"
 
         print(f"📡 ナンバーズ4 データ取得成功: {kai} ({date}) | 当選番号: {win_num}")
