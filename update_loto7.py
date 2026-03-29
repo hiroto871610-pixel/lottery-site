@@ -23,7 +23,6 @@ def fetch_history_data():
         for tr in table.find_all('tr')[1:]:
             cells = tr.find_all(['th', 'td'])
             if len(cells) >= 3:
-                # セル0: 回号と日付
                 cell0_text = cells[0].get_text(separator=' ')
                 if '回' not in cell0_text: continue
                 
@@ -33,11 +32,9 @@ def fetch_history_data():
                 date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
                 date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
                 
-                # セル1: 本数字
                 main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
                 main_nums = [n.zfill(2) for n in main_raw[:7]]
                 
-                # セル2: ボーナス数字
                 bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
                 bonus_nums = [n.zfill(2) for n in bonus_raw[:2]]
                 
@@ -90,8 +87,6 @@ def generate_algo_predictions(hot, cold):
 # --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, new_predictions):
     history_record = []
-    
-    # 【修正】ファイルが存在しても中身が空っぽ・壊れている場合は無視して新規作成する
     if os.path.exists(HISTORY_FILE):
         try:
             with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
@@ -217,6 +212,7 @@ def build_html():
             <p>直近20回の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
             <div class="prediction-box">
 """
+    # 予想部分
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
     for i, pred in enumerate(predictions):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
@@ -224,7 +220,31 @@ def build_html():
     
     html += """            </div>
         </div>
+"""
 
+    # 🌟【今回追加】最新の抽選結果を専用エリアに美しく表示
+    html += f"""
+        <div class="section-card">
+            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
+            <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
+                <div class="numbers-row">
+                    <div class="row-label" style="background-color: #e2e8f0; color: #475569;">本数字</div>
+                    <div class="ball-container">
+                        {"".join([f'<span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">{n}</span>' for n in latest_data['main']])}
+                    </div>
+                </div>
+                <div class="numbers-row" style="margin-bottom: 0;">
+                    <div class="row-label" style="background-color: #dcfce7; color: #16a34a;">ボーナス</div>
+                    <div class="ball-container">
+                        {"".join([f'<span class="ball" style="background: linear-gradient(135deg, #22c55e, #16a34a);">{n}</span>' for n in latest_data['bonus']])}
+                    </div>
+                </div>
+            </div>
+        </div>
+"""
+
+    # ホット＆コールド部分
+    html += """
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (ホット＆コールド)</h2>
             <div class="hc-container">
@@ -245,6 +265,7 @@ def build_html():
                 <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
                 <tbody>
 """
+    # 履歴テーブル
     for record in history_record:
         res_class = "result-win" if "等" in record.get('best_result', '') else "result-lose"
         html += f"""                    <tr>
