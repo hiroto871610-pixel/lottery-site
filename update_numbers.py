@@ -25,9 +25,10 @@ def generate_numbers_patterns():
 def fetch_latest_result():
     try:
         url = "https://takarakuji.rakuten.co.jp/backnumber/numbers4/"
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         res = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        res.encoding = 'euc-jp'
+        soup = BeautifulSoup(res.text, 'html.parser')
         text = soup.get_text()
 
         kai_match = re.search(r'第\d+回', text)
@@ -36,6 +37,7 @@ def fetch_latest_result():
         date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
         date = date_match.group() if date_match else "最新"
 
+        # 【修正】ルール説明を回避し、きっちり4桁の数字だけを狙う
         win_match = re.search(r'当せん番号\s*(\d{4})', text)
         win_num = win_match.group(1) if win_match else "----"
 
