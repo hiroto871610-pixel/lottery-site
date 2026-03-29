@@ -14,12 +14,12 @@ def generate_all_patterns():
 
 def fetch_latest_result():
     try:
-        # ターゲットをガードの固いみずほ銀行から「楽天宝くじ」に変更
         url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         res = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.content, 'html.parser')
-        text = soup.get_text() # ページ内の文字だけを丸ごと抽出
+        res.encoding = 'euc-jp' # 楽天の文字コードを正確に指定
+        soup = BeautifulSoup(res.text, 'html.parser')
+        text = soup.get_text()
 
         kai_match = re.search(r'第\d+回', text)
         kai = kai_match.group() if kai_match else "最新回"
@@ -27,25 +27,26 @@ def fetch_latest_result():
         date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
         date = date_match.group() if date_match else "最新"
 
-        # 楽天は「3-4-9...」という綺麗な形式なので簡単に抜ける
-        hon_match = re.search(r'本数字\s*([\d\-]+)', text)
+        # 【修正】ルール説明文を無視し、ハイフンで繋がれた本物の数字だけを狙う
+        hon_match = re.search(r'本数字\s*([\d]{1,2}(?:-[\d]{1,2})+)', text)
         main_nums = "----"
         if hon_match:
-            main_nums = ", ".join([n.zfill(2) for n in hon_match.group(1).split('-')])
+            nums = [n.zfill(2) for n in hon_match.group(1).split('-') if n.isdigit()]
+            main_nums = ", ".join(nums)
 
-        bonus_match = re.search(r'ボーナス数字\s*([()\d\s]+)', text)
+        # 【修正】カッコで囲まれた本物のボーナス数字だけを狙う
+        bonus_match = re.search(r'ボーナス数字\s*(\(\d{1,2}\)(?:\s*\(\d{1,2}\))?)', text)
         bonus_nums = ""
         if bonus_match:
             b_nums = re.findall(r'\d+', bonus_match.group(1))
-            if b_nums:
-                bonus_nums = "(B: " + ", ".join([n.zfill(2) for n in b_nums]) + ")"
+            bonus_nums = "(B: " + ", ".join([n.zfill(2) for n in b_nums]) + ")"
 
         print(f"📡 LOTO7 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
 
     except Exception as e:
         print(f"⚠️ LOTO7 データ取得エラー: {e}")
-        return "最新回", "データ取得中", "現在結果を集計中...", ""
+        return "最新回", "データ取得中", "----", ""
 
 def build_html():
     kai, date, main_nums, bonus_nums = fetch_latest_result()
