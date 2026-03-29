@@ -14,41 +14,31 @@ def generate_all_patterns():
 
 def fetch_latest_result():
     try:
-        url = "https://www.mizuhobank.co.jp/retail/takarakuji/loto/loto7/index.html"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-        
-        # 変更点1: 文字化け対策（res.contentを使ってBeautifulSoupに自動判別させる）
+        # ターゲットをガードの固いみずほ銀行から「楽天宝くじ」に変更
+        url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
+        headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(res.content, 'html.parser')
+        text = soup.get_text() # ページ内の文字だけを丸ごと抽出
 
-        # 変更点2: タグの構造を無視して、ページ内の全文字の中から力技で探す
-        all_text = soup.get_text(separator=' ')
-        
-        kai_match = re.search(r'第\s*([0-9]+)\s*回', all_text)
-        kai = f"第{kai_match.group(1)}回" if kai_match else "最新回"
-        
-        date_match = re.search(r'(20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日)', all_text)
-        date = date_match.group(1) if date_match else "最新"
+        kai_match = re.search(r'第\d+回', text)
+        kai = kai_match.group() if kai_match else "最新回"
 
-        # 変更点3: 「本数字」という文字がある表から、1〜2桁の数字だけを順番に抜き出す
+        date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
+        date = date_match.group() if date_match else "最新"
+
+        # 楽天は「3-4-9...」という綺麗な形式なので簡単に抜ける
+        hon_match = re.search(r'本数字\s*([\d\-]+)', text)
         main_nums = "----"
+        if hon_match:
+            main_nums = ", ".join([n.zfill(2) for n in hon_match.group(1).split('-')])
+
+        bonus_match = re.search(r'ボーナス数字\s*([()\d\s]+)', text)
         bonus_nums = ""
-        hon_tags = soup.find_all(string=re.compile('本数字'))
-        
-        for tag in hon_tags:
-            table = tag.find_parent('table')
-            if table:
-                tds = table.find_all('td')
-                nums = []
-                for td in tds:
-                    num_str = re.sub(r'\D', '', td.get_text())
-                    if num_str and len(num_str) <= 2: # 1桁か2桁の数字のみ（金額や日付を除外）
-                        nums.append(num_str.zfill(2))
-                
-                if len(nums) >= 9: # ロト7は本数字7個＋ボーナス2個＝最初に出現する9個が正解
-                    main_nums = ", ".join(nums[:7])
-                    bonus_nums = f"(B: {nums[7]}, {nums[8]})"
-                    break
+        if bonus_match:
+            b_nums = re.findall(r'\d+', bonus_match.group(1))
+            if b_nums:
+                bonus_nums = "(B: " + ", ".join([n.zfill(2) for n in b_nums]) + ")"
 
         print(f"📡 LOTO7 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
