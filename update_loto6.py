@@ -14,30 +14,29 @@ def generate_loto6_patterns():
 
 def fetch_latest_result():
     try:
-        url = "https://www.mizuhobank.co.jp/retail/takarakuji/loto/loto6/index.html"
-        res = requests.get(url, timeout=10)
-        res.encoding = 'Shift_JIS'
-        soup = BeautifulSoup(res.text, 'html.parser')
+        url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.content, 'html.parser')
+        text = soup.get_text()
 
-        kai_th = soup.find('th', string=re.compile(r'第\d+回'))
-        if not kai_th: raise ValueError("回号が見つかりません")
-        kai = kai_th.text.strip()
-        date_td = kai_th.find_next_sibling('td')
-        date = date_td.text.strip() if date_td else "最新"
+        kai_match = re.search(r'第\d+回', text)
+        kai = kai_match.group() if kai_match else "最新回"
 
-        # 【本番用】本数字とボーナス数字を抽出（6個＋1個）
-        hon_th = soup.find('th', string=re.compile('本数字'))
+        date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
+        date = date_match.group() if date_match else "最新"
+
+        hon_match = re.search(r'本数字\s*([\d\-]+)', text)
         main_nums = "----"
+        if hon_match:
+            main_nums = ", ".join([n.zfill(2) for n in hon_match.group(1).split('-')])
+
+        bonus_match = re.search(r'ボーナス数字\s*([()\d\s]+)', text)
         bonus_nums = ""
-        if hon_th:
-            tr_head = hon_th.find_parent('tr')
-            tr_nums = tr_head.find_next_sibling('tr')
-            if tr_nums:
-                tds = tr_nums.find_all('td')
-                nums = [re.sub(r'\D', '', td.text) for td in tds if re.sub(r'\D', '', td.text)]
-                if len(nums) >= 7:
-                    main_nums = ", ".join(nums[:6])
-                    bonus_nums = f"(B: {nums[6]})"
+        if bonus_match:
+            b_nums = re.findall(r'\d+', bonus_match.group(1))
+            if b_nums:
+                bonus_nums = f"(B: {b_nums[0].zfill(2)})"
 
         print(f"📡 LOTO6 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
