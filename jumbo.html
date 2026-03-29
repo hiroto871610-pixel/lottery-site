@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ジャンボ宝くじ 攻略・吉日カレンダー | 宝くじポータル</title>
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }
+        header { background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }
+        header h1 { margin: 0; font-size: 24px; }
+        
+        nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }
+        nav a { color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }
+        /* ジャンボ用のアクティブカラー（赤） */
+        nav a.active { border-bottom: 3px solid #be123c; color: #be123c; }
+        nav a:hover { background-color: #f0f4f8; }
+
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        
+        .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        /* ジャンボ用の見出しカラー */
+        .section-header { color: #be123c; border-bottom: 2px solid #ffe4e6; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }
+
+        /* カレンダー・買い方エリア */
+        .info-box { background-color: #fff1f2; border: 2px solid #fecdd3; border-radius: 12px; padding: 25px; margin-bottom: 20px;}
+        
+        .strategy-row { 
+            background-color: #ffffff; 
+            border: 2px solid #cbd5e1; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
+        }
+        .strategy-row:last-child { margin-bottom: 0; }
+
+        .strategy-title { font-size: 18px; font-weight: bold; color: #be123c; margin-bottom: 10px; display: flex; align-items: center;}
+        .strategy-title span { background-color: #fecdd3; color: #be123c; font-size: 12px; padding: 3px 8px; border-radius: 12px; margin-left: 10px; }
+
+        /* 吉日カレンダーテーブル */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; color: #475569; font-weight: bold; }
+        .lucky-day { color: #ea580c; font-weight: bold; background-color: #ffedd5; padding: 4px 8px; border-radius: 4px; display: inline-block;}
+        .super-lucky { color: white; font-weight: bold; background-color: #ef4444; padding: 4px 8px; border-radius: 4px; display: inline-block;}
+
+        /* おみくじ（ラッキーナンバー）エリア */
+        .omikuji-box { text-align: center; padding: 20px; background: linear-gradient(135deg, #fef08a, #fde047); border-radius: 8px; border: 2px solid #facc15; }
+        .omikuji-result { font-size: 24px; font-weight: bold; color: #b45309; margin: 15px 0; letter-spacing: 2px; background: white; padding: 10px; border-radius: 8px; display: inline-block;}
+
+        @media (max-width: 600px) {
+            .strategy-row { padding: 15px;}
+        }
+
+        footer { background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>宝くじ当選予想・データ分析ポータル</h1>
+    </header>
+
+    <nav>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html">ロト6</a>
+        <a href="numbers.html">ナンバーズ</a>
+        <a href="jumbo.html" class="active">ジャンボ</a>
+    </nav>
+
+    <div class="container">
+        <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】開運財布や金運アップグッズのアフィリエイト</div>
+
+        <div class="section-card">
+            <h2 class="section-header">🎯 次回のジャンボ宝くじ情報</h2>
+            <div class="info-box" style="text-align: center;">
+                <h3 style="margin-top: 0; color: #be123c; font-size: 24px;">🌸 ドリームジャンボ宝くじ</h3>
+                <p style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">1等・前後賞合わせて 5億円！</p>
+                <p style="color: #666;">発売期間：2026年5月上旬 〜 6月上旬（予定）</p>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">💡 高額当選を狙う！おすすめの買い方</h2>
+            <p>ただ「連番」「バラ」を買うだけじゃない、通な買い方を紹介します。</p>
+            
+            <div class="strategy-row">
+                <div class="strategy-title">縦バラ（3連バラ） <span>人気No.1</span></div>
+                <p style="font-size: 14px; line-height: 1.6;">「バラ」なのに1等と前後賞の両方を狙える買い方です。同じ組で、番号が連続している3枚を10セット（計30枚）購入します。売り場で「縦バラで」と伝えると購入できます。</p>
+            </div>
+            
+            <div class="strategy-row">
+                <div class="strategy-title">特連（とくれん） <span>手堅く回収</span></div>
+                <p style="font-size: 14px; line-height: 1.6;">組は10種類、番号の下2桁が「00」から「99」まで揃うように100枚（3万円分）購入する買い方です。下2桁の当選（6等）が確実に1本入り、最低でも6,000円の回収が保証されます。</p>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">🗓️ 宝くじ購入 吉日カレンダー</h2>
+            <p style="font-size: 14px;">一粒万倍日（いちりゅうまんばいび）や天赦日（てんしゃにち）など、お金にまつわる吉日です。高額当選者がよく購入する日として知られています。</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>吉日の種類</th>
+                        <th>おすすめ度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>〇月〇日 (金)</td>
+                        <td><span class="super-lucky">天赦日 ＋ 一粒万倍日</span></td>
+                        <td>★★★★★ (最強開運日)</td>
+                    </tr>
+                    <tr>
+                        <td>〇月〇日 (月)</td>
+                        <td><span class="lucky-day">一粒万倍日 ＋ 大安</span></td>
+                        <td>★★★★☆</td>
+                    </tr>
+                    <tr>
+                        <td>〇月〇日 (木)</td>
+                        <td><span class="lucky-day">寅の日</span></td>
+                        <td>★★★☆☆ (金運招来日)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">🏆 高額当選がよく出る有名売り場</h2>
+            <p style="font-size: 14px; line-height: 1.6;">全国には「伝説」と呼ばれる宝くじ売り場が存在します。東京の「西銀座チャンスセンター」や、大阪の「大阪駅前第4ビル特設売場」などが有名ですが、例えば北海道にお住まいの方や旅行中の方なら、札幌の<strong>「大通地下チャンスセンター」</strong>なども高額当選が連発する激アツスポットとして全国的に知られています。</p>
+            
+            <div class="omikuji-box" style="margin-top: 30px;">
+                <h3 style="margin-top: 0; color: #854d0e;">🔮 今日のあなたのラッキーナンバー</h3>
+                <p style="font-size: 14px; color: #a16207;">自分で選べる売り場で買うときの参考に！</p>
+                <div class="omikuji-result">組：<span style="color:#ef4444;">68</span>組 / 下1桁：<span style="color:#ef4444;">3</span></div>
+                <p style="font-size: 12px; color: #a16207; margin-bottom: 0;">※ページを見るたびに変わります</p>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p><strong>【免責事項】</strong><br>当サイトの情報は高額当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const kumi = Math.floor(Math.random() * 100) + 1; // 1〜100組
+            const keta = Math.floor(Math.random() * 10);      // 0〜9
+            const resultDiv = document.querySelector('.omikuji-result');
+            resultDiv.innerHTML = `組：<span style="color:#ef4444;">${kumi.toString().padStart(2, '0')}</span>組 / 下1桁：<span style="color:#ef4444;">${keta}</span>`;
+        });
+    </script>
+</body>
+</html>
