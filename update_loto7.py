@@ -26,9 +26,9 @@ new_html_content += '\n            </div>'
 with open('loto7.html', 'r', encoding='utf-8') as file:
     html_data = file.read()
 
-# 4. 超安全な書き換えロジック（ハサミで切って間に挟む方式）
-start_marker = ""
-end_marker = ""
+# 4. 超安全な書き換えロジック（コピペ対策で文字列を分割して定義）
+start_marker = "<" + "!-- PREDICTION_START --" + ">"
+end_marker = "<" + "!-- PREDICTION_END --" + ">"
 
 if start_marker in html_data and end_marker in html_data:
     # 目印より「前」のHTMLと、「後」のHTMLを切り分ける
