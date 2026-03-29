@@ -3,58 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宝くじ予想・データ分析ポータル</title>
+    <title>宝くじ当選予想・データ分析ポータル</title>
     <style>
-        /* サイトの見た目（デザイン）を整える部分です */
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
-        header { background-color: #ff9800; color: white; padding: 30px 20px; text-align: center; }
-        header h1 { margin: 0; font-size: 28px; }
-        nav { display: flex; justify-content: center; background-color: #333; flex-wrap: wrap; }
-        nav a { color: white; padding: 15px 20px; text-decoration: none; font-weight: bold; }
-        nav a:hover { background-color: #555; }
-        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        /* 全体の基本設定 */
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }
+        header { background-color: #1e3a8a; color: white; padding: 40px 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 32px; letter-spacing: 2px; }
+        header p { margin-top: 10px; opacity: 0.8; }
         
-        /* 収益化のための広告スペース用デザイン */
-        .ad-space { background-color: #f9f9f9; padding: 20px; text-align: center; margin-bottom: 30px; color: #999; border: 2px dashed #ccc; font-size: 14px;}
+        /* ナビゲーションメニュー */
+        nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+        nav a { color: #1e3a8a; padding: 15px 25px; text-decoration: none; font-weight: bold; transition: background-color 0.3s; border-bottom: 3px solid transparent; }
+        nav a:hover { background-color: #f0f4f8; border-bottom: 3px solid #1e3a8a; }
+
+        /* メインコンテンツ枠 */
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
         
-        .lottery-section { margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .lottery-section h2 { border-left: 5px solid #ff9800; padding-left: 10px; }
-        .generate-btn { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; display: block; margin: 20px auto; width: 80%; max-width: 300px; font-weight: bold;}
-        .generate-btn:hover { background-color: #45a049; }
-        .result-box { text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #e53935; min-height: 40px; margin-top: 15px;}
+        /* 広告スペース */
+        .ad-space { background-color: #e2e8f0; padding: 30px; text-align: center; margin-bottom: 30px; border-radius: 8px; color: #64748b; border: 2px dashed #cbd5e1; font-size: 14px;}
+        
+        /* 各宝くじのセクション */
+        .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .section-card h2 { border-left: 6px solid #1e3a8a; padding-left: 15px; margin-top: 0; font-size: 24px; color: #1e3a8a; }
+        
+        /* ロト7専用カラー */
+        #loto7 h2 { border-left-color: #d97706; color: #d97706; }
+        /* ロト6専用カラー */
+        #loto6 h2 { border-left-color: #0284c7; color: #0284c7; }
+        /* ナンバーズ専用カラー */
+        #numbers h2 { border-left-color: #16a34a; color: #16a34a; }
+        /* ジャンボ専用カラー */
+        #jumbo h2 { border-left-color: #be123c; color: #be123c; }
+
+        /* 予想生成ボタン */
+        .btn { display: block; width: 100%; max-width: 350px; margin: 20px auto; padding: 15px; font-size: 18px; font-weight: bold; color: white; background-color: #2563eb; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4); }
+        .btn:active { transform: translateY(0); }
+        
+        /* ボタンの色分け */
+        .btn-loto7 { background-color: #f59e0b; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3); }
+        .btn-loto6 { background-color: #0ea5e9; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.3); }
+        .btn-numbers { background-color: #22c55e; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.3); }
+
+        /* 結果表示エリア */
+        .result-display { background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 8px; color: #334155; min-height: 40px; margin-top: 15px; }
+
+        /* フッター（免責事項など） */
+        footer { background-color: #333; color: #ccc; text-align: center; padding: 30px 20px; margin-top: 50px; font-size: 12px; line-height: 1.6; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>宝くじ当選予想＆データ分析</h1>
-        <p>ロト・ナンバーズ・ジャンボ宝くじの攻略ポータルサイト</p>
+        <h1>宝くじ当選予想・データ分析ポータル</h1>
+        <p>独自のアルゴリズムで、あなたの高額当選をサポート</p>
     </header>
 
     <nav>
         <a href="#loto7">ロト7</a>
         <a href="#loto6">ロト6</a>
         <a href="#numbers">ナンバーズ</a>
-        <a href="#jumbo">ジャンボ宝くじ</a>
+        <a href="#jumbo">ジャンボ</a>
     </nav>
 
     <div class="container">
         <div class="ad-space">
-            ここにGoogle AdSenseや、開運グッズ・占い等のアフィリエイト広告を配置します
+            【広告エリア】Google AdSense（バナー広告）を配置します
         </div>
 
-        <div id="loto7" class="lottery-section">
-            <h2>🎰 ロト7 予想アルゴリズム</h2>
-            <p>独自のデータ分析に基づき、次回の推奨ナンバーを生成します。</p>
-            <button class="generate-btn">今日の予想番号を生成</button>
-            <div class="result-box">-- -- -- -- -- -- --</div>
+        <div id="loto7" class="section-card">
+            <h2>🎰 ロト7 (LOTO7) 予想</h2>
+            <p>1〜37の数字の中から7個の数字を選びます。キャリーオーバー発生時の爆発力が魅力です。</p>
+            <button class="btn btn-loto7">ロト7の予想番号を生成</button>
+            <div class="result-display">-- -- -- -- -- -- --</div>
         </div>
 
-        <div id="jumbo" class="lottery-section">
-            <h2>🎯 ジャンボ宝くじ特集</h2>
-            <p>今年の吉日カレンダーと、当たりやすい買い方のコツ（縦バラ・特バラなど）を解説します。</p>
+        <div id="loto6" class="section-card">
+            <h2>🎲 ロト6 (LOTO6) 予想</h2>
+            <p>1〜43の数字の中から6個の数字を選びます。週2回チャンスがある人気のくじです。</p>
+            <button class="btn btn-loto6">ロト6の予想番号を生成</button>
+            <div class="result-display">-- -- -- -- -- --</div>
+        </div>
+
+        <div id="numbers" class="section-card">
+            <h2>🔢 ナンバーズ3 ＆ ナンバーズ4 予想</h2>
+            <p>平日毎日抽選！独自の出現パターン分析から今日のストレート・ボックスを狙います。</p>
+            
+            <h3 style="margin-top:30px;">ナンバーズ4 (4桁)</h3>
+            <button class="btn btn-numbers">ナンバーズ4を生成</button>
+            <div class="result-display" style="letter-spacing: 15px;">----</div>
+
+            <h3 style="margin-top:30px;">ナンバーズ3 (3桁)</h3>
+            <button class="btn btn-numbers">ナンバーズ3を生成</button>
+            <div class="result-display" style="letter-spacing: 15px;">---</div>
+        </div>
+
+        <div class="ad-space">
+            【広告エリア】金運アップグッズや占いサイトのアフィリエイトリンクを配置します
+        </div>
+
+        <div id="jumbo" class="section-card">
+            <h2>🎯 ジャンボ宝くじ 特設ページ</h2>
+            <p>バレンタイン、ドリーム、サマー、ハロウィン、年末ジャンボの攻略情報です。</p>
+            <ul>
+                <li>今年の最強の吉日（一粒万倍日・天赦日）カレンダー</li>
+                <li>「縦バラ」「特バラ」など、確率を上げる買い方解説</li>
+                <li>過去の高額当選売り場データ分析</li>
+            </ul>
+            <p style="color: #666; font-size: 14px;">※ジャンボ宝くじのコンテンツは随時更新予定です。</p>
         </div>
     </div>
+
+    <footer>
+        <p><strong>【免責事項】</strong><br>
+        当サイトで提供する予想番号および分析データは、宝くじの当選を保証するものではありません。<br>
+        くじの購入はご自身の自己責任で行っていただきますようお願いいたします。<br>
+        当サイトの利用により生じた損害について、運営者は一切の責任を負いません。</p>
+        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+    </footer>
 
 </body>
 </html>
