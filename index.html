@@ -1,1 +1,60 @@
-<h1>宝くじ予想サイトのテスト画面です</h1>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝くじ予想・データ分析ポータル</title>
+    <style>
+        /* サイトの見た目（デザイン）を整える部分です */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
+        header { background-color: #ff9800; color: white; padding: 30px 20px; text-align: center; }
+        header h1 { margin: 0; font-size: 28px; }
+        nav { display: flex; justify-content: center; background-color: #333; flex-wrap: wrap; }
+        nav a { color: white; padding: 15px 20px; text-decoration: none; font-weight: bold; }
+        nav a:hover { background-color: #555; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* 収益化のための広告スペース用デザイン */
+        .ad-space { background-color: #f9f9f9; padding: 20px; text-align: center; margin-bottom: 30px; color: #999; border: 2px dashed #ccc; font-size: 14px;}
+        
+        .lottery-section { margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .lottery-section h2 { border-left: 5px solid #ff9800; padding-left: 10px; }
+        .generate-btn { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; display: block; margin: 20px auto; width: 80%; max-width: 300px; font-weight: bold;}
+        .generate-btn:hover { background-color: #45a049; }
+        .result-box { text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #e53935; min-height: 40px; margin-top: 15px;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>宝くじ当選予想＆データ分析</h1>
+        <p>ロト・ナンバーズ・ジャンボ宝くじの攻略ポータルサイト</p>
+    </header>
+
+    <nav>
+        <a href="#loto7">ロト7</a>
+        <a href="#loto6">ロト6</a>
+        <a href="#numbers">ナンバーズ</a>
+        <a href="#jumbo">ジャンボ宝くじ</a>
+    </nav>
+
+    <div class="container">
+        <div class="ad-space">
+            ここにGoogle AdSenseや、開運グッズ・占い等のアフィリエイト広告を配置します
+        </div>
+
+        <div id="loto7" class="lottery-section">
+            <h2>🎰 ロト7 予想アルゴリズム</h2>
+            <p>独自のデータ分析に基づき、次回の推奨ナンバーを生成します。</p>
+            <button class="generate-btn">今日の予想番号を生成</button>
+            <div class="result-box">-- -- -- -- -- -- --</div>
+        </div>
+
+        <div id="jumbo" class="lottery-section">
+            <h2>🎯 ジャンボ宝くじ特集</h2>
+            <p>今年の吉日カレンダーと、当たりやすい買い方のコツ（縦バラ・特バラなど）を解説します。</p>
+        </div>
+    </div>
+
+</body>
+</html>
