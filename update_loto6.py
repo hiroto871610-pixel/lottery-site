@@ -3,19 +3,15 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-# 1. 予想番号を生成（ロト6は1〜43から6個）
 def generate_loto6_patterns():
-    html = '            \n'
-    html += '            <div class="prediction-box">\n'
+    html = '            \n            <div class="prediction-box">\n'
     for label in ['予想A', '予想B', '予想C', '予想D', '予想E']:
         nums = [str(n).zfill(2) for n in sorted(random.sample(range(1, 44), 6))]
         balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
         html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div></div>\n'
-    html += '            </div>\n'
-    html += '            '
+    html += '            </div>\n            '
     return html
 
-# 2. 最新の抽選結果を取得（スクレイピング）
 def fetch_latest_result():
     try:
         url = "https://www.mizuhobank.co.jp/retail/takarakuji/loto/loto6/index.html"
@@ -24,27 +20,34 @@ def fetch_latest_result():
         soup = BeautifulSoup(res.text, 'html.parser')
 
         kai_th = soup.find('th', string=re.compile(r'第\d+回'))
-        if not kai_th:
-            raise ValueError("回号が見つかりません")
-        
+        if not kai_th: raise ValueError("回号が見つかりません")
         kai = kai_th.text.strip()
         date_td = kai_th.find_next_sibling('td')
         date = date_td.text.strip() if date_td else "最新"
 
-        # デモ用のダミー取得（本格運用時はここを精緻化します）
-        main_nums = "02, 14, 19, 28, 33, 41" 
-        bonus_nums = "(B: 08)"
-        
-        print(f"📡 ロト6 データ取得成功: {kai} ({date})")
+        # 【本番用】本数字とボーナス数字を抽出（6個＋1個）
+        hon_th = soup.find('th', string=re.compile('本数字'))
+        main_nums = "----"
+        bonus_nums = ""
+        if hon_th:
+            tr_head = hon_th.find_parent('tr')
+            tr_nums = tr_head.find_next_sibling('tr')
+            if tr_nums:
+                tds = tr_nums.find_all('td')
+                nums = [re.sub(r'\D', '', td.text) for td in tds if re.sub(r'\D', '', td.text)]
+                if len(nums) >= 7:
+                    main_nums = ", ".join(nums[:6])
+                    bonus_nums = f"(B: {nums[6]})"
+
+        print(f"📡 LOTO6 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
+
     except Exception as e:
-        print(f"⚠️ ロト6 データ取得エラー: {e}")
+        print(f"⚠️ LOTO6 データ取得エラー: {e}")
         return "最新回", "データ取得中", "現在結果を集計中...", ""
 
-# 3. HTML構築と保存
 def build_html():
     kai, date, main_nums, bonus_nums = fetch_latest_result()
-    
     template_before = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -98,9 +101,7 @@ def build_html():
             <h2 class="section-header">🎯 次回 ロト6 の予想</h2>
             <p>過去データに基づく高確率アルゴリズムが導き出した推奨5パターンです。</p>
 """
-
-    template_after = f"""
-        </div>
+    template_after = f"""        </div>
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (ホット＆コールド)</h2>
             <div class="hc-container">
@@ -125,11 +126,7 @@ def build_html():
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>"""
-    
     return template_before + generate_loto6_patterns() + template_after
 
-final_html = build_html()
-with open('loto6.html', 'w', encoding='utf-8') as f:
-    f.write(final_html)
-
-print("✨ ロト6 のスクレイピング＆自動更新が完了しました！")
+with open('loto6.html', 'w', encoding='utf-8') as f: f.write(build_html())
+print("✨ [本番データ] ロト6 の更新が完了しました！")
