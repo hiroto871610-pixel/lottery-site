@@ -8,62 +8,22 @@
         body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }
         header { background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }
         header h1 { margin: 0; font-size: 24px; }
-        
         nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }
         nav a { color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }
-        /* ナンバーズ用のアクティブカラー（グリーン） */
         nav a.active { border-bottom: 3px solid #16a34a; color: #16a34a; }
         nav a:hover { background-color: #f0f4f8; }
-
         .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-        
         .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        /* ナンバーズ用の見出しカラー */
         .section-header { color: #16a34a; border-bottom: 2px solid #dcfce7; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }
-
-        /* ナンバーズ用の予想エリア背景（薄い緑） */
         .prediction-box { background-color: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 25px; margin-bottom: 20px;}
-        
-        .numbers-row { 
-            background-color: #ffffff; 
-            border: 2px solid #cbd5e1; 
-            border-radius: 8px; 
-            padding: 15px 20px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
-            display: flex; 
-            align-items: center;
-        }
-        .numbers-row:last-child { margin-bottom: 0; }
-
-        .row-label {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e3a8a;
-            background-color: #e0e7ff;
-            padding: 5px 15px;
-            border-radius: 4px;
-            margin-right: 20px;
-            min-width: 60px;
-            text-align: center;
-        }
-
+        .numbers-row { background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; align-items: center; }
+        .row-label { font-size: 18px; font-weight: bold; color: #1e3a8a; background-color: #e0e7ff; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }
         .ball-container { display: flex; gap: 12px; flex-wrap: wrap; margin-right: auto;}
-        /* ナンバーズ用のボールカラー（グリーンのグラデーション） */
-        .ball { display: inline-flex; justify-content: center; align-items: center; width: 45px; height: 45px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 8px; /* ロトと違い四角っぽい形に */ font-size: 24px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }
-
-        /* ストレート・ボックスの推奨表示 */
-        .recommend-tag { font-size: 14px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-left: 10px; }
+        .ball { display: inline-flex; justify-content: center; align-items: center; width: 45px; height: 45px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 8px; font-size: 24px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }
+        .recommend-tag { font-size: 14px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-left: 10px; white-space: nowrap;}
         .tag-straight { background-color: #fee2e2; color: #ef4444; border: 1px solid #fca5a5;}
         .tag-box { background-color: #e0f2fe; color: #0ea5e9; border: 1px solid #7dd3fc;}
-
-        @media (max-width: 600px) {
-            .numbers-row { flex-direction: column; align-items: flex-start; padding: 15px;}
-            .row-label { margin-bottom: 10px; }
-            .ball { width: 40px; height: 40px; font-size: 20px;}
-            .recommend-tag { margin-left: 0; margin-top: 10px; }
-        }
-
+        @media (max-width: 600px) { .numbers-row { flex-direction: column; align-items: flex-start; padding: 15px;} .row-label { margin-bottom: 10px; } .ball { width: 40px; height: 40px; font-size: 20px;} .recommend-tag { margin-left: 0; margin-top: 10px; } }
         .hc-container { display: flex; gap: 20px; flex-wrap: wrap; }
         .hc-box { flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; }
         .hot-box { background-color: #fee2e2; border: 1px solid #fca5a5; }
@@ -72,22 +32,15 @@
         .hc-number { display: inline-block; padding: 5px 15px; margin: 3px; border-radius: 4px; font-weight: bold; background: white; font-size: 18px;}
         .hot-box .hc-number { color: #ef4444; border: 1px solid #ef4444; }
         .cold-box .hc-number { color: #0ea5e9; border: 1px solid #0ea5e9; }
-
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; text-align: center; }
         th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; color: #475569; font-weight: bold; }
         .result-win { color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 4px 8px; border-radius: 4px; }
-        .result-lose { color: #94a3b8; }
-
         footer { background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }
     </style>
 </head>
 <body>
-
-    <header>
-        <h1>宝くじ当選予想・データ分析ポータル</h1>
-    </header>
-
+    <header><h1>宝くじ当選予想・データ分析ポータル</h1></header>
     <nav>
         <a href="index.html">トップ</a>
         <a href="loto7.html">ロト7</a>
@@ -95,117 +48,41 @@
         <a href="numbers.html" class="active">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
     </nav>
-
     <div class="container">
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
-
         <div class="section-card">
-            <h2 class="section-header">🔢 第0000回 ナンバーズ4 (〇月〇日 抽選) 予想</h2>
-            <p>0〜9の数字から4桁を算出。ストレート狙いとボックス狙いの両方に対応した5パターンです。</p>
             
+            <h2 class="section-header" style="margin-top: 0;">🔢 第0000回 ナンバーズ4 予想</h2>
             <div class="prediction-box">
-                <div class="numbers-row">
-                    <div class="row-label">予想A</div>
-                    <div class="ball-container">
-                        <span class="ball">7</span><span class="ball">2</span><span class="ball">9</span><span class="ball">4</span>
-                    </div>
-                    <span class="recommend-tag tag-straight">ストレート推奨</span>
-                </div>
-                <div class="numbers-row">
-                    <div class="row-label">予想B</div>
-                    <div class="ball-container">
-                        <span class="ball">3</span><span class="ball">8</span><span class="ball">1</span><span class="ball">5</span>
-                    </div>
-                    <span class="recommend-tag tag-box">ボックス推奨</span>
-                </div>
-                <div class="numbers-row">
-                    <div class="row-label">予想C</div>
-                    <div class="ball-container">
-                        <span class="ball">0</span><span class="ball">4</span><span class="ball">6</span><span class="ball">6</span>
-                    </div>
-                    <span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span>
-                </div>
+                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">2</span><span class="ball">6</span><span class="ball">0</span><span class="ball">4</span></div><span class="recommend-tag tag-straight">ストレート推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">7</span><span class="ball">9</span><span class="ball">5</span><span class="ball">6</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">7</span><span class="ball">2</span><span class="ball">1</span><span class="ball">6</span></div><span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span></div>
             </div>
-        </div>
-
-        <div class="section-card">
-            <h2 class="section-header">🔢 第0000回 ナンバーズ3 (〇月〇日 抽選) 予想</h2>
-            <p>手堅く狙える3桁予想。独自のホットナンバー分析を加味しています。</p>
+            <h2 class="section-header" style="margin-top: 40px;">🔢 第0000回 ナンバーズ3 予想</h2>
+            <div class="prediction-box">
+                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">4</span><span class="ball">1</span><span class="ball">0</span></div><span class="recommend-tag tag-straight">ストレート推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">3</span><span class="ball">6</span><span class="ball">4</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">7</span><span class="ball">0</span><span class="ball">7</span></div><span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span></div>
+            </div>
             
-            <div class="prediction-box">
-                <div class="numbers-row">
-                    <div class="row-label">予想A</div>
-                    <div class="ball-container">
-                        <span class="ball">5</span><span class="ball">1</span><span class="ball">8</span>
-                    </div>
-                    <span class="recommend-tag tag-straight">ストレート推奨</span>
-                </div>
-                <div class="numbers-row">
-                    <div class="row-label">予想B</div>
-                    <div class="ball-container">
-                        <span class="ball">9</span><span class="ball">0</span><span class="ball">2</span>
-                    </div>
-                    <span class="recommend-tag tag-box">ボックス推奨</span>
-                </div>
-                <div class="numbers-row">
-                    <div class="row-label">予想C</div>
-                    <div class="ball-container">
-                        <span class="ball">7</span><span class="ball">7</span><span class="ball">3</span>
-                    </div>
-                    <span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span>
-                </div>
-            </div>
         </div>
-
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (0〜9の数字)</h2>
-            <p style="font-size: 14px; margin-top: -10px; margin-bottom: 15px;">※ナンバーズ4の全桁の合計出現回数です。</p>
             <div class="hc-container">
-                <div class="hc-box hot-box">
-                    <div class="hc-title">🔥 よく出ている数字 (HOT)</div>
-                    <span class="hc-number">7 (12回)</span>
-                    <span class="hc-number">2 (10回)</span>
-                    <span class="hc-number">9 (9回)</span>
-                </div>
-                <div class="hc-box cold-box">
-                    <div class="hc-title">❄️ 出ていない数字 (COLD)</div>
-                    <span class="hc-number">4 (1回)</span>
-                    <span class="hc-number">1 (2回)</span>
-                    <span class="hc-number">6 (3回)</span>
-                </div>
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字</div><span class="hc-number">7 (12回)</span><span class="hc-number">2 (10回)</span></div>
+                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字</div><span class="hc-number">4 (1回)</span><span class="hc-number">1 (2回)</span></div>
             </div>
         </div>
-
         <div class="section-card">
-            <h2 class="section-header">📝 過去の予想実績 (ナンバーズ4)</h2>
+            <h2 class="section-header">📝 過去の予想実績</h2>
             <table>
-                <thead>
-                    <tr>
-                        <th>回号 (抽選日)</th>
-                        <th>当選番号</th>
-                        <th>当サイトの最高成績</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>回号</th><th>当選番号</th><th>当サイトの最高成績</th></tr></thead>
                 <tbody>
-                    <tr>
-                        <td>第6432回 (3/28)</td>
-                        <td style="font-weight: bold; letter-spacing: 2px;">8153</td>
-                        <td><span class="result-win">ボックス的中 (予想B: 3815)</span></td>
-                    </tr>
-                    <tr>
-                        <td>第6431回 (3/27)</td>
-                        <td style="font-weight: bold; letter-spacing: 2px;">2940</td>
-                        <td><span class="result-lose">ハズレ</span></td>
-                    </tr>
+                    <tr><td>第6432回</td><td style="font-weight: bold; letter-spacing: 2px;">8153</td><td><span class="result-win">ボックス的中</span></td></tr>
                 </tbody>
             </table>
         </div>
     </div>
-
-    <footer>
-        <p><strong>【免責事項】</strong><br>当サイトの予想は当選を保証するものではありません。</p>
-        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p>
-    </footer>
-
+    <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>
