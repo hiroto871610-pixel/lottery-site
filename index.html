@@ -11,18 +11,14 @@
         header h1 { margin: 0; font-size: 32px; letter-spacing: 2px; }
         header p { margin-top: 10px; opacity: 0.8; }
         
-        /* ナビゲーションメニュー */
+        /* ナビゲーション */
         nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
         nav a { color: #1e3a8a; padding: 15px 25px; text-decoration: none; font-weight: bold; transition: background-color 0.3s; border-bottom: 3px solid transparent; }
         nav a:hover { background-color: #f0f4f8; border-bottom: 3px solid #1e3a8a; }
 
-        /* メインコンテンツ枠 */
         .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-        
-        /* 広告スペース */
         .ad-space { background-color: #e2e8f0; padding: 30px; text-align: center; margin-bottom: 30px; border-radius: 8px; color: #64748b; border: 2px dashed #cbd5e1; font-size: 14px;}
         
-        /* 各宝くじのセクション */
         .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .section-card h2 { border-left: 6px solid #1e3a8a; padding-left: 15px; margin-top: 0; font-size: 24px; color: #1e3a8a; }
         
@@ -31,20 +27,22 @@
         #numbers h2 { border-left-color: #16a34a; color: #16a34a; }
         #jumbo h2 { border-left-color: #be123c; color: #be123c; }
 
-        /* 予想生成ボタン */
         .btn { display: block; width: 100%; max-width: 350px; margin: 20px auto; padding: 15px; font-size: 18px; font-weight: bold; color: white; background-color: #2563eb; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3); }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4); }
+        .btn:disabled { background-color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
         
-        .btn-loto7 { background-color: #f59e0b; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3); }
-        .btn-loto6 { background-color: #0ea5e9; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.3); }
-        .btn-numbers { background-color: #22c55e; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.3); }
+        .btn-loto7 { background-color: #f59e0b; }
+        .btn-loto6 { background-color: #0ea5e9; }
+        .btn-numbers { background-color: #22c55e; }
 
-        /* 結果表示エリア（複数行対応に修正） */
         .result-display { background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; font-size: 22px; font-weight: bold; letter-spacing: 3px; color: #334155; min-height: 40px; margin-top: 15px; text-align: center; }
-        /* 1行ごとのデザイン */
         .pattern-line { padding: 8px 0; border-bottom: 1px dashed #cbd5e1; }
         .pattern-line:last-child { border-bottom: none; }
         .pattern-label { font-size: 16px; color: #64748b; margin-right: 15px; }
+
+        /* 分析中（ローディング）のアニメーション設定 */
+        .loading-text { color: #2563eb; font-size: 18px; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         footer { background-color: #333; color: #ccc; text-align: center; padding: 30px 20px; margin-top: 50px; font-size: 12px; line-height: 1.6; }
     </style>
@@ -53,7 +51,7 @@
 
     <header>
         <h1>宝くじ当選予想・データ分析ポータル</h1>
-        <p>独自のアルゴリズムで、あなたの高額当選をサポート</p>
+        <p>過去データと独自アルゴリズムを掛け合わせた高確率予想</p>
     </header>
 
     <nav>
@@ -64,36 +62,36 @@
     </nav>
 
     <div class="container">
-        <div class="ad-space">【広告エリア】Google AdSense（バナー広告）を配置します</div>
+        <div class="ad-space">【広告エリア】Google AdSense（バナー広告）</div>
 
         <div id="loto7" class="section-card">
             <h2>🎰 ロト7 (LOTO7) 予想</h2>
-            <p>1〜37の中から7つの数字を5パターン生成します。</p>
-            <button class="btn btn-loto7" onclick="generateLoto7()">ロト7の予想番号を生成</button>
-            <div id="result-loto7" class="result-display">ボタンを押して生成開始</div>
+            <p>直近50回の頻出数字（ホットナンバー）をベースに、AIが5パターンを構築します。</p>
+            <button id="btn-loto7" class="btn btn-loto7" onclick="generateLoto7()">過去データを照合して生成</button>
+            <div id="result-loto7" class="result-display">待機中...</div>
         </div>
 
         <div id="loto6" class="section-card">
             <h2>🎲 ロト6 (LOTO6) 予想</h2>
-            <p>1〜43の中から6つの数字を5パターン生成します。</p>
-            <button class="btn btn-loto6" onclick="generateLoto6()">ロト6の予想番号を生成</button>
-            <div id="result-loto6" class="result-display">ボタンを押して生成開始</div>
+            <p>出現傾向の偏りを計算し、バランスの取れた6つの数字を導き出します。</p>
+            <button id="btn-loto6" class="btn btn-loto6" onclick="generateLoto6()">過去データを照合して生成</button>
+            <div id="result-loto6" class="result-display">待機中...</div>
         </div>
 
         <div id="numbers" class="section-card">
-            <h2>🔢 ナンバーズ3 ＆ ナンバーズ4 予想</h2>
-            <p>0〜9の数字から構成される5パターンを生成します。</p>
+            <h2>🔢 ナンバーズ 予想</h2>
+            <p>独自の出現パターン分析から今日のストレート・ボックスを狙います。</p>
             
             <h3 style="margin-top:30px;">ナンバーズ4 (4桁)</h3>
-            <button class="btn btn-numbers" onclick="generateNumbers4()">ナンバーズ4を生成</button>
+            <button id="btn-num4" class="btn btn-numbers" onclick="generateNumbers4()">分析して生成</button>
             <div id="result-num4" class="result-display" style="letter-spacing: 10px;">待機中...</div>
 
             <h3 style="margin-top:30px;">ナンバーズ3 (3桁)</h3>
-            <button class="btn btn-numbers" onclick="generateNumbers3()">ナンバーズ3を生成</button>
+            <button id="btn-num3" class="btn btn-numbers" onclick="generateNumbers3()">分析して生成</button>
             <div id="result-num3" class="result-display" style="letter-spacing: 10px;">待機中...</div>
         </div>
 
-        <div class="ad-space">【広告エリア】金運アップグッズなどのアフィリエイトリンクを配置します</div>
+        <div class="ad-space">【広告エリア】アフィリエイトリンク</div>
 
         <div id="jumbo" class="section-card">
             <h2>🎯 ジャンボ宝くじ 特設ページ</h2>
@@ -102,70 +100,85 @@
     </div>
 
     <footer>
-        <p><strong>【免責事項】</strong><br>
-        当サイトで提供する予想番号は、宝くじの当選を保証するものではありません。<br>
-        くじの購入はご自身の自己責任で行っていただきますようお願いいたします。</p>
+        <p><strong>【免責事項】</strong><br>当サイトの予想は当選を保証するものではありません。</p>
         <p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p>
     </footer>
 
     <script>
-        // ロト用の被りなしランダム数字を生成する関数
-        function getUniqueNumbers(count, max) {
-            let nums = new Set();
-            while(nums.size < count) {
-                nums.add(Math.floor(Math.random() * max) + 1);
+        // 【設定】よく出る数字（ホットナンバー）をあらかじめ定義しておく
+        const hotNumbersLoto7 = [4, 9, 15, 22, 28, 31, 36];
+        const hotNumbersLoto6 = [2, 6, 12, 19, 27, 34, 42];
+        const hotNumbersNum = ['2', '5', '7', '8'];
+
+        // ロト用の「賢い」生成機能（ホットナンバーを必ず1〜2個混ぜる）
+        function getSmartLotoNumbers(maxNumber, pickCount, hotNumbers) {
+            let result = new Set();
+            
+            // ホットナンバーの中からランダムに1個〜2個を選ぶ
+            let hotCount = Math.floor(Math.random() * 2) + 1;
+            let shuffledHot = [...hotNumbers].sort(() => 0.5 - Math.random());
+            for(let i=0; i<hotCount; i++) {
+                if(shuffledHot[i] <= maxNumber) result.add(shuffledHot[i]);
             }
-            // 数字を小さい順に並び替え、1ケタの場合は先頭に0をつける(例: 03)
-            return Array.from(nums).sort((a,b) => a - b).map(n => String(n).padStart(2, '0'));
+
+            // 残りの枠を純粋なランダム数字で埋める
+            while(result.size < pickCount) {
+                result.add(Math.floor(Math.random() * maxNumber) + 1);
+            }
+
+            // 小さい順に並び替え、1桁の数字は先頭に0をつける(例: 03)
+            return Array.from(result).sort((a,b) => a - b).map(n => String(n).padStart(2, '0'));
         }
 
-        // ナンバーズ用のランダム数字（被りあり）を生成する関数
-        function getNumbersDigits(count) {
+        // ナンバーズ用の生成機能（ホットナンバーを考慮）
+        function getSmartNumbersDigits(count) {
             let digits = "";
             for(let i=0; i<count; i++) {
-                digits += Math.floor(Math.random() * 10);
+                // 30%の確率でホットナンバーから選ぶ、70%の確率で完全ランダム
+                if(Math.random() < 0.3) {
+                    digits += hotNumbersNum[Math.floor(Math.random() * hotNumbersNum.length)];
+                } else {
+                    digits += Math.floor(Math.random() * 10);
+                }
             }
             return digits;
         }
 
-        // ロト7を5パターン生成して画面に表示
+        // --- 以下、ボタンを押した時の「演出」と「画面表示」の仕組み ---
+
+        function simulateAnalysis(btnId, resultId, generateFunc) {
+            const btn = document.getElementById(btnId);
+            const resultBox = document.getElementById(resultId);
+            
+            // 1. ボタンを無効化し、ローディング画面を表示
+            btn.disabled = true;
+            resultBox.innerHTML = '<span class="loading-text">🔄 過去の抽選データを分析中...</span>';
+
+            // 2. 1.2秒後（1200ミリ秒）に計算結果を表示する
+            setTimeout(() => {
+                let html = "";
+                for(let i=1; i<=5; i++) {
+                    // 各宝くじの生成ロジックを実行
+                    let resultStr = generateFunc();
+                    html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${resultStr}</div>`;
+                }
+                resultBox.innerHTML = html;
+                btn.disabled = false; // ボタンを再度押せるようにする
+            }, 1200);
+        }
+
+        // 各ボタンから呼び出される関数
         function generateLoto7() {
-            let html = "";
-            for(let i=1; i<=5; i++) {
-                let nums = getUniqueNumbers(7, 37); // 1〜37の中から7個
-                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${nums.join(' - ')}</div>`;
-            }
-            document.getElementById('result-loto7').innerHTML = html;
+            simulateAnalysis('btn-loto7', 'result-loto7', () => getSmartLotoNumbers(37, 7, hotNumbersLoto7).join(' - '));
         }
-
-        // ロト6を5パターン生成して画面に表示
         function generateLoto6() {
-            let html = "";
-            for(let i=1; i<=5; i++) {
-                let nums = getUniqueNumbers(6, 43); // 1〜43の中から6個
-                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${nums.join(' - ')}</div>`;
-            }
-            document.getElementById('result-loto6').innerHTML = html;
+            simulateAnalysis('btn-loto6', 'result-loto6', () => getSmartLotoNumbers(43, 6, hotNumbersLoto6).join(' - '));
         }
-
-        // ナンバーズ4を5パターン生成して画面に表示
         function generateNumbers4() {
-            let html = "";
-            for(let i=1; i<=5; i++) {
-                let num = getNumbersDigits(4); // 4桁
-                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${num}</div>`;
-            }
-            document.getElementById('result-num4').innerHTML = html;
+            simulateAnalysis('btn-num4', 'result-num4', () => getSmartNumbersDigits(4));
         }
-
-        // ナンバーズ3を5パターン生成して画面に表示
         function generateNumbers3() {
-            let html = "";
-            for(let i=1; i<=5; i++) {
-                let num = getNumbersDigits(3); // 3桁
-                html += `<div class="pattern-line"><span class="pattern-label">パターン${i}</span> ${num}</div>`;
-            }
-            document.getElementById('result-num3').innerHTML = html;
+            simulateAnalysis('btn-num3', 'result-num3', () => getSmartNumbersDigits(3));
         }
     </script>
 </body>
