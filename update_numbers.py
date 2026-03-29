@@ -1,7 +1,6 @@
 import random
 import requests
 from bs4 import BeautifulSoup
-import re
 
 def generate_numbers_patterns():
     html = '            \n'
@@ -22,34 +21,49 @@ def generate_numbers_patterns():
     html += '            </div>\n            '
     return html
 
-def fetch_latest_result():
+# 汎用的にデータを取得する関数（URLと名前を渡すと取得してくれる）
+def fetch_single_numbers(url, name):
     try:
-        url = "https://takarakuji.rakuten.co.jp/backnumber/numbers4/"
         headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=10)
+        res.encoding = 'euc-jp'
         soup = BeautifulSoup(res.content, 'html.parser')
         
-        text = soup.get_text(separator=' ')
+        table = soup.find('table')
+        kai, date, win_num = "最新回", "最新", "----"
         
-        # res.contentのおかげで文字化けが直っているので、正規表現で確実に抜く
-        kai_match = re.search(r'第\s*(\d+)\s*回', text)
-        kai = f"第{kai_match.group(1)}回" if kai_match else "最新回"
+        for tr in table.find_all('tr'):
+            text = tr.get_text(strip=True)
+            if '開催回' in text:
+                ths = tr.find_all('th')
+                if len(ths) > 1:
+                    kai = ths[1].get_text(strip=True)
+            elif '抽せん日' in text:
+                date_td = tr.find('td')
+                if date_td: date = date_td.get_text(strip=True)
+            elif '当せん番号' in text:
+                win_td = tr.find('td')
+                if win_td: win_num = win_td.get_text(strip=True)
+                break
 
-        date_match = re.search(r'(\d{4})\s*/\s*(\d{2})\s*/\s*(\d{2})', text)
-        date = f"{date_match.group(1)}/{date_match.group(2)}/{date_match.group(3)}" if date_match else "最新"
-
-        win_match = re.search(r'当せん番号\D*(\d{4})', text)
-        win_num = win_match.group(1) if win_match else "----"
-
-        print(f"📡 ナンバーズ4 データ取得成功: {kai} ({date}) | 当選番号: {win_num}")
+        print(f"📡 {name} データ取得成功: {kai} ({date}) | 当選番号: {win_num}")
         return kai, date, win_num
 
     except Exception as e:
-        print(f"⚠️ ナンバーズ データ取得エラー: {e}")
+        print(f"⚠️ {name} データ取得エラー: {e}")
         return "最新回", "データ取得中", "----"
 
+# ナンバーズ4と3の両方を取得する
+def fetch_both_results():
+    print("🔄 ナンバーズのデータ取得を開始します...")
+    n4_kai, n4_date, n4_win = fetch_single_numbers("https://takarakuji.rakuten.co.jp/backnumber/numbers4/lastresults/", "ナンバーズ4")
+    n3_kai, n3_date, n3_win = fetch_single_numbers("https://takarakuji.rakuten.co.jp/backnumber/numbers3/lastresults/", "ナンバーズ3")
+    
+    # ナンバーズは3も4も同じ回号・日付なので、N4のものをベースに返す
+    return n4_kai, n4_date, n4_win, n3_win
+
 def build_html():
-    kai, date, win_num = fetch_latest_result()
+    kai, date, n4_win, n3_win = fetch_both_results()
     template_before = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -115,15 +129,22 @@ def build_html():
         <div class="section-card">
             <h2 class="section-header">📝 最新の抽選結果速報</h2>
             <table>
-                <thead><tr><th>回号 (抽選日)</th><th>当選番号 (ナンバーズ4)</th><th>当サイトの成績照合</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>回号 (抽選日)</th>
+                        <th>ナンバーズ4</th>
+                        <th>ナンバーズ3</th>
+                    </tr>
+                </thead>
                 <tbody>
                     <tr>
                         <td style="font-weight:bold; color:#1e3a8a;">{kai}<br><span style="font-size:12px; font-weight:normal; color:#666;">({date})</span></td>
-                        <td style="font-size:18px; font-weight: bold; letter-spacing: 3px;">{win_num}</td>
-                        <td><span class="result-win">データ集計中...</span></td>
+                        <td style="font-size:22px; font-weight: bold; letter-spacing: 4px; color:#16a34a;">{n4_win}</td>
+                        <td style="font-size:22px; font-weight: bold; letter-spacing: 4px; color:#d97706;">{n3_win}</td>
                     </tr>
                 </tbody>
             </table>
+            <p style="text-align:right; font-size:12px; color:#888; margin-top:10px;">※当サイトの自動成績照合は現在集計中です</p>
         </div>
     </div>
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
@@ -132,4 +153,4 @@ def build_html():
     return template_before + generate_numbers_patterns() + template_after
 
 with open('numbers.html', 'w', encoding='utf-8') as f: f.write(build_html())
-print("✨ [本番データ] ナンバーズ の更新が完了しました！")
+print("✨ [本番データ] ナンバーズ3＆4 のダブル更新が完了しました！")
