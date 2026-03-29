@@ -15,31 +15,47 @@ def generate_all_patterns():
 def fetch_latest_result():
     try:
         url = "https://www.mizuhobank.co.jp/retail/takarakuji/loto/loto7/index.html"
-        res = requests.get(url, timeout=10)
+        # 【追加】普通のブラウザ（Chrome）からのアクセスだと銀行側に思わせる魔法のパスポート
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        res = requests.get(url, headers=headers, timeout=10)
         res.encoding = 'Shift_JIS'
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # 回号と日付を取得
-        kai_th = soup.find('th', string=re.compile(r'第\d+回'))
-        if not kai_th: raise ValueError("回号が見つかりません")
-        kai = kai_th.text.strip()
-        date_td = kai_th.find_next_sibling('td')
-        date = date_td.text.strip() if date_td else "最新"
+        # 【改良】目に見えないスペースや改行を無視して「第〇〇回」を執念深く探す
+        kai = None
+        kai_node = None
+        for node in soup.find_all(['th', 'td']):
+            txt = node.get_text(strip=True)
+            if re.search(r'第\d+回', txt) and len(txt) < 15:
+                kai = re.search(r'第\d+回', txt).group()
+                kai_node = node
+                break
+                
+        if not kai_node: 
+            raise ValueError("回号が見つかりません（銀行のサイト構造が特殊です）")
+            
+        date_node = kai_node.find_next_sibling(['td', 'th'])
+        date = date_node.get_text(strip=True) if date_node else "最新"
 
-        # 【本番用】本数字とボーナス数字をテーブル構造から正確に抽出
-        hon_th = soup.find('th', string=re.compile('本数字'))
+        # 【改良】本数字とボーナス数字の抽出も超柔軟に対応
+        hon_th = None
+        for node in soup.find_all(['th', 'td']):
+            if '本数字' in node.get_text():
+                hon_th = node
+                break
+
         main_nums = "----"
         bonus_nums = ""
         if hon_th:
             tr_head = hon_th.find_parent('tr')
-            tr_nums = tr_head.find_next_sibling('tr')
-            if tr_nums:
-                tds = tr_nums.find_all('td')
-                # tdの中から数字だけを抽出（空文字を除外）
-                nums = [re.sub(r'\D', '', td.text) for td in tds if re.sub(r'\D', '', td.text)]
-                if len(nums) >= 9:
-                    main_nums = ", ".join(nums[:7])
-                    bonus_nums = f"(B: {nums[7]}, {nums[8]})"
+            if tr_head:
+                tr_nums = tr_head.find_next_sibling('tr')
+                if tr_nums:
+                    tds = tr_nums.find_all('td')
+                    nums = [re.sub(r'\D', '', td.text) for td in tds if re.sub(r'\D', '', td.text)]
+                    if len(nums) >= 9:
+                        main_nums = ", ".join(nums[:7])
+                        bonus_nums = f"(B: {nums[7]}, {nums[8]})"
 
         print(f"📡 LOTO7 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
@@ -50,7 +66,6 @@ def fetch_latest_result():
 
 def build_html():
     kai, date, main_nums, bonus_nums = fetch_latest_result()
-    
     template_before = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
