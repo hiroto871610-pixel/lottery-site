@@ -12,7 +12,7 @@ def generate_all_patterns():
     html += '            '
     return html
 
-# 2. HTMLの全構造を定義する（デザインはそのまま）
+# 2. HTMLの全構造（実績データも含む）
 template_before = """<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -72,12 +72,21 @@ template_after = """
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (ホット＆コールド)</h2>
             <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 HOT</div><span class="hc-number">15</span><span class="hc-number">04</span></div>
-                <div class="hc-box cold-box"><div class="hc-title">❄️ COLD</div><span class="hc-number">08</span><span class="hc-number">29</span></div>
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div><span class="hc-number">15 (5回)</span><span class="hc-number">04 (4回)</span></div>
+                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div><span class="hc-number">08 (0回)</span><span class="hc-number">29 (0回)</span></div>
             </div>
         </div>
+        <div class="section-card">
+            <h2 class="section-header">📝 過去の予想実績</h2>
+            <table>
+                <thead><tr><th>回号 (抽選日)</th><th>本数字・ボーナス数字</th><th>当サイトの最高成績</th></tr></thead>
+                <tbody>
+                    <tr><td>第567回 (3/22)</td><td>03, 12, 18, 24, 25, 30, 37</td><td><span class="result-win">5等当選 (4個的中)</span></td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-    <footer><p>&copy; 2026 宝くじポータル</p></footer>
+    <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>"""
 
@@ -86,4 +95,4 @@ final_html = template_before + generate_all_patterns() + template_after
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
 
-print("✨ ついに大成功！loto7.htmlを新しく作り直しました！")
+print("✨ 実績データも復活！loto7.htmlを完璧に作り直しました！")
