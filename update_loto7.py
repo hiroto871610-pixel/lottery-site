@@ -14,32 +14,28 @@ def generate_all_patterns():
 
 def fetch_latest_result():
     try:
-        url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/"
+        headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=10)
-        res.encoding = 'euc-jp' # 楽天の文字コードを正確に指定
-        soup = BeautifulSoup(res.text, 'html.parser')
-        text = soup.get_text()
-
-        kai_match = re.search(r'第\d+回', text)
-        kai = kai_match.group() if kai_match else "最新回"
-
-        date_match = re.search(r'\d{4}/\d{2}/\d{2}', text)
-        date = date_match.group() if date_match else "最新"
-
-        # 【修正】ルール説明文を無視し、ハイフンで繋がれた本物の数字だけを狙う
-        hon_match = re.search(r'本数字\s*([\d]{1,2}(?:-[\d]{1,2})+)', text)
-        main_nums = "----"
-        if hon_match:
-            nums = [n.zfill(2) for n in hon_match.group(1).split('-') if n.isdigit()]
-            main_nums = ", ".join(nums)
-
-        # 【修正】カッコで囲まれた本物のボーナス数字だけを狙う
-        bonus_match = re.search(r'ボーナス数字\s*(\(\d{1,2}\)(?:\s*\(\d{1,2}\))?)', text)
-        bonus_nums = ""
-        if bonus_match:
-            b_nums = re.findall(r'\d+', bonus_match.group(1))
-            bonus_nums = "(B: " + ", ".join([n.zfill(2) for n in b_nums]) + ")"
+        # res.content を使うことでBeautifulSoupが文字化けを自動修復します
+        soup = BeautifulSoup(res.content, 'html.parser')
+        
+        # 表の2行目（最新データ）を取得
+        latest_row = soup.find('table').find_all('tr')[1]
+        cells = latest_row.find_all(['th', 'td'])
+        
+        # セル1: 回号と日付（文字化けを無視して数字だけを4つのブロックで抽出）
+        c0_nums = re.findall(r'\d+', cells[0].get_text(separator=' '))
+        kai = f"第{c0_nums[0]}回" if len(c0_nums) > 0 else "最新回"
+        date = f"{c0_nums[1]}/{c0_nums[2].zfill(2)}/{c0_nums[3].zfill(2)}" if len(c0_nums) >= 4 else "最新"
+        
+        # セル2: 本数字（くっつき防止のため、スペースを挟んでから数字だけを抽出）
+        main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
+        main_nums = ", ".join([n.zfill(2) for n in main_raw])
+        
+        # セル3: ボーナス数字
+        bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
+        bonus_nums = "(B: " + ", ".join([n.zfill(2) for n in bonus_raw]) + ")"
 
         print(f"📡 LOTO7 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
