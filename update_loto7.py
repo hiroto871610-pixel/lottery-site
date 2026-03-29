@@ -3,54 +3,51 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-# 1. 予想番号を5パターン生成する
 def generate_all_patterns():
-    html = '            \n'
-    html += '            <div class="prediction-box">\n'
+    html = '            \n            <div class="prediction-box">\n'
     for label in ['予想A', '予想B', '予想C', '予想D', '予想E']:
         nums = [str(n).zfill(2) for n in sorted(random.sample(range(1, 38), 7))]
         balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
         html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div></div>\n'
-    html += '            </div>\n'
-    html += '            '
+    html += '            </div>\n            '
     return html
 
-# 2. 最新の抽選結果をネットから取得（スクレイピング）する
 def fetch_latest_result():
     try:
-        # みずほ銀行のロト7最新結果ページにアクセス
         url = "https://www.mizuhobank.co.jp/retail/takarakuji/loto/loto7/index.html"
         res = requests.get(url, timeout=10)
-        res.encoding = 'Shift_JIS' # みずほ銀行の文字コード
+        res.encoding = 'Shift_JIS'
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # 「第〇〇回」という文字を探す
+        # 回号と日付を取得
         kai_th = soup.find('th', string=re.compile(r'第\d+回'))
-        if not kai_th:
-            raise ValueError("回号が見つかりません")
-        
+        if not kai_th: raise ValueError("回号が見つかりません")
         kai = kai_th.text.strip()
-        
-        # 抽選日を取得（回号の隣のセルなどにあることが多い）
         date_td = kai_th.find_next_sibling('td')
         date = date_td.text.strip() if date_td else "最新"
 
-        # 本数字とボーナス数字の取得（HTMLの構造に依存するため、汎用的な抽出）
-        # ※実際の運用では対象サイトのHTML構造に合わせて微調整が必要です
-        # 今回はデモとして、エラーなく動くようにダミーの取得処理を入れています。
-        # 本格的に運用する際は、ここに正確な抽出ロジックを追加します。
-        main_nums = "01, 02, 03, 04, 05, 06, 07" # 仮置き
-        bonus_nums = "(B: 08, 09)" # 仮置き
-        
-        print(f"📡 データ取得成功: {kai} ({date})")
+        # 【本番用】本数字とボーナス数字をテーブル構造から正確に抽出
+        hon_th = soup.find('th', string=re.compile('本数字'))
+        main_nums = "----"
+        bonus_nums = ""
+        if hon_th:
+            tr_head = hon_th.find_parent('tr')
+            tr_nums = tr_head.find_next_sibling('tr')
+            if tr_nums:
+                tds = tr_nums.find_all('td')
+                # tdの中から数字だけを抽出（空文字を除外）
+                nums = [re.sub(r'\D', '', td.text) for td in tds if re.sub(r'\D', '', td.text)]
+                if len(nums) >= 9:
+                    main_nums = ", ".join(nums[:7])
+                    bonus_nums = f"(B: {nums[7]}, {nums[8]})"
+
+        print(f"📡 LOTO7 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
         return kai, date, main_nums, bonus_nums
 
     except Exception as e:
-        print(f"⚠️ データ取得エラー（サイト構造変更の可能性）: {e}")
-        # エラー時は安全なデフォルト値を返す
+        print(f"⚠️ LOTO7 データ取得エラー: {e}")
         return "最新回", "データ取得中", "現在結果を集計中...", ""
 
-# 3. HTMLの全構造（取得したデータを埋め込む）
 def build_html():
     kai, date, main_nums, bonus_nums = fetch_latest_result()
     
@@ -107,9 +104,7 @@ def build_html():
             <h2 class="section-header">🎯 次回 ロト7 の予想</h2>
             <p>直近の傾向と独自のアルゴリズムから弾き出した、今回の推奨5パターンです。</p>
 """
-
-    template_after = f"""
-        </div>
+    template_after = f"""        </div>
         <div class="section-card">
             <h2 class="section-header">📊 直近20回の出現傾向 (ホット＆コールド)</h2>
             <div class="hc-container">
@@ -134,12 +129,7 @@ def build_html():
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>"""
-    
     return template_before + generate_all_patterns() + template_after
 
-# 4. 実行と保存
-final_html = build_html()
-with open('loto7.html', 'w', encoding='utf-8') as f:
-    f.write(final_html)
-
-print("✨ スクレイピング完了！最新データを含めて loto7.html を更新しました！")
+with open('loto7.html', 'w', encoding='utf-8') as f: f.write(build_html())
+print("✨ [本番データ] ロト7 の更新が完了しました！")
