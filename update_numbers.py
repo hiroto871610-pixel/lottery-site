@@ -8,43 +8,48 @@ from collections import Counter
 
 HISTORY_FILE = 'history_numbers.json'
 
-# --- 1. 過去データの取得 ---
-def fetch_single_history(url):
-    headers = {'User-Agent': 'Mozilla/5.0'}
+# --- 1. 過去データの取得（目印に頼らない最強抽出ロジック） ---
+def fetch_single_history(url, length):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     res = requests.get(url, headers=headers, timeout=10)
+    res.encoding = 'euc-jp'
     soup = BeautifulSoup(res.content, 'html.parser')
     
+    text = soup.get_text(separator=' ')
+    
+    # 【最強抽出】「第〇〇回」〜「日付」〜「当せん番号」の塊を強制的にぶっこ抜く
+    pattern = r'第\s*(\d+)\s*回[^第]*?(\d{4}[/年]\d{1,2}[/月]\d{1,2})[^第]*?当せん番号\D*(\d{' + str(length) + r'})'
+    matches = re.finditer(pattern, text)
+    
     data = []
-    table = soup.find('table')
-    if table:
-        for tr in table.find_all('tr')[1:]:
-            text = tr.get_text(separator=' ')
-            kai_match = re.search(r'第\s*\d+\s*回', text)
-            date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', text)
-            win_match = re.search(r'当せん番号[^\d]*(\d{3,4})', text) # 3桁か4桁を抽出
-            
-            if kai_match and win_match:
-                kai = kai_match.group().replace(' ', '')
-                date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
-                win_num = win_match.group(1)
-                data.append({"kai": kai, "date": date, "win_num": win_num})
+    for m in matches:
+        kai = f"第{m.group(1)}回"
+        date = m.group(2).replace('年', '/').replace('月', '/')
+        win_num = m.group(3)
+        data.append({"kai": kai, "date": date, "win_num": win_num})
+        
     return data
 
 def fetch_both_history():
     print("🔄 ナンバーズ3＆4のデータ取得＆解析を開始...")
-    n4_history = fetch_single_history("https://takarakuji.rakuten.co.jp/backnumber/numbers4/lastresults/")
-    n3_history = fetch_single_history("https://takarakuji.rakuten.co.jp/backnumber/numbers3/lastresults/")
+    # 【修正】ナンバーズは「lastresults/」という専用ページがなく、通常ページに過去一覧がある！
+    n4_history = fetch_single_history("https://takarakuji.rakuten.co.jp/backnumber/numbers4/", 4)
+    n3_history = fetch_single_history("https://takarakuji.rakuten.co.jp/backnumber/numbers3/", 3)
     
-    # 回号ベースで結合
+    # N3とN4のデータを「回号」をキーにして安全に合体させる
     merged = []
-    for n4, n3 in zip(n4_history, n3_history):
-        if n4['kai'] == n3['kai']:
+    n3_dict = {item['kai']: item for item in n3_history}
+    
+    for n4 in n4_history:
+        if n4['kai'] in n3_dict:
+            n3 = n3_dict[n4['kai']]
             merged.append({
                 "kai": n4['kai'], "date": n4['date'],
                 "n4_win": n4['win_num'], "n3_win": n3['win_num']
             })
             
-    if not merged: raise ValueError("過去データが取得できませんでした。")
+    if not merged: raise ValueError("過去データが取得できませんでした。（サイト構造が変更された可能性があります）")
+    print(f"📡 データ取得成功: 最新回 {merged[0]['kai']} (N4: {merged[0]['n4_win']}, N3: {merged[0]['n3_win']})")
     return merged
 
 # --- 2. ホット＆コールド算出 (0〜9の数字頻度) ---
@@ -70,7 +75,6 @@ def generate_algo_predictions(hot, cold, length):
     
     predictions = []
     for _ in range(3): # 予想A〜C
-        # 必ずHOTから1つ、COLDから1つ混ぜて、残りはランダム（重複OK）
         p = [random.choice(hot_digits), random.choice(cold_digits)]
         p += random.choices(all_digits, k=(length - 2))
         random.shuffle(p)
@@ -85,6 +89,7 @@ def manage_history(latest_data, n4_preds, n3_preds):
             with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
                 history_record = json.load(f)
         except Exception:
+            print("⚠️ 履歴ファイルが破損しているため新しく作成します。")
             history_record = []
             
     latest_kai = latest_data['kai']
@@ -141,8 +146,6 @@ def build_html():
     n4_preds = generate_algo_predictions(hot, cold, 4)
     n3_preds = generate_algo_predictions(hot, cold, 3)
     history_record = manage_history(latest_data, n4_preds, n3_preds)
-    
-    print(f"📡 ナンバーズ データ取得成功: {latest_data['kai']} | N4: {latest_data['n4_win']}, N3: {latest_data['n3_win']}")
     
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -203,11 +206,12 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ナンバーズ4 予想</h2>
+            <p>直近の傾向からHOT数字とCOLD数字を掛け合わせたアルゴリズム予想です。</p>
             <div class="prediction-box">
 """
     labels = ['予想A', '予想B', '予想C']
     tags4 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>']
-    for i, pred in enumerate(n4_preds):
+    for i, pred in enumerate(history_record[0]['n4_preds']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div>{tags4[i]}</div>\n'
     
@@ -216,7 +220,7 @@ def build_html():
             <div class="prediction-box">
 """
     tags3 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ミニ推奨</span>']
-    for i, pred in enumerate(n3_preds):
+    for i, pred in enumerate(history_record[0]['n3_preds']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div>{tags3[i]}</div>\n'
     
@@ -229,8 +233,8 @@ def build_html():
                 <thead><tr><th>ナンバーズ4</th><th>ナンバーズ3</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td style="font-size:24px; font-weight: bold; letter-spacing: 4px; color:#16a34a;">{latest_data['n4_win']}</td>
-                        <td style="font-size:24px; font-weight: bold; letter-spacing: 4px; color:#d97706;">{latest_data['n3_win']}</td>
+                        <td style="font-size:28px; font-weight: bold; letter-spacing: 6px; color:#16a34a;">{latest_data['n4_win']}</td>
+                        <td style="font-size:28px; font-weight: bold; letter-spacing: 6px; color:#d97706;">{latest_data['n3_win']}</td>
                     </tr>
                 </tbody>
             </table>
@@ -265,19 +269,19 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
-            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
+            <h2 class="section-header">📅 過去の当選番号一覧 (実際のデータ)</h2>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（約1ヶ月分）</p>
             <div class="scroll-table-container">
                 <table>
                     <thead>
                         <tr><th>回号 (抽選日)</th><th>ナンバーズ4</th><th>ナンバーズ3</th></tr>
                     </thead>
                     <tbody>\n"""
-    for row in history_data[:50]:
+    for row in history_data:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
-                            <td style="font-size:16px; font-weight:bold; letter-spacing:2px;">{row['n4_win']}</td>
-                            <td style="font-size:16px; font-weight:bold; letter-spacing:2px;">{row['n3_win']}</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">{row['n4_win']}</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">{row['n3_win']}</td>
                         </tr>\n"""
     html += """                    </tbody>
                 </table>
