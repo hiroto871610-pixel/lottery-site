@@ -1,45 +1,38 @@
 name: Lottery Auto Update
 
+# 毎日 夜21:30 (日本時間) に自動実行する設定
 on:
   schedule:
-    # 月曜〜金曜の日本時間 20:30 (協定世界時 11:30) に実行
-    - cron: '30 11 * * 1-5'
-  workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    - cron: '30 12 * * *'
+  workflow_dispatch: # 手動でボタンを押して実行する機能も残す
 
 jobs:
-  update:
+  update-data:
     runs-on: ubuntu-latest
     steps:
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v4
+      - name: リポジトリのコードを取得
+        uses: actions/checkout@v3
 
-      # ★次回から追加する「スクレイピング」のための準備を追加しています
-      - name: Pythonをセットアップ
-        uses: actions/setup-python@v5
+      - name: Pythonのセットアップ
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: '3.x'
 
       - name: 必要なライブラリのインストール
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: ロト7の予想と速報を更新
-        run: python update_loto7.py
-
-      - name: ロト6の予想と速報を更新
-        run: python update_loto6.py
-
-      - name: ナンバーズの予想と速報を更新
-        run: python update_numbers.py
-
-      - name: 更新された全ファイルをGitHubに保存
+      - name: 宝くじ全データ＆トップページの自動更新スクリプトを実行
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          python update_loto7.py
+          python update_loto6.py
+          python update_numbers.py
+          python update_index.py
+
+      - name: 更新されたデータをGitHubに自動保存（コミット＆プッシュ）
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
           git add .
-          git commit -m "Auto Update: Predictions & Results" || exit 0
-          git push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 自動更新: 最新の宝くじデータとAI予想を反映" && git push)
