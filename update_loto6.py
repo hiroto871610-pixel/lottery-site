@@ -2,46 +2,162 @@ import random
 import requests
 from bs4 import BeautifulSoup
 import re
+import json
+import os
+from collections import Counter
 
-def generate_loto6_patterns():
-    html = '            \n            <div class="prediction-box">\n'
-    for label in ['予想A', '予想B', '予想C', '予想D', '予想E']:
-        nums = [str(n).zfill(2) for n in sorted(random.sample(range(1, 44), 6))]
-        balls = "".join([f'<span class="ball">{n}</span>' for n in nums])
-        html += f'                <div class="numbers-row"><div class="row-label">{label}</div><div class="ball-container">{balls}</div></div>\n'
-    html += '            </div>\n            '
-    return html
+HISTORY_FILE = 'history_loto6.json'
 
-def fetch_latest_result():
-    try:
-        url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        res = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.content, 'html.parser')
+# --- 1. 過去データの取得（約1年分・50回） ---
+def fetch_history_data():
+    url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    res = requests.get(url, headers=headers, timeout=10)
+    soup = BeautifulSoup(res.content, 'html.parser')
+    
+    history_data = []
+    table = soup.find('table')
+    
+    if table:
+        for tr in table.find_all('tr')[1:]:
+            cells = tr.find_all(['th', 'td'])
+            if len(cells) >= 3:
+                cell0_text = cells[0].get_text(separator=' ')
+                if '回' not in cell0_text: continue
+                
+                kai_match = re.search(r'第\s*\d+\s*回', cell0_text)
+                kai = kai_match.group().replace(' ', '') if kai_match else ""
+                
+                date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
+                date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
+                
+                # ロト6は本数字6個
+                main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
+                main_nums = [n.zfill(2) for n in main_raw[:6]]
+                
+                # ロト6はボーナス1個
+                bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
+                bonus_nums = [n.zfill(2) for n in bonus_raw[:1]]
+                
+                if kai and len(main_nums) == 6:
+                    history_data.append({
+                        "kai": kai, "date": date, 
+                        "main": main_nums, "bonus": bonus_nums
+                    })
+                    
+    if not history_data:
+        raise ValueError("過去データが取得できませんでした。")
         
-        latest_row = soup.find('table').find_all('tr')[1]
-        cells = latest_row.find_all(['th', 'td'])
-        
-        c0_nums = re.findall(r'\d+', cells[0].get_text(separator=' '))
-        kai = f"第{c0_nums[0]}回" if len(c0_nums) > 0 else "最新回"
-        date = f"{c0_nums[1]}/{c0_nums[2].zfill(2)}/{c0_nums[3].zfill(2)}" if len(c0_nums) >= 4 else "最新"
-        
-        main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
-        main_nums = ", ".join([n.zfill(2) for n in main_raw])
-        
-        bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
-        bonus_nums = f"(B: {bonus_raw[0].zfill(2)})" if bonus_raw else ""
+    return history_data
 
-        print(f"📡 LOTO6 データ取得成功: {kai} ({date}) | 当選番号: {main_nums} {bonus_nums}")
-        return kai, date, main_nums, bonus_nums
+# --- 2. ホット＆コールド算出 ---
+def analyze_trends(history_data):
+    all_nums = []
+    for data in history_data:
+        all_nums.extend(data['main'])
+    
+    counts = Counter(all_nums)
+    # ロト6は1〜43
+    for i in range(1, 44):
+        num_str = str(i).zfill(2)
+        if num_str not in counts: counts[num_str] = 0
+            
+    sorted_counts = counts.most_common()
+    hot = sorted_counts[:5]
+    cold = list(reversed(sorted_counts))[:5]
+    
+    return hot, cold
 
-    except Exception as e:
-        print(f"⚠️ LOTO6 データ取得エラー: {e}")
-        return "最新回", "データ取得中", "----", ""
+# --- 3. アルゴリズム予想生成 ---
+def generate_algo_predictions(hot, cold):
+    hot_nums = [item[0] for item in hot]
+    cold_nums = [item[0] for item in cold]
+    all_nums = [str(n).zfill(2) for n in range(1, 44)]
+    
+    predictions = []
+    for _ in range(5):
+        # ロト6: HOTから2個、COLDから1個、その他から3個（計6個）
+        p_hot = random.sample(hot_nums, 2)
+        p_cold = random.sample(cold_nums, 1)
+        remaining_pool = list(set(all_nums) - set(p_hot) - set(p_cold))
+        p_other = random.sample(remaining_pool, 3)
+        
+        pred = sorted(p_hot + p_cold + p_other)
+        predictions.append(pred)
+        
+    return predictions
 
+# --- 4. 履歴の保存と成績の自動照合 ---
+def manage_history(latest_data, new_predictions):
+    history_record = []
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+                history_record = json.load(f)
+        except Exception:
+            history_record = []
+            
+    latest_kai = latest_data['kai']
+    win_main = set(latest_data['main'])
+    win_bonus = set(latest_data['bonus'])
+    
+    for record in history_record:
+        if record.get('status') == 'waiting' and record.get('target_kai') == latest_kai:
+            best_match = 0
+            best_result = "ハズレ"
+            for p in record['predictions']:
+                p_set = set(p)
+                match_main = len(p_set & win_main)
+                has_bonus = len(p_set & win_bonus) > 0
+                
+                # ロト6の当選条件
+                if match_main == 6: result = "1等🎯"
+                elif match_main == 5 and has_bonus: result = "2等🎯"
+                elif match_main == 5: result = "3等"
+                elif match_main == 4: result = "4等"
+                elif match_main == 3: result = "5等"
+                else: result = f"ハズレ({match_main}個一致)"
+                
+                if match_main > best_match:
+                    best_match = match_main
+                    best_result = result
+                    
+            record['status'] = 'finished'
+            record['actual_main'] = ", ".join(latest_data['main'])
+            record['actual_bonus'] = "(B: " + ", ".join(latest_data['bonus']) + ")"
+            record['best_result'] = best_result
+            
+    next_kai_num = int(re.search(r'\d+', latest_kai).group()) + 1
+    next_kai = f"第{next_kai_num}回"
+    
+    if not any(r.get('target_kai') == next_kai for r in history_record):
+        history_record.insert(0, {
+            "target_kai": next_kai,
+            "status": "waiting",
+            "predictions": new_predictions,
+            "actual_main": "----",
+            "actual_bonus": "",
+            "best_result": "抽選待ち..."
+        })
+    
+    history_record = history_record[:10]
+    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+        json.dump(history_record, f, ensure_ascii=False, indent=2)
+        
+    return history_record
+
+# --- 5. HTML構築 ---
 def build_html():
-    kai, date, main_nums, bonus_nums = fetch_latest_result()
-    template_before = f"""<!DOCTYPE html>
+    print("🔄 ロト6 データ取得＆解析を開始...")
+    history_data = fetch_history_data()
+    latest_data = history_data[0]
+    hot, cold = analyze_trends(history_data)
+    predictions = generate_algo_predictions(hot, cold)
+    history_record = manage_history(latest_data, predictions)
+    
+    print(f"📡 LOTO6 データ取得成功: {latest_data['kai']} ({latest_data['date']})")
+    
+    html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -76,6 +192,10 @@ def build_html():
         th, td {{ padding: 12px; border-bottom: 1px solid #e2e8f0; }}
         th {{ background-color: #f8fafc; color: #475569; font-weight: bold; }}
         .result-win {{ color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 4px 8px; border-radius: 4px; }}
+        .result-lose {{ color: #94a3b8; }}
+        .scroll-table-container {{ max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 15px; }}
+        .scroll-table-container table {{ margin-top: 0; border-collapse: separate; border-spacing: 0; }}
+        .scroll-table-container th {{ position: sticky; top: 0; z-index: 1; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }}
         footer {{ background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }}
     </style>
 </head>
@@ -90,36 +210,91 @@ def build_html():
     </nav>
     <div class="container">
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
+        
         <div class="section-card">
-            <h2 class="section-header">🎯 次回 ロト6 の予想</h2>
-            <p>過去データに基づく高確率アルゴリズムが導き出した推奨5パターンです。</p>
+            <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト6の予想</h2>
+            <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
+            <div class="prediction-box">
 """
-    template_after = f"""        </div>
+    labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
+    for i, pred in enumerate(predictions):
+        balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
+        html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
+    
+    html += f"""            </div>
+        </div>
+
         <div class="section-card">
-            <h2 class="section-header">📊 直近20回の出現傾向 (ホット＆コールド)</h2>
-            <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div><span class="hc-number">38 (6回)</span><span class="hc-number">12 (5回)</span></div>
-                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div><span class="hc-number">05 (0回)</span><span class="hc-number">21 (0回)</span></div>
+            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
+            <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
+                <div class="numbers-row">
+                    <div class="row-label" style="background-color: #e2e8f0; color: #475569;">本数字</div>
+                    <div class="ball-container">
+                        {"".join([f'<span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">{n}</span>' for n in latest_data['main']])}
+                    </div>
+                </div>
+                <div class="numbers-row" style="margin-bottom: 0;">
+                    <div class="row-label" style="background-color: #dcfce7; color: #16a34a;">ボーナス</div>
+                    <div class="ball-container">
+                        {"".join([f'<span class="ball" style="background: linear-gradient(135deg, #22c55e, #16a34a);">{n}</span>' for n in latest_data['bonus']])}
+                    </div>
+                </div>
             </div>
         </div>
+
         <div class="section-card">
-            <h2 class="section-header">📝 最新の抽選結果速報</h2>
+            <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>
+            <div class="hc-container">
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>\n"""
+    for n, count in hot: html += f'<span class="hc-number">{n} ({count}回)</span>'
+    html += """</div>\n                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>\n"""
+    for n, count in cold: html += f'<span class="hc-number">{n} ({count}回)</span>'
+    html += """</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
             <table>
-                <thead><tr><th>回号 (抽選日)</th><th>本数字・ボーナス数字</th><th>当サイトの成績照合</th></tr></thead>
-                <tbody>
-                    <tr>
-                        <td style="font-weight:bold; color:#1e3a8a;">{kai}<br><span style="font-size:12px; font-weight:normal; color:#666;">({date})</span></td>
-                        <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{main_nums}</span><br><span style="color:#888; font-size:12px;">{bonus_nums}</span></td>
-                        <td><span class="result-win">データ集計中...</span></td>
-                    </tr>
-                </tbody>
+                <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
+                <tbody>\n"""
+    for record in history_record:
+        res_class = "result-win" if "等" in record.get('best_result', '') else "result-lose"
+        html += f"""                    <tr>
+                        <td style="font-weight:bold; color:#1e3a8a;">{record.get('target_kai', '----')}</td>
+                        <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{record.get('actual_main', '----')}</span><br><span style="color:#888; font-size:12px;">{record.get('actual_bonus', '')}</span></td>
+                        <td><span class="{res_class}">{record.get('best_result', '----')}</span></td>
+                    </tr>\n"""
+    html += """                </tbody>
             </table>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
+            <div class="scroll-table-container">
+                <table>
+                    <thead>
+                        <tr><th>回号 (抽選日)</th><th>本数字</th><th>ボーナス数字</th></tr>
+                    </thead>
+                    <tbody>\n"""
+    for row in history_data[:50]:
+        html += f"""                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{", ".join(row['main'])}</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: {", ".join(row['bonus'])})</span></td>
+                        </tr>\n"""
+    html += """                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
 </body>
 </html>"""
-    return template_before + generate_loto6_patterns() + template_after
+    return html
 
-with open('loto6.html', 'w', encoding='utf-8') as f: f.write(build_html())
-print("✨ [本番データ] ロト6 の更新が完了しました！")
+final_html = build_html()
+with open('loto6.html', 'w', encoding='utf-8') as f:
+    f.write(final_html)
+print("✨ [完全版] ロト6 の自動更新が完了しました！")
