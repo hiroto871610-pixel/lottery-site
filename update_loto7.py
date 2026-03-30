@@ -11,8 +11,9 @@ HISTORY_FILE = 'history_loto7.json'
 # --- 1. 過去データの取得（約1年分・50回） ---
 def fetch_history_data():
     url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     res = requests.get(url, headers=headers, timeout=10)
+    res.encoding = 'euc-jp'
     soup = BeautifulSoup(res.content, 'html.parser')
     
     history_data = []
@@ -136,13 +137,22 @@ def manage_history(latest_data, new_predictions):
             "best_result": "抽選待ち..."
         })
     
-    history_record = history_record[:10]
+    # 【今回追加】JSONファイル内の重複バグを強制的に削除する処理
+    cleaned_record = []
+    seen_kais = set()
+    for record in history_record:
+        if record.get('target_kai') not in seen_kais:
+            cleaned_record.append(record)
+            seen_kais.add(record.get('target_kai'))
+            
+    history_record = cleaned_record[:10]
+    
     with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
         json.dump(history_record, f, ensure_ascii=False, indent=2)
         
     return history_record
 
-# --- 5. HTML構築（重複しないようにブロック分け） ---
+# --- 5. HTML構築 ---
 def build_html():
     print("🔄 データ取得＆アルゴリズム解析を開始...")
     history_data = fetch_history_data()
@@ -153,7 +163,6 @@ def build_html():
     
     print(f"📡 LOTO7 データ取得成功: {latest_data['kai']} ({latest_data['date']})")
     
-    # 共通ヘッダーとCSS
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -207,22 +216,23 @@ def build_html():
     </nav>
     <div class="container">
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
-"""
-
-    # ▼ エリア1：次回のAI予想
-    html += f"""
+        
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト7の予想</h2>
             <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
             <div class="prediction-box">
 """
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
-    for i, pred in enumerate(predictions):
+    
+    # 【修正箇所】JSONに保存されている予想を確実に読み込んで表示する（ズレ防止）
+    for i, pred in enumerate(history_record[0]['predictions']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
-    html += "            </div>\n        </div>\n"
+    
+    html += """            </div>
+        </div>
 
-    # ▼ エリア2：最新の抽選結果
+        """
     html += f"""
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
@@ -240,24 +250,22 @@ def build_html():
                     </div>
                 </div>
             </div>
-        </div>\n"""
+        </div>
 
-    # ▼ エリア3：ホット＆コールド
-    html += """
         <div class="section-card">
             <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>
             <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>
-"""
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>"""
     for n, count in hot:
         html += f'<span class="hc-number">{n} ({count}回)</span>'
-    html += """</div>\n                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>\n"""
+    html += """</div>
+                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>"""
     for n, count in cold:
         html += f'<span class="hc-number">{n} ({count}回)</span>'
-    html += "</div>\n            </div>\n        </div>\n"
+    html += """</div>
+            </div>
+        </div>
 
-    # ▼ エリア4：過去のAI予想と成績履歴 (重複解消)
-    html += """
         <div class="section-card">
             <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
             <table>
@@ -271,10 +279,11 @@ def build_html():
                         <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{record.get('actual_main', '----')}</span><br><span style="color:#888; font-size:12px;">{record.get('actual_bonus', '')}</span></td>
                         <td><span class="{res_class}">{record.get('best_result', '----')}</span></td>
                     </tr>\n"""
-    html += "                </tbody>\n            </table>\n        </div>\n"
 
-    # ▼ エリア5：過去1年間の実際のデータ (スクロール機能付き)
-    html += """
+    html += """                </tbody>
+            </table>
+        </div>
+
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
             <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
@@ -291,6 +300,7 @@ def build_html():
                             <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{", ".join(row['main'])}</span></td>
                             <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: {", ".join(row['bonus'])})</span></td>
                         </tr>\n"""
+
     html += """                    </tbody>
                 </table>
             </div>
