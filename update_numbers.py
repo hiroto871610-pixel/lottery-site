@@ -193,7 +193,10 @@ def build_html():
         .footer-links {{ margin-bottom: 15px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
         .footer-links a:hover {{ color: white; text-decoration: underline; }}
-</style> </head>
+</style> 
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
+     crossorigin="anonymous"></script>
+</head>
 <body>
     <header><h1>宝くじ当選予想・データ分析ポータル</h1></header>
     <nav>
