@@ -31,11 +31,9 @@ def fetch_history_data():
                 date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
                 date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
                 
-                # ロト6は本数字6個
                 main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
                 main_nums = [n.zfill(2) for n in main_raw[:6]]
                 
-                # ロト6はボーナス1個
                 bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
                 bonus_nums = [n.zfill(2) for n in bonus_raw[:1]]
                 
@@ -57,7 +55,6 @@ def analyze_trends(history_data):
         all_nums.extend(data['main'])
     
     counts = Counter(all_nums)
-    # ロト6は1〜43
     for i in range(1, 44):
         num_str = str(i).zfill(2)
         if num_str not in counts: counts[num_str] = 0
@@ -76,13 +73,13 @@ def generate_algo_predictions(hot, cold):
     
     predictions = []
     for _ in range(5):
-        # ロト6: HOTから2個、COLDから1個、その他から3個（計6個）
         p_hot = random.sample(hot_nums, 2)
         p_cold = random.sample(cold_nums, 1)
         remaining_pool = list(set(all_nums) - set(p_hot) - set(p_cold))
         p_other = random.sample(remaining_pool, 3)
         
-        pred = sorted(p_hot + p_cold + p_other)
+        # 重複が絶対に起きないようにSetで結合してソート
+        pred = sorted(list(set(p_hot + p_cold + p_other)))
         predictions.append(pred)
         
     return predictions
@@ -110,7 +107,6 @@ def manage_history(latest_data, new_predictions):
                 match_main = len(p_set & win_main)
                 has_bonus = len(p_set & win_bonus) > 0
                 
-                # ロト6の当選条件
                 if match_main == 6: result = "1等🎯"
                 elif match_main == 5 and has_bonus: result = "2等🎯"
                 elif match_main == 5: result = "3等"
@@ -217,7 +213,9 @@ def build_html():
             <div class="prediction-box">
 """
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
-    for i, pred in enumerate(predictions):
+    
+    # 【修正箇所】新しく作った予想ではなく、「履歴(JSON)に保存されている予想」を確実に読み込んで表示する
+    for i, pred in enumerate(history_record[0]['predictions']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
     
@@ -294,6 +292,7 @@ def build_html():
 </html>"""
     return html
 
+# --- 最後にファイルを書き出す ---
 final_html = build_html()
 with open('loto6.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
