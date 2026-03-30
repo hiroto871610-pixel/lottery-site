@@ -103,6 +103,9 @@ def build_index_html():
         .highlight-prize {{ color: #dc2626; font-size: 15px; font-weight: 900; }}
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
     </style>
 </head>
 <body>
@@ -213,7 +216,12 @@ def build_index_html():
     </div>
     
     <footer>
-        <p>※当サイトの予想は当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <div class="footer-links">
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 </body>
