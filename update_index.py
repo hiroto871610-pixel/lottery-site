@@ -1,0 +1,167 @@
+import json
+import os
+from datetime import datetime
+
+# データベースファイルのパス
+FILES = {
+    'loto7': 'history_loto7.json',
+    'loto6': 'history_loto6.json',
+    'numbers': 'history_numbers.json'
+}
+
+def load_latest_data(filepath):
+    """JSONファイルから最新(1件目)のデータを読み込む"""
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if data and len(data) > 0:
+                    # 1件目は「抽選待ち(予想)」なので、2件目(最新の確定結果)を取得
+                    for record in data:
+                        if record.get('status') == 'finished':
+                            return record
+        except Exception as e:
+            print(f"⚠️ {filepath} の読み込みエラー: {e}")
+    return None
+
+def build_index_html():
+    print("🔄 トップページのダッシュボードを生成中...")
+    
+    # 各JSONから最新の確定結果を取得
+    l7_data = load_latest_data(FILES['loto7'])
+    l6_data = load_latest_data(FILES['loto6'])
+    nm_data = load_latest_data(FILES['numbers'])
+    
+    # 取得できなかった場合の仮データ
+    if not l7_data: l7_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
+    if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
+    if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
+
+    html = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝くじ当選予想・データ分析ポータル | 最新結果速報</title>
+    <meta name="description" content="ロト7、ロト6、ナンバーズの最新当選番号速報と、過去データに基づくAI予想を無料公開中！">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
+        header {{ background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }}
+        header h1 {{ margin: 0; font-size: 24px; }}
+        header p {{ margin: 10px 0 0 0; font-size: 14px; opacity: 0.8; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
+        nav a.active {{ border-bottom: 3px solid #1e3a8a; color: #1e3a8a; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 1000px; margin: 30px auto; padding: 0 20px; }}
+        
+        /* ダッシュボードのグリッドレイアウト */
+        .dashboard-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }}
+        .dash-card {{ background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; transition: transform 0.2s; text-decoration: none; color: inherit; display: block; }}
+        .dash-card:hover {{ transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }}
+        
+        .card-loto7 {{ border-top: 5px solid #d97706; }}
+        .card-loto6 {{ border-top: 5px solid #0284c7; }}
+        .card-numbers {{ border-top: 5px solid #16a34a; }}
+        
+        .dash-title {{ font-size: 20px; font-weight: bold; margin-bottom: 5px; }}
+        .dash-kai {{ font-size: 13px; color: #64748b; margin-bottom: 15px; }}
+        .dash-nums {{ font-size: 22px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; }}
+        .dash-nums-nm {{ font-size: 28px; font-weight: bold; letter-spacing: 6px; margin-bottom: 5px; }}
+        .dash-bonus {{ font-size: 14px; color: #16a34a; font-weight: bold; }}
+        .btn-view {{ display: inline-block; margin-top: 15px; padding: 8px 20px; background-color: #f1f5f9; color: #475569; border-radius: 20px; font-size: 13px; font-weight: bold; }}
+        
+        /* 概要セクション */
+        .guide-section {{ background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }}
+        .guide-header {{ color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }}
+        .guide-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }}
+        .guide-item {{ background-color: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #94a3b8; }}
+        .guide-item h3 {{ margin-top: 0; font-size: 18px; color: #334155; }}
+        .guide-item p {{ font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 10px; }}
+        .prize-money {{ font-weight: bold; color: #b91c1c; font-size: 15px; }}
+
+        footer {{ background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>宝くじ当選予想・データ分析ポータル</h1>
+        <p>最新の当選結果速報と、過去データに基づくAI予想アルゴリズム</p>
+    </header>
+    <nav>
+        <a href="index.html" class="active">トップ (速報)</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html">ロト6</a>
+        <a href="numbers.html">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+    </nav>
+    <div class="container">
+        <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
+        
+        <h2 style="color: #334155; text-align: center; margin-bottom: 25px;">🔔 最新の抽選結果速報</h2>
+        
+        <div class="dashboard-grid">
+            <a href="loto7.html" class="dash-card card-loto7">
+                <div class="dash-title" style="color: #d97706;">ロト7 (LOTO7)</div>
+                <div class="dash-kai">{l7_data['target_kai']}</div>
+                <div class="dash-nums">{l7_data['actual_main']}</div>
+                <div class="dash-bonus">{l7_data['actual_bonus']}</div>
+                <div class="btn-view">AI予想と詳細を見る &rarr;</div>
+            </a>
+
+            <a href="loto6.html" class="dash-card card-loto6">
+                <div class="dash-title" style="color: #0284c7;">ロト6 (LOTO6)</div>
+                <div class="dash-kai">{l6_data['target_kai']}</div>
+                <div class="dash-nums">{l6_data['actual_main']}</div>
+                <div class="dash-bonus">{l6_data['actual_bonus']}</div>
+                <div class="btn-view">AI予想と詳細を見る &rarr;</div>
+            </a>
+
+            <a href="numbers.html" class="dash-card card-numbers">
+                <div class="dash-title" style="color: #16a34a;">ナンバーズ3＆4</div>
+                <div class="dash-kai">{nm_data['target_kai']}</div>
+                <div style="font-size:12px; color:#64748b;">ナンバーズ4</div>
+                <div class="dash-nums-nm" style="color:#16a34a;">{nm_data.get('actual_n4', '----')}</div>
+                <div style="font-size:12px; color:#64748b;">ナンバーズ3</div>
+                <div class="dash-nums-nm" style="color:#d97706; margin-bottom:0;">{nm_data.get('actual_n3', '----')}</div>
+                <div class="btn-view" style="margin-top:10px;">AI予想と詳細を見る &rarr;</div>
+            </a>
+        </div>
+
+        <div class="guide-section">
+            <h2 class="guide-header">📖 取扱宝くじの概要と当選金額（理論値）</h2>
+            <div class="guide-grid">
+                <div class="guide-item" style="border-left-color: #d97706;">
+                    <h3>ロト7 (LOTO7)</h3>
+                    <p>1～37の数字の中から異なる7個の数字を選ぶ数字選択式宝くじです。キャリーオーバー発生時の爆発力が最大の魅力です。</p>
+                    <p class="prize-money">💰 1等賞金: 最高6億円<br>（キャリーオーバー時は最高10億円）</p>
+                    <p style="font-size: 12px; color: #888;">※抽選日: 毎週金曜日</p>
+                </div>
+                
+                <div class="guide-item" style="border-left-color: #0284c7;">
+                    <h3>ロト6 (LOTO6)</h3>
+                    <p>1～43の数字の中から異なる6個の数字を選ぶ宝くじです。週に2回抽選があるため、コンスタントに楽しめるのが特徴です。</p>
+                    <p class="prize-money">💰 1等賞金: 最高2億円<br>（キャリーオーバー時は最高6億円）</p>
+                    <p style="font-size: 12px; color: #888;">※抽選日: 毎週月・木曜日</p>
+                </div>
+                
+                <div class="guide-item" style="border-left-color: #16a34a;">
+                    <h3>ナンバーズ (NUMBERS)</h3>
+                    <p>好きな3桁または4桁の数字を選ぶ宝くじです。並び順まで当てる「ストレート」や、順不同の「ボックス」など買い方が豊富です。</p>
+                    <p class="prize-money">💰 N4ストレート: 約90万円<br>💰 N3ストレート: 約9万円</p>
+                    <p style="font-size: 12px; color: #888;">※抽選日: 毎週 月〜金曜日</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
+</body>
+</html>"""
+    
+    with open('index.html', 'w', encoding='utf-8') as f:
+        f.write(html)
+    print("✨ [完全版] トップページ (index.html) の生成が完了しました！")
+
+if __name__ == "__main__":
+    build_index_html()
