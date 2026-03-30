@@ -36,6 +36,10 @@
         th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; color: #475569; font-weight: bold; }
         .result-win { color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 4px 8px; border-radius: 4px; }
+        .result-lose { color: #94a3b8; }
+        .scroll-table-container { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 15px; }
+        .scroll-table-container table { margin-top: 0; border-collapse: separate; border-spacing: 0; }
+        .scroll-table-container th { position: sticky; top: 0; z-index: 1; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }
         footer { background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }
     </style>
 </head>
@@ -50,47 +54,177 @@
     </nav>
     <div class="container">
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
+
         <div class="section-card">
-            
-            <h2 class="section-header" style="margin-top: 0;">🔢 次回 ナンバーズ4 予想</h2>
+            <h2 class="section-header">🎯 次回 (第6951回) ナンバーズ4 予想</h2>
+            <p>直近の傾向からHOT数字とCOLD数字を掛け合わせたアルゴリズム予想です。</p>
             <div class="prediction-box">
-                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">5</span><span class="ball">9</span><span class="ball">3</span><span class="ball">2</span></div><span class="recommend-tag tag-straight">ストレート推奨</span></div>
-                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">9</span><span class="ball">4</span><span class="ball">2</span><span class="ball">1</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
-                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">7</span><span class="ball">4</span><span class="ball">0</span><span class="ball">6</span></div><span class="recommend-tag tag-box">ボックス推奨 (ダブル)</span></div>
+                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">2</span><span class="ball">8</span><span class="ball">9</span><span class="ball">1</span></div><span class="recommend-tag tag-straight">ストレート推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">9</span><span class="ball">8</span><span class="ball">9</span><span class="ball">5</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">4</span><span class="ball">8</span><span class="ball">7</span><span class="ball">8</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
             </div>
-            <h2 class="section-header" style="margin-top: 40px;">🔢 次回 ナンバーズ3 予想</h2>
+            <h2 class="section-header" style="margin-top: 40px;">🎯 次回 (第6951回) ナンバーズ3 予想</h2>
             <div class="prediction-box">
-                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">2</span><span class="ball">4</span><span class="ball">5</span></div><span class="recommend-tag tag-straight">ストレート推奨</span></div>
-                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">2</span><span class="ball">7</span><span class="ball">6</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
-                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">6</span><span class="ball">8</span><span class="ball">6</span></div><span class="recommend-tag tag-box">ミニ推奨</span></div>
-            </div>
-                    </div>
-        <div class="section-card">
-            <h2 class="section-header">📊 直近20回の出現傾向 (0〜9の数字)</h2>
-            <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字</div><span class="hc-number">7 (12回)</span><span class="hc-number">2 (10回)</span></div>
-                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字</div><span class="hc-number">4 (1回)</span><span class="hc-number">1 (2回)</span></div>
+                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">1</span><span class="ball">1</span><span class="ball">8</span></div><span class="recommend-tag tag-straight">ストレート推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">1</span><span class="ball">8</span><span class="ball">5</span></div><span class="recommend-tag tag-box">ボックス推奨</span></div>
+                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">8</span><span class="ball">2</span><span class="ball">4</span></div><span class="recommend-tag tag-box">ミニ推奨</span></div>
             </div>
         </div>
+
         <div class="section-card">
-            <h2 class="section-header">📝 最新の抽選結果速報</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>回号 (抽選日)</th>
-                        <th>ナンバーズ4</th>
-                        <th>ナンバーズ3</th>
-                    </tr>
-                </thead>
+            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 (第6950回 - 2026/03/30)</h2>
+            <table style="margin-bottom: 0;">
+                <thead><tr><th>ナンバーズ4</th><th>ナンバーズ3</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td style="font-weight:bold; color:#1e3a8a;">最新回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/30)</span></td>
-                        <td style="font-size:22px; font-weight: bold; letter-spacing: 4px; color:#16a34a;">9107</td>
-                        <td style="font-size:22px; font-weight: bold; letter-spacing: 4px; color:#d97706;">860</td>
+                        <td style="font-size:28px; font-weight: bold; letter-spacing: 6px; color:#16a34a;">9107</td>
+                        <td style="font-size:28px; font-weight: bold; letter-spacing: 6px; color:#d97706;">860</td>
                     </tr>
                 </tbody>
             </table>
-            <p style="text-align:right; font-size:12px; color:#888; margin-top:10px;">※当サイトの自動成績照合は現在集計中です</p>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📊 直近の出現傾向 (0〜9の数字)</h2>
+            <div class="hc-container">
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>
+<span class="hc-number">1 (22回)</span><span class="hc-number">4 (21回)</span><span class="hc-number">9 (18回)</span></div>
+                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>
+<span class="hc-number">5 (9回)</span><span class="hc-number">8 (12回)</span><span class="hc-number">0 (12回)</span></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
+            <table>
+                <thead><tr><th>対象回号</th><th>N4 成績</th><th>N3 成績</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight:bold; color:#1e3a8a;">第6951回</td>
+                        <td>実績: <span style="font-weight:bold;">----</span><br><span class="result-lose">抽選待ち...</span></td>
+                        <td>実績: <span style="font-weight:bold;">---</span><br><span class="result-lose">抽選待ち...</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📅 過去の当選番号一覧 (実際のデータ)</h2>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（約1ヶ月分）</p>
+            <div class="scroll-table-container">
+                <table>
+                    <thead>
+                        <tr><th>回号 (抽選日)</th><th>ナンバーズ4</th><th>ナンバーズ3</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6950回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/30)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">9107</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">860</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6949回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/27)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">4568</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">048</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6948回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/26)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">1346</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">413</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6947回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/25)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">9785</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">141</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6946回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/24)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">9577</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">619</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6945回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/23)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">3851</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">191</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6944回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/20)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">9781</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">319</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6943回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/19)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">6454</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">690</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6942回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/18)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">6449</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">128</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6941回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/17)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">2295</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">834</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6940回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/16)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">3421</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">423</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6939回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/13)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">0247</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">670</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6938回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/12)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">9420</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">614</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6937回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/11)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">6092</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">540</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6936回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/10)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">2631</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">917</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6935回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/09)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">4819</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">413</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6934回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/06)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">7592</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">314</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6933回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/05)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">2852</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">903</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6932回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/04)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">8404</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">971</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6931回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/03)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">9087</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">731</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第6930回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/02)</span></td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">7626</td>
+                            <td style="font-size:18px; font-weight:bold; letter-spacing:3px;">132</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
