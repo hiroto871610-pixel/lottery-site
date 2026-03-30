@@ -33,6 +33,10 @@
         th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; color: #475569; font-weight: bold; }
         .result-win { color: #16a34a; font-weight: bold; background-color: #dcfce7; padding: 4px 8px; border-radius: 4px; }
+        .result-lose { color: #94a3b8; }
+        .scroll-table-container { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 15px; }
+        .scroll-table-container table { margin-top: 0; border-collapse: separate; border-spacing: 0; }
+        .scroll-table-container th { position: sticky; top: 0; z-index: 1; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }
         footer { background-color: #333; color: #ccc; text-align: center; padding: 30px; margin-top: 50px; font-size: 12px; }
     </style>
 </head>
@@ -47,37 +51,123 @@
     </nav>
     <div class="container">
         <div style="background: #e2e8f0; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; font-size: 12px; color: #64748b;">【広告】Google AdSense</div>
+        
         <div class="section-card">
-            <h2 class="section-header">🎯 次回 ロト6 の予想</h2>
-            <p>過去データに基づく高確率アルゴリズムが導き出した推奨5パターンです。</p>
-            
+            <h2 class="section-header">🎯 次回 (第2090回) ロト6の予想</h2>
+            <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
             <div class="prediction-box">
-                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">20</span><span class="ball">22</span><span class="ball">27</span><span class="ball">29</span><span class="ball">34</span><span class="ball">40</span></div></div>
-                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">11</span><span class="ball">13</span><span class="ball">22</span><span class="ball">28</span><span class="ball">33</span><span class="ball">42</span></div></div>
-                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">12</span><span class="ball">13</span><span class="ball">24</span><span class="ball">27</span><span class="ball">32</span><span class="ball">39</span></div></div>
-                <div class="numbers-row"><div class="row-label">予想D</div><div class="ball-container"><span class="ball">07</span><span class="ball">13</span><span class="ball">23</span><span class="ball">24</span><span class="ball">27</span><span class="ball">30</span></div></div>
-                <div class="numbers-row"><div class="row-label">予想E</div><div class="ball-container"><span class="ball">17</span><span class="ball">18</span><span class="ball">23</span><span class="ball">27</span><span class="ball">36</span><span class="ball">39</span></div></div>
-            </div>
-                    </div>
-        <div class="section-card">
-            <h2 class="section-header">📊 直近20回の出現傾向 (ホット＆コールド)</h2>
-            <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div><span class="hc-number">38 (6回)</span><span class="hc-number">12 (5回)</span></div>
-                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div><span class="hc-number">05 (0回)</span><span class="hc-number">21 (0回)</span></div>
+                <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">08</span><span class="ball">09</span><span class="ball">22</span><span class="ball">30</span><span class="ball">34</span><span class="ball">37</span></div></div>
+                <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">11</span><span class="ball">18</span><span class="ball">21</span><span class="ball">33</span><span class="ball">37</span><span class="ball">40</span></div></div>
+                <div class="numbers-row"><div class="row-label">予想C</div><div class="ball-container"><span class="ball">03</span><span class="ball">24</span><span class="ball">33</span><span class="ball">37</span><span class="ball">39</span><span class="ball">40</span></div></div>
+                <div class="numbers-row"><div class="row-label">予想D</div><div class="ball-container"><span class="ball">16</span><span class="ball">22</span><span class="ball">25</span><span class="ball">26</span><span class="ball">39</span><span class="ball">42</span></div></div>
+                <div class="numbers-row"><div class="row-label">予想E</div><div class="ball-container"><span class="ball">07</span><span class="ball">08</span><span class="ball">11</span><span class="ball">18</span><span class="ball">28</span><span class="ball">34</span></div></div>
             </div>
         </div>
+
         <div class="section-card">
-            <h2 class="section-header">📝 最新の抽選結果速報</h2>
+            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 (第2089回 - 2026/03/30)</h2>
+            <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
+                <div class="numbers-row">
+                    <div class="row-label" style="background-color: #e2e8f0; color: #475569;">本数字</div>
+                    <div class="ball-container">
+                        <span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">09</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">16</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">18</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">32</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">37</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">43</span>
+                    </div>
+                </div>
+                <div class="numbers-row" style="margin-bottom: 0;">
+                    <div class="row-label" style="background-color: #dcfce7; color: #16a34a;">ボーナス</div>
+                    <div class="ball-container">
+                        <span class="ball" style="background: linear-gradient(135deg, #22c55e, #16a34a);">13</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>
+            <div class="hc-container">
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>
+<span class="hc-number">18 (4回)</span><span class="hc-number">37 (4回)</span><span class="hc-number">08 (4回)</span><span class="hc-number">39 (4回)</span><span class="hc-number">26 (3回)</span></div>
+                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>
+<span class="hc-number">34 (0回)</span><span class="hc-number">33 (0回)</span><span class="hc-number">24 (0回)</span><span class="hc-number">23 (0回)</span><span class="hc-number">22 (0回)</span></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
             <table>
-                <thead><tr><th>回号 (抽選日)</th><th>本数字・ボーナス数字</th><th>当サイトの成績照合</th></tr></thead>
+                <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td style="font-weight:bold; color:#1e3a8a;">第2088回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/26)</span></td>
-                        <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">08, 16, 18, 27, 37, 39</span><br><span style="color:#888; font-size:12px;">(B: 29)</span></td>
-                        <td><span class="result-win">データ集計中...</span></td>
+                        <td style="font-weight:bold; color:#1e3a8a;">第2090回</td>
+                        <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">----</span><br><span style="color:#888; font-size:12px;"></span></td>
+                        <td><span class="result-lose">抽選待ち...</span></td>
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
+            <div class="scroll-table-container">
+                <table>
+                    <thead>
+                        <tr><th>回号 (抽選日)</th><th>本数字</th><th>ボーナス数字</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2089回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/30)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">09, 16, 18, 32, 37, 43</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 13)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2088回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/26)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">08, 16, 18, 27, 37, 39</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 29)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2087回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/23)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">07, 10, 15, 18, 26, 39</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 13)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2086回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/19)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">04, 11, 19, 28, 39, 40</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 06)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2085回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/16)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">06, 08, 13, 26, 35, 43</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 14)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2084回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/12)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">08, 17, 18, 19, 30, 39</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 09)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2083回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/09)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">08, 10, 13, 17, 26, 29</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 43)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2082回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/05)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">05, 11, 14, 19, 25, 40</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 17)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2081回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/03/02)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">14, 31, 32, 37, 41, 42</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 22)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold; color:#1e3a8a;">第2080回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/02/26)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">06, 12, 30, 36, 37, 38</span></td>
+                            <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: 08)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <footer><p>&copy; 2026 宝くじ当選予想・データ分析ポータル</p></footer>
