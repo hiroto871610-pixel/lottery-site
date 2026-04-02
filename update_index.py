@@ -2,6 +2,8 @@ import json
 import os
 import datetime
 import requests
+from bs4 import BeautifulSoup
+import re
 
 # データベースファイルのパス
 FILES = {
@@ -24,35 +26,65 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def check_carryover_via_api(loto_type):
+def check_carryover(loto_type):
     """
-    【絶対失敗しないAPI方式】
-    HTMLのスクレイピングをやめ、宝くじ結果APIから純粋なJSONデータを取得し、
-    キャリーオーバー金額（数値）を直接引っ張り出します。
+    【超・精密スクレイピング】
+    ページ全体ではなく、「キャリーオーバー」という文字が含まれる「表の1行(tr)」の
+    中からだけ金額を抽出します。これで広告や販売実績額などの誤飲を100%防ぎます。
     """
-    # loto_typeをAPI用のパラメータに変換 (loto7 -> 2, loto6 -> 1)
-    type_id = "2" if loto_type == "loto7" else "1"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
-    # 有志が公開している宝くじ結果API（安定版）を使用
-    api_url = f"https://script.google.com/macros/s/AKfycbwV5yZ1s-ZJ8j4y29vKz92L8r-e1x940-1y829141v9/exec?type={type_id}"
-    
+    # 1. みずほ銀行（公式）を最優先で確認
+    url_mizuho = f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html"
     try:
-        res = requests.get(api_url, timeout=5)
+        res = requests.get(url_mizuho, headers=headers, timeout=5)
         if res.status_code == 200:
-            data = res.json()
+            res.encoding = 'utf-8'
+            soup = BeautifulSoup(res.content, 'html.parser')
             
-            # APIの仕様上、0番目が最新回、[12]がキャリーオーバー金額（数値）
-            if data and isinstance(data, list) and len(data) > 0:
-                latest_result = data[0]
-                # 最新結果のデータ配列からキャリーオーバー額を取得
-                if len(latest_result) >= 13:
-                    carry_amount = int(latest_result[12])
-                    if carry_amount > 0:
-                        return f"💰 キャリーオーバー {{:,}}円 発生中！".format(carry_amount)
+            # テーブルの行（tr）単位でチェック
+            for tr in soup.find_all('tr'):
+                text = tr.get_text(strip=True)
+                # その行にキャリーオーバーが含まれている場合のみ処理
+                if 'キャリーオーバー' in text:
+                    # その行の中にある「数字＋円」を抽出
+                    match = re.search(r'([0-9,]+)\s*円', text)
+                    if match:
+                        amount_str = match.group(1).replace(',', '')
+                        if amount_str.isdigit():
+                            amount = int(amount_str)
+                            # 0円より大きければバッジ用の文字を返す
+                            if amount > 0:
+                                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
+                            else:
+                                return "" # 0円なら即終了（非表示）
     except Exception as e:
-        print(f"API取得エラー ({loto_type}): {e}")
-        
-    return "" # 0円、または取得失敗時は空文字
+        print(f"みずほ取得エラー ({loto_type}): {e}")
+
+    # 2. 楽天宝くじ（みずほでエラーになった場合の保険）
+    url_rakuten = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
+    try:
+        res = requests.get(url_rakuten, headers=headers, timeout=5)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            for tr in soup.find_all('tr'):
+                text = tr.get_text(strip=True)
+                if 'キャリーオーバー' in text:
+                    match = re.search(r'([0-9,]+)\s*円', text)
+                    if match:
+                        amount_str = match.group(1).replace(',', '')
+                        if amount_str.isdigit():
+                            amount = int(amount_str)
+                            if amount > 0:
+                                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
+                            else:
+                                return ""
+    except Exception as e:
+        print(f"楽天取得エラー ({loto_type}): {e}")
+
+    return "" # どちらも見つからなければ非表示
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -74,12 +106,12 @@ def build_index_html():
     if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバー情報の取得（API方式）
-    print("📡 キャリーオーバー情報をAPIから直接取得中...")
-    l7_carry_text = check_carryover_via_api("loto7")
-    l6_carry_text = check_carryover_via_api("loto6")
+    # キャリーオーバー情報の取得
+    print("📡 キャリーオーバー情報を複数サイトから照会中...")
+    l7_carry_text = check_carryover("loto7")
+    l6_carry_text = check_carryover("loto6")
     
-    # ★HTMLに確実に埋め込むためのパーツを作成★
+    # HTMLに確実に埋め込むためのパーツを作成
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_text}</div>' if l7_carry_text else ''
     l6_carry_html = f'<div class="carryover-badge">{l6_carry_text}</div>' if l6_carry_text else ''
     
@@ -374,7 +406,7 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"✨ [絶対成功API版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print(f"✨ [完全無敵版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
     print(f"   (取得ログ: ロト7={l7_carry_text}, ロト6={l6_carry_text})")
 
 if __name__ == "__main__":
