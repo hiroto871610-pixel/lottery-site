@@ -2,11 +2,10 @@ import json
 import os
 import datetime
 import requests
-from bs4 import BeautifulSoup
 import re
-import urllib3  # ★追加：セキュリティ通信を管理するライブラリ
+import urllib3
 
-# ★追加：相手サイトのSSL証明書エラーによる警告文をターミナルに出さないようにミュートする
+# セキュリティ警告をミュート
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # データベースファイルのパス
@@ -30,41 +29,50 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def check_carryover(loto_type):
+def get_carryover_auto(loto_type):
     """
-    【絶対確実なサードパーティ・スクレイピング】
-    相手サイトのSSL証明書エラーを突破して（verify=False）、確実に金額を取得します。
+    【最終形態・完全自動取得】
+    HTMLのタグ構造を無視し、生の文字列データから正規表現で直接金額を抜き出します。
     """
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-    url = f"https://www.takarakujinet.co.jp/{loto_type}/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
+    }
     
+    # --- 1. 楽天宝くじから抽出 ---
     try:
-        # ★修正：verify=False を追加して、相手サイトのSSLエラーを強制突破する
-        res = requests.get(url, headers=headers, timeout=10, verify=False)
-        if res.status_code == 200:
-            res.encoding = res.apparent_encoding
-            soup = BeautifulSoup(res.content, 'html.parser')
-            
-            # テーブルの行（tr）単位でチェック
-            for tr in soup.find_all('tr'):
-                text = tr.get_text(strip=True).replace(' ', '')
-                # その行にキャリーオーバーが含まれている場合のみ処理
-                if 'キャリーオーバー' in text:
-                    # その行の中にある「数字＋円」を抽出
-                    match = re.search(r'([0-9,]+)\s*円', text)
-                    if match:
-                        amount_str = match.group(1).replace(',', '')
-                        if amount_str.isdigit():
-                            amount = int(amount_str)
-                            # 0円より大きければバッジ用の文字を返す
-                            if amount > 0:
-                                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
-                            else:
-                                return "" # 0円なら即終了（非表示）
+        url_rak = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
+        res_rak = requests.get(url_rak, headers=headers, timeout=10)
+        res_rak.encoding = 'euc-jp'
+        
+        # 「キャリーオーバー」の文字の後にある <td> タグの中の金額を直接狙撃
+        match = re.search(r'キャリーオーバー.*?<td[^>]*>\s*([0-9,]+)\s*円', res_rak.text, re.DOTALL)
+        if match:
+            amt = int(match.group(1).replace(',', ''))
+            if amt > 0:
+                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amt)
+            else:
+                return "" # 0円なら非表示
     except Exception as e:
-        print(f"情報取得エラー ({loto_type}): {e}")
+        print(f"楽天取得エラー ({loto_type}): {e}")
 
-    return "" # 見つからなければ非表示
+    # --- 2. 宝くじネットから抽出（楽天がダメだった場合の強力な保険） ---
+    try:
+        url_net = f"https://www.takarakujinet.co.jp/{loto_type}/"
+        res_net = requests.get(url_net, headers=headers, timeout=10, verify=False)
+        res_net.encoding = 'utf-8'
+        
+        # 「キャリーオーバー」以降に出現する最初の「数字＋円」を狙撃
+        match = re.search(r'キャリーオーバー.*?([0-9,]+)\s*円', res_net.text, re.DOTALL)
+        if match:
+            amt = int(match.group(1).replace(',', ''))
+            if amt > 0:
+                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amt)
+            else:
+                return ""
+    except Exception as e:
+        print(f"宝くじネット取得エラー ({loto_type}): {e}")
+
+    return "" # どちらも取得できなければ非表示
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -86,10 +94,10 @@ def build_index_html():
     if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバー情報の取得
-    print("📡 キャリーオーバー情報を照会中...")
-    l7_carry_text = check_carryover("loto7")
-    l6_carry_text = check_carryover("loto6")
+    # キャリーオーバー情報の自動取得
+    print("📡 キャリーオーバー金額を自動抽出中...")
+    l7_carry_text = get_carryover_auto("loto7")
+    l6_carry_text = get_carryover_auto("loto6")
     
     # HTMLに確実に埋め込むためのパーツを作成
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_text}</div>' if l7_carry_text else ''
@@ -386,7 +394,7 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"✨ [完全無敵版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print(f"✨ [自動取得・完全決着版] トップページ (index.html) の生成が完了しました！")
     print(f"   (取得ログ: ロト7={l7_carry_text}, ロト6={l6_carry_text})")
 
 if __name__ == "__main__":
