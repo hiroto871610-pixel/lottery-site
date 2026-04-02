@@ -28,22 +28,17 @@ def load_latest_data(filepath):
 
 def check_carryover(loto_type):
     """
-    【最強ロジック】キャリーオーバー金額を確実に取得する
-    みずほ銀行と楽天宝くじの複数サイトを巡回し、絶対に金額を逃さない
+    【最強ロジック:金額抽出特化】キャリーオーバー金額を確実に取得する
+    みずほ銀行公式と楽天宝くじの両方を巡回し、絶対に金額を逃さない
     """
     urls = [
         f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html",
-        f"https://www.mizuhobank.co.jp/takarakuji/check/loto/{loto_type}/index.html",
-        f"https://takarakuji.rakuten.co.jp/loto/{loto_type}/",
         f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
     ]
     
     # 弾かれないように一般的なブラウザを装う
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
-    carry_amount = "0"
-    is_carry = False
-
     for url in urls:
         try:
             res = requests.get(url, headers=headers, timeout=5)
@@ -52,31 +47,36 @@ def check_carryover(loto_type):
             # 文字化け防止対策（楽天はEUC-JP、みずほは自動判定）
             if 'rakuten' in url:
                 res.encoding = 'euc-jp'
+            else:
+                res.encoding = res.apparent_encoding
                 
             soup = BeautifulSoup(res.content, 'html.parser')
-            text = soup.get_text(separator=' ')
             
-            # 1. 1等が該当なしかどうかをチェック（金額が取れなかった時の保険）
-            if '1等' in text and ('0口' in text or '該当なし' in text):
-                is_carry = True
-                
-            # 2. 金額の抽出（0円はスキップされ、間に文字があっても金額だけを抜く魔法の正規表現）
-            match = re.search(r'(?:キャリーオーバー|繰り?越し)[^円]*?([1-9][\d,億万]+)\s*円', text)
-            
+            # 方法1: テーブルのセルから確実にお金を抜く
+            for cell in soup.find_all(['th', 'td']):
+                text = cell.get_text(strip=True)
+                if 'キャリーオーバー' in text or '繰越' in text:
+                    next_cell = cell.find_next_sibling('td')
+                    if next_cell:
+                        cell_text = next_cell.get_text(strip=True)
+                        # 0円を弾き、金額だけを抽出（1〜9で始まる数字＋カンマの組み合わせ）
+                        amount_match = re.search(r'([1-9][0-9,]+)', cell_text)
+                        if amount_match:
+                            amount = amount_match.group(1)
+                            return f"💰 キャリーオーバー {amount}円 発生中！"
+                            
+            # 方法2: HTML全体のテキストから正規表現で強制的に抜く（保険）
+            full_text = soup.get_text(separator=' ')
+            match = re.search(r'(?:キャリーオーバー|繰り?越し)[^\d]*([1-9][0-9,]+)[^\d]*円', full_text)
             if match:
-                carry_amount = match.group(1)
-                break  # 金額が1つでも取れたら即終了（巡回ストップ）
-        except Exception:
+                amount = match.group(1)
+                return f"💰 キャリーオーバー {amount}円 発生中！"
+                
+        except Exception as e:
             continue
             
-    # 結果の判定
-    if carry_amount != "0":
-        return f"💰 キャリーオーバー {carry_amount}円 発生中！"
-    elif is_carry:
-        max_prize = "10億円" if loto_type == "loto7" else "6億円"
-        return f"💰 キャリーオーバー発生中！(最高{max_prize})"
-        
-    return "" # 何もなければ空文字
+    # 何もなければ空文字を返す（0円のとき、または取得失敗時）
+    return ""
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
