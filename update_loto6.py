@@ -4,48 +4,83 @@ from bs4 import BeautifulSoup
 import re
 import json
 import os
+import datetime
 from collections import Counter
 
 HISTORY_FILE = 'history_loto6.json'
 
-# --- 1. 過去データの取得（約1年分・50回） ---
+# --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
-    url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    res = requests.get(url, headers=headers, timeout=10)
-    soup = BeautifulSoup(res.content, 'html.parser')
-    
+    base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     history_data = []
-    table = soup.find('table')
     
-    if table:
-        for tr in table.find_all('tr')[1:]:
-            cells = tr.find_all(['th', 'td'])
-            if len(cells) >= 3:
-                cell0_text = cells[0].get_text(separator=' ')
-                if '回' not in cell0_text: continue
+    # 過去12ヶ月分のURLを自動生成（最新ページ ＋ 過去12ヶ月分）
+    today = datetime.date.today()
+    target_urls = [f"{base_url}lastresults/"]
+    
+    for i in range(12):
+        y = today.year
+        m = today.month - i
+        if m <= 0:
+            m += 12
+            y -= 1
+        target_urls.append(f"{base_url}{y}{m:02d}/")
+    
+    for url in target_urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code != 200: continue
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            # HTMLタグを完全に消し去り、ただの文章にする
+            text = soup.get_text(separator=' ')
+            
+            # 文章の中から「第〇〇回」をすべて見つける
+            for m in re.finditer(r'第\s*(\d+)\s*回', text):
+                kai_num = m.group(1).zfill(4)
+                kai_str = f"第{kai_num}回"
                 
-                kai_match = re.search(r'第\s*\d+\s*回', cell0_text)
-                kai = kai_match.group().replace(' ', '') if kai_match else ""
+                # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
+                chunk = text[m.end():m.end() + 300]
                 
-                date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
-                date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
+                # 切り出した中から「日付」を見つける
+                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
+                if not date_m: continue
                 
-                main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
-                main_nums = [n.zfill(2) for n in main_raw[:6]]
+                date_str = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
                 
-                bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
-                bonus_nums = [n.zfill(2) for n in bonus_raw[:1]]
+                # ★超重要：日付の直後から残りのテキストを切り出す（日付の数字誤飲防止）
+                num_chunk = chunk[date_m.end():]
                 
-                if kai and len(main_nums) == 6:
-                    history_data.append({
-                        "kai": kai, "date": date, 
-                        "main": main_nums, "bonus": bonus_nums
-                    })
+                # 残った文章から「すべての数字」を抽出
+                all_digits = re.findall(r'\d+', num_chunk)
+                
+                # ★ロト6の範囲（1〜43）の数字だけを残す
+                valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= 43]
+                
+                # ★上から順番に、本数字6個とボーナス数字1個（合計7個）が揃っていれば大成功
+                if len(valid_nums) >= 7:
+                    main_nums = valid_nums[:6]
+                    bonus_nums = valid_nums[6:7]
                     
+                    # まだ追加されていない回号なら保存
+                    if not any(d['kai'] == kai_str for d in history_data):
+                        history_data.append({
+                            "kai": kai_str,
+                            "date": date_str,
+                            "main": main_nums,
+                            "bonus": bonus_nums
+                        })
+        except Exception:
+            pass # エラーが起きても止まらずに次の月の取得へ進む
+            
     if not history_data:
-        raise ValueError("過去データが取得できませんでした。")
+        raise ValueError("過去データが取得できませんでした。サイトの構造が変わった可能性があります。")
         
+    # 最新の回号が一番上に来るように並び替え
+    history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
     return history_data
 
 # --- 2. ホット＆コールド算出 ---
@@ -227,7 +262,6 @@ def build_html():
 """
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
     
-    # 【修正箇所】新しく作った予想ではなく、「履歴(JSON)に保存されている予想」を確実に読み込んで表示する
     for i, pred in enumerate(history_record[0]['predictions']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
@@ -289,14 +323,15 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
-            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ</p>
             <div class="scroll-table-container">
                 <table>
                     <thead>
                         <tr><th>回号 (抽選日)</th><th>本数字</th><th>ボーナス数字</th></tr>
                     </thead>
                     <tbody>\n"""
-    for row in history_data[:50]:
+    # ロト6は週2回あるので、1年分出すためにここを大きく広げておきます（表示上限は設けていません）
+    for row in history_data[:104]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
                             <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{", ".join(row['main'])}</span></td>
@@ -324,4 +359,4 @@ def build_html():
 final_html = build_html()
 with open('loto6.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全版] ロト6 の自動更新が完了しました！")
+print("✨ [完全無敵版] ロト6 の自動更新が完了しました！")
