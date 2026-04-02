@@ -38,8 +38,11 @@ def build_index_html():
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宝くじ当選予想・データ分析ポータル | 最新結果速報</title>
+    <header style="background-color: #1e3a8a; padding: 10px 0; text-align: center;">
+        <a href="index.html">
+            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 80px;">
+        </a>
+    </header>
     <meta name="description" content="ロト7、ロト6、ナンバーズの最新当選番号速報と、過去データに基づくAI予想を無料公開中！">
     <style>
         /* 🎨 全体のベースデザイン */
