@@ -4,48 +4,66 @@ from bs4 import BeautifulSoup
 import re
 import json
 import os
+import datetime  # ★ここを追加
 from collections import Counter
 
 HISTORY_FILE = 'history_loto7.json'
 
-# --- 1. 過去データの取得（約1年分・50回） ---
+# --- 1. 過去データの取得（今年と去年のデータを取得して合体） ---
 def fetch_history_data():
-    url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/"
+    base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    res = requests.get(url, headers=headers, timeout=10)
-    res.encoding = 'euc-jp'
-    soup = BeautifulSoup(res.content, 'html.parser')
-    
     history_data = []
-    table = soup.find('table')
     
-    if table:
-        for tr in table.find_all('tr')[1:]:
-            cells = tr.find_all(['th', 'td'])
-            if len(cells) >= 3:
-                cell0_text = cells[0].get_text(separator=' ')
-                if '回' not in cell0_text: continue
-                
-                kai_match = re.search(r'第\s*\d+\s*回', cell0_text)
-                kai = kai_match.group().replace(' ', '') if kai_match else ""
-                
-                date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
-                date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
-                
-                main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
-                main_nums = [n.zfill(2) for n in main_raw[:7]]
-                
-                bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
-                bonus_nums = [n.zfill(2) for n in bonus_raw[:2]]
-                
-                if kai and len(main_nums) == 7:
-                    history_data.append({
-                        "kai": kai, "date": date, 
-                        "main": main_nums, "bonus": bonus_nums
-                    })
-                    
+    # ★今年と去年の「年」を自動取得
+    today = datetime.date.today()
+    target_urls = [
+        f"{base_url}{today.year}/",      # 今年のページ (例: /2026/)
+        f"{base_url}{today.year - 1}/",  # 去年のページ (例: /2025/)
+        f"{base_url}lastresults/"        # 念のための最新ページ
+    ]
+    
+    for url in target_urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            table = soup.find('table')
+            if table:
+                for tr in table.find_all('tr')[1:]:
+                    cells = tr.find_all(['th', 'td'])
+                    if len(cells) >= 3:
+                        cell0_text = cells[0].get_text(separator=' ')
+                        if '回' not in cell0_text: continue
+                        
+                        kai_match = re.search(r'第\s*\d+\s*回', cell0_text)
+                        kai = kai_match.group().replace(' ', '') if kai_match else ""
+                        
+                        date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
+                        date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
+                        
+                        main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
+                        main_nums = [n.zfill(2) for n in main_raw[:7]]
+                        
+                        bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
+                        bonus_nums = [n.zfill(2) for n in bonus_raw[:2]]
+                        
+                        if kai and len(main_nums) == 7:
+                            # ★重複していなければ追加
+                            if not any(d['kai'] == kai for d in history_data):
+                                history_data.append({
+                                    "kai": kai, "date": date, 
+                                    "main": main_nums, "bonus": bonus_nums
+                                })
+        except Exception:
+            pass # エラーが起きても止まらずに次の年の取得へ進む
+            
     if not history_data:
         raise ValueError("過去データが取得できませんでした。")
+        
+    # ★最後にすべてのデータを「回号の新しい順（降順）」に並び替える
+    history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
         
     return history_data
 
@@ -167,15 +185,10 @@ def build_html():
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <header style="background-color: #1e3a8a; padding: 10px 0; text-align: center;">
-        <a href="index.html">
-            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
-        </a>
-    </header>
+    <title>ロト7 当選予想・データ分析ポータル</title>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
-        header {{ background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }}
-        header h1 {{ margin: 0; font-size: 24px; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
         nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
         nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
         nav a.active {{ border-bottom: 3px solid #d97706; color: #d97706; }}
@@ -211,11 +224,14 @@ def build_html():
         .footer-links a:hover {{ color: white; text-decoration: underline; }}
     </style>
     <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
-     crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681" crossorigin="anonymous"></script>
 </head>
 <body>
-    <header><h1>宝くじ当選予想・データ分析ポータル</h1></header>
+    <header>
+        <a href="index.html">
+            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+        </a>
+    </header>
     <nav>
         <a href="index.html">トップ</a>
         <a href="loto7.html" class="active">ロト7</a>
@@ -223,12 +239,13 @@ def build_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
     </nav>
-    <div style="text-align: center; margin-bottom: 40px;">
-    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-    <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
-    <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
-    <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
-</div>
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 40px;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
+            <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
+            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
+        </div>
         
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト7の予想</h2>
@@ -237,7 +254,6 @@ def build_html():
 """
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
     
-    # 【修正箇所】JSONに保存されている予想を確実に読み込んで表示する（ズレ防止）
     for i, pred in enumerate(history_record[0]['predictions']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
@@ -298,11 +314,11 @@ def build_html():
         </div>
 
         <div style="text-align: center; margin-bottom: 40px;">
-    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-    <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
-    <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
-    <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
-</div>
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
+            <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
+            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
+        </div>
 
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
@@ -314,6 +330,7 @@ def build_html():
                     </thead>
                     <tbody>
 """
+    # ロト7は週1回なので、50回分表示すれば綺麗に約1年分になります
     for row in history_data[:50]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
