@@ -34,50 +34,52 @@ def fetch_history_data():
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
             
-            # ★【無敵のスマート解析ロジック】行(tr)の中のテキストから安全に数字だけを抽出する
-            for tr in soup.find_all('tr'):
-                text = tr.get_text(separator=' ')
+            # HTMLタグを完全に消し去り、ただの文章にする
+            text = soup.get_text(separator=' ')
+            
+            # 文章の中から「第〇〇回」をすべて見つける
+            for m in re.finditer(r'第\s*(\d+)\s*回', text):
+                kai_num = m.group(1).zfill(4)
+                kai_str = f"第{kai_num}回"
                 
-                kai_m = re.search(r'第\s*(\d+)\s*回', text)
-                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
+                # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
+                chunk = text[m.end():m.end() + 300]
                 
-                if kai_m and date_m:
-                    kai_str = kai_m.group(0)
-                    date_str = date_m.group(0)
+                # 切り出した中から「日付」を見つける
+                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
+                if not date_m: continue
+                
+                date_str = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
+                
+                # ★超重要：日付の直後から残りのテキストを切り出す（これで日付の数字を誤飲しない）
+                num_chunk = chunk[date_m.end():]
+                
+                # 残った文章から「すべての数字」を抽出
+                all_digits = re.findall(r'\d+', num_chunk)
+                
+                # ロト7の範囲（1〜37）の数字だけを残す
+                valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= 37]
+                
+                # 上から順番に、本数字7個とボーナス数字2個が揃っていれば大成功
+                if len(valid_nums) >= 9:
+                    main_nums = valid_nums[:7]
+                    bonus_nums = valid_nums[7:9]
                     
-                    # 綺麗なフォーマットに統一
-                    kai_formatted = f"第{kai_m.group(1).zfill(4)}回"
-                    date_formatted = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
-                    
-                    # ★超重要：抽出した「回号」と「日付」の文字を消す（日付の数字を抽選番号と誤認するのを完全に防ぐため）
-                    clean_text = text.replace(kai_str, '').replace(date_str, '')
-                    
-                    # 残ったテキストからすべての数字を抽出
-                    nums = re.findall(r'\d+', clean_text)
-                    
-                    # ロト7の範囲（1〜37）の数字だけを抽出
-                    valid_nums = [n.zfill(2) for n in nums if 1 <= int(n) <= 37]
-                    
-                    # 7個の本数字と、2個のボーナス数字が揃っていれば保存
-                    if len(valid_nums) >= 9:
-                        main_nums = valid_nums[:7]
-                        bonus_nums = valid_nums[7:9]
-                        
-                        # まだ追加されていない回号なら保存
-                        if not any(d['kai'] == kai_formatted for d in history_data):
-                            history_data.append({
-                                "kai": kai_formatted, 
-                                "date": date_formatted, 
-                                "main": main_nums, 
-                                "bonus": bonus_nums
-                            })
+                    # まだ追加されていない回号なら保存
+                    if not any(d['kai'] == kai_str for d in history_data):
+                        history_data.append({
+                            "kai": kai_str,
+                            "date": date_str,
+                            "main": main_nums,
+                            "bonus": bonus_nums
+                        })
         except Exception:
             pass # エラーが起きても止まらずに次の月の取得へ進む
             
     if not history_data:
         raise ValueError("過去データが取得できませんでした。サイトの構造が変わった可能性があります。")
         
-    # 最新の回号が上に来るように並び替え
+    # 最新の回号が一番上に来るように並び替え
     history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
     return history_data
 
@@ -368,4 +370,4 @@ def build_html():
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全修正版] ロト7の全データ取得が完了しました！エラー原因を完全に排除済みです！")
+print("✨ [完全無敵版] ロト7の全データ取得が完了しました！")
