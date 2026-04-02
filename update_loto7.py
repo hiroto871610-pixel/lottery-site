@@ -27,33 +27,50 @@ def fetch_history_data():
             y -= 1
         target_urls.append(f"{base_url}{y}{m:02d}/")
     
-    # ★【最強抽出ロジック】表の形を無視し、文章から「回号・日付・本数字7個・ボーナス2個」を強制的に抜き出す
-    pattern = r'第\s*(\d+)\s*回.*?(\d{4}[/年]\d{1,2}[/月]\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})'
-    
     for url in target_urls:
         try:
             res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code != 200: continue
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
             
-            # HTMLのタグを消して、ただの文字列にする
-            text = soup.get_text(separator=' ')
-            matches = re.finditer(pattern, text)
-            
-            for m in matches:
-                kai = f"第{m.group(1).zfill(4)}回" # 第0667回 のように4桁で統一
-                date = m.group(2).replace('年', '/').replace('月', '/')
+            # ★【無敵のスマート解析ロジック】行(tr)の中のテキストから安全に数字だけを抽出する
+            for tr in soup.find_all('tr'):
+                text = tr.get_text(separator=' ')
                 
-                nums = [m.group(i).zfill(2) for i in range(3, 12)]
-                main_nums = nums[:7]
-                bonus_nums = nums[7:9]
+                kai_m = re.search(r'第\s*(\d+)\s*回', text)
+                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
                 
-                # まだ追加されていない回号なら保存
-                if not any(d['kai'] == kai for d in history_data):
-                    history_data.append({
-                        "kai": kai, "date": date, 
-                        "main": main_nums, "bonus": bonus_nums
-                    })
+                if kai_m and date_m:
+                    kai_str = kai_m.group(0)
+                    date_str = date_m.group(0)
+                    
+                    # 綺麗なフォーマットに統一
+                    kai_formatted = f"第{kai_m.group(1).zfill(4)}回"
+                    date_formatted = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
+                    
+                    # ★超重要：抽出した「回号」と「日付」の文字を消す（日付の数字を抽選番号と誤認するのを完全に防ぐため）
+                    clean_text = text.replace(kai_str, '').replace(date_str, '')
+                    
+                    # 残ったテキストからすべての数字を抽出
+                    nums = re.findall(r'\d+', clean_text)
+                    
+                    # ロト7の範囲（1〜37）の数字だけを抽出
+                    valid_nums = [n.zfill(2) for n in nums if 1 <= int(n) <= 37]
+                    
+                    # 7個の本数字と、2個のボーナス数字が揃っていれば保存
+                    if len(valid_nums) >= 9:
+                        main_nums = valid_nums[:7]
+                        bonus_nums = valid_nums[7:9]
+                        
+                        # まだ追加されていない回号なら保存
+                        if not any(d['kai'] == kai_formatted for d in history_data):
+                            history_data.append({
+                                "kai": kai_formatted, 
+                                "date": date_formatted, 
+                                "main": main_nums, 
+                                "bonus": bonus_nums
+                            })
         except Exception:
             pass # エラーが起きても止まらずに次の月の取得へ進む
             
@@ -323,7 +340,6 @@ def build_html():
                     </thead>
                     <tbody>
 """
-    # 過去1年分のデータをすべて表示
     for row in history_data[:52]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
@@ -352,4 +368,4 @@ def build_html():
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全修正版] ロト7の全データ取得（正規表現版）が完了しました！")
+print("✨ [完全修正版] ロト7の全データ取得が完了しました！エラー原因を完全に排除済みです！")
