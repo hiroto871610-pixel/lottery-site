@@ -3,6 +3,7 @@ import os
 import datetime
 import requests
 from bs4 import BeautifulSoup
+import re
 
 # データベースファイルのパス
 FILES = {
@@ -26,22 +27,26 @@ def load_latest_data(filepath):
     return None
 
 def get_carryover(url):
-    """楽天宝くじからキャリーオーバー情報をリアルタイム取得する"""
+    """楽天宝くじからキャリーオーバー情報をリアルタイム取得する（修正版）"""
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=5)
         res.encoding = 'euc-jp'
         soup = BeautifulSoup(res.content, 'html.parser')
         
-        for th in soup.find_all(['th', 'td']):
-            if 'キャリーオーバー' in th.get_text():
-                td = th.find_next_sibling('td')
-                if td:
-                    text = td.get_text(strip=True)
-                    if text and text != '0円':
-                        return f"💰 キャリーオーバー {text} 発生中！"
+        # HTML全体からテキストを抽出して「キャリーオーバー」の次の金額を探す
+        text = soup.get_text(separator=' ')
+        # 例: "キャリーオーバー 1,234,567,890 円" のようなパターンを探す
+        match = re.search(r'キャリーオーバー[^\d]*([\d,]+)[^\d]*円', text)
+        
+        if match:
+            amount_str = match.group(1)
+            # 0円でなければキャリーオーバー発生中とする
+            if amount_str != '0':
+                return f"💰 キャリーオーバー {amount_str}円 発生中！"
         return None
-    except:
+    except Exception as e:
+        print(f"キャリーオーバー取得エラー ({url}): {e}")
         return None
 
 def get_next_jumbo():
@@ -356,7 +361,7 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print("✨ [超完全版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print("✨ [キャリーオーバー修正版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
 
 if __name__ == "__main__":
     build_index_html()
