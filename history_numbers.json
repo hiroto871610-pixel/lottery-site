@@ -1,7 +1,25 @@
 [
   {
-    "target_kai": "第6953回",
+    "target_kai": "第6954回",
     "status": "waiting",
+    "n4_preds": [
+      "3094",
+      "6035",
+      "0093"
+    ],
+    "n3_preds": [
+      "897",
+      "947",
+      "297"
+    ],
+    "actual_n4": "----",
+    "actual_n3": "---",
+    "result_n4": "抽選待ち...",
+    "result_n3": "抽選待ち..."
+  },
+  {
+    "target_kai": "第6953回",
+    "status": "finished",
     "n4_preds": [
       "7292",
       "4956",
@@ -12,10 +30,10 @@
       "453",
       "959"
     ],
-    "actual_n4": "----",
-    "actual_n3": "---",
-    "result_n4": "抽選待ち...",
-    "result_n3": "抽選待ち..."
+    "actual_n4": "9941",
+    "actual_n3": "095",
+    "result_n4": "ハズレ",
+    "result_n3": "ハズレ"
   },
   {
     "target_kai": "第6952回",
