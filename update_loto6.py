@@ -157,8 +157,11 @@ def build_html():
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ロト6 (LOTO6) 当選予想・データ | 宝くじポータル</title>
+    <header style="background-color: #1e3a8a; padding: 10px 0; text-align: center;">
+        <a href="index.html">
+            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 80px;">
+        </a>
+    </header>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }}
