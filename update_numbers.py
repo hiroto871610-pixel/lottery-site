@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import re
 import json
 import os
-import datetime  # ★ここを追加
+import datetime
 from collections import Counter
 
 HISTORY_FILE = 'history_numbers.json'
@@ -14,17 +14,18 @@ def fetch_single_history(base_url, length):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     data = []
     
-    # ★今月と先月の年月を自動計算
+    # ★過去1年分（12ヶ月分）のURLを自動生成
     today = datetime.date.today()
-    y1, m1 = today.year, today.month
-    y2, m2 = (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
+    target_urls = [base_url]
     
-    # ★アクセスするURLのリスト（デフォルト画面、今月指定、先月指定の3つを順番に巡回する）
-    target_urls = [
-        base_url,
-        f"{base_url}?year={y1}&month={m1:02d}",
-        f"{base_url}?year={y2}&month={m2:02d}"
-    ]
+    for i in range(12):
+        y = today.year
+        m = today.month - i
+        if m <= 0:
+            m += 12
+            y -= 1
+        # 楽天宝くじの正しいURLフォーマット（/YYYYMM/）で追加
+        target_urls.append(f"{base_url}{y}{m:02d}/")
     
     for url in target_urls:
         try:
@@ -174,15 +175,10 @@ def build_html():
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <header style="background-color: #1e3a8a; padding: 10px 0; text-align: center;">
-        <a href="index.html">
-            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
-        </a>
-    </header>
+    <title>ナンバーズ3＆4 当選予想・データ分析</title>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
-        header {{ background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }}
-        header h1 {{ margin: 0; font-size: 24px; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
         nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
         nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
         nav a.active {{ border-bottom: 3px solid #16a34a; color: #16a34a; }}
@@ -225,7 +221,11 @@ def build_html():
          crossorigin="anonymous"></script>
 </head>
 <body>
-    <header><h1>宝くじ当選予想・データ分析ポータル</h1></header>
+    <header>
+        <a href="index.html">
+            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+        </a>
+    </header>
     <nav>
         <a href="index.html">トップ</a>
         <a href="loto7.html">ロト7</a>
@@ -314,7 +314,7 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">📅 過去の当選番号一覧 (実際のデータ)</h2>
-            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（約1ヶ月分）</p>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（過去1年分）</p>
             <div class="scroll-table-container">
                 <table>
                     <thead>
