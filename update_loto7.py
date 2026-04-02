@@ -9,19 +9,26 @@ from collections import Counter
 
 HISTORY_FILE = 'history_loto7.json'
 
-# --- 1. 過去データの取得（今年と去年の全データを取得して合体） ---
+# --- 1. 過去データの取得（過去1年分・約50回） ---
 def fetch_history_data():
     base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     history_data = []
     
-    # ★重要修正：ロト7は「年単位（YYYY）」でページが分かれています
+    # 過去12ヶ月分のURLを自動生成（最新ページ ＋ 過去12ヶ月分）
     today = datetime.date.today()
-    target_urls = [
-        f"{base_url}lastresults/",      # 最新分
-        f"{base_url}{today.year}/",      # 2026年分（今年）
-        f"{base_url}{today.year - 1}/"   # 2025年分（去年）
-    ]
+    target_urls = [f"{base_url}lastresults/"]
+    
+    for i in range(12):
+        y = today.year
+        m = today.month - i
+        if m <= 0:
+            m += 12
+            y -= 1
+        target_urls.append(f"{base_url}{y}{m:02d}/")
+    
+    # ★【最強抽出ロジック】表の形を無視し、文章から「回号・日付・本数字7個・ボーナス2個」を強制的に抜き出す
+    pattern = r'第\s*(\d+)\s*回.*?(\d{4}[/年]\d{1,2}[/月]\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})[^\d]+(\d{1,2})'
     
     for url in target_urls:
         try:
@@ -29,48 +36,37 @@ def fetch_history_data():
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
             
-            table = soup.find('table')
-            if table:
-                for tr in table.find_all('tr')[1:]:
-                    cells = tr.find_all(['th', 'td'])
-                    if len(cells) >= 3:
-                        cell0_text = cells[0].get_text(separator=' ')
-                        if '回' not in cell0_text: continue
-                        
-                        kai_match = re.search(r'第\s*\d+\s*回', cell0_text)
-                        kai = kai_match.group().replace(' ', '') if kai_match else ""
-                        
-                        date_match = re.search(r'\d{4}[/年]\d{1,2}[/月]\d{1,2}', cell0_text)
-                        date = date_match.group().replace('年', '/').replace('月', '/') if date_match else ""
-                        
-                        main_raw = re.findall(r'\d+', cells[1].get_text(separator=' '))
-                        main_nums = [n.zfill(2) for n in main_raw[:7]]
-                        
-                        bonus_raw = re.findall(r'\d+', cells[2].get_text(separator=' '))
-                        bonus_nums = [n.zfill(2) for n in bonus_raw[:2]]
-                        
-                        if kai and len(main_nums) == 7:
-                            # 重複チェックをして追加
-                            if not any(d['kai'] == kai for d in history_data):
-                                history_data.append({
-                                    "kai": kai, "date": date, 
-                                    "main": main_nums, "bonus": bonus_nums
-                                })
-        except Exception as e:
-            print(f"⚠️ URL取得スキップ: {url}")
+            # HTMLのタグを消して、ただの文字列にする
+            text = soup.get_text(separator=' ')
+            matches = re.finditer(pattern, text)
+            
+            for m in matches:
+                kai = f"第{m.group(1).zfill(4)}回" # 第0667回 のように4桁で統一
+                date = m.group(2).replace('年', '/').replace('月', '/')
+                
+                nums = [m.group(i).zfill(2) for i in range(3, 12)]
+                main_nums = nums[:7]
+                bonus_nums = nums[7:9]
+                
+                # まだ追加されていない回号なら保存
+                if not any(d['kai'] == kai for d in history_data):
+                    history_data.append({
+                        "kai": kai, "date": date, 
+                        "main": main_nums, "bonus": bonus_nums
+                    })
+        except Exception:
+            pass # エラーが起きても止まらずに次の月の取得へ進む
             
     if not history_data:
         raise ValueError("過去データが取得できませんでした。サイトの構造が変わった可能性があります。")
         
-    # ★回号の大きい順（最新順）に並び替え
+    # 最新の回号が上に来るように並び替え
     history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
-        
     return history_data
 
 # --- 2. ホット＆コールド算出 ---
 def analyze_trends(history_data):
     all_nums = []
-    # 過去1年分のデータすべてを使って出現頻度を計算
     for data in history_data:
         all_nums.extend(data['main'])
     
@@ -356,4 +352,4 @@ def build_html():
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [修正完了] ロト7 の1年分データ取得が完了しました！")
+print("✨ [完全修正版] ロト7の全データ取得（正規表現版）が完了しました！")
