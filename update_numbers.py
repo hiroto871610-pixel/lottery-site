@@ -153,7 +153,7 @@ def build_html():
     <meta charset="UTF-8">
     <header style="background-color: #1e3a8a; padding: 10px 0; text-align: center;">
         <a href="index.html">
-            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 80px;">
+            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
         </a>
     </header>
     <style>
