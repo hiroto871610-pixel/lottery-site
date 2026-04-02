@@ -114,7 +114,7 @@ def build_html():
     <header>
         <a href="index.html" style="text-decoration: none;">
             <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
-            <div style="color: white; font-size: 16px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">宝くじ当選予想・データ分析ポータル</div>
+            <div style="color: white; font-size: 16px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ジャンボ宝くじ結果・売り場検索</div>
         </a>
     </header>
 
