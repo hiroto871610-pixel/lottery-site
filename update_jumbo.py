@@ -31,40 +31,75 @@ def build_html():
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; padding: 15px 0; text-align: center; }}
+        
         nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
         nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }}
         nav a.active {{ border-bottom: 3px solid #be123c; color: #be123c; background-color: #fff1f2; }}
         nav a:hover {{ background-color: #f0f4f8; }}
 
         .container {{ max-width: 900px; margin: 30px auto; padding: 0 20px; }}
+        
         .section-card {{ background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
         .section-header {{ color: #be123c; border-bottom: 2px solid #ffe4e6; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; display: flex; align-items: center; }}
+        .section-header span {{ font-size: 24px; margin-right: 10px; }}
+
+        .info-box {{ background-color: #fff1f2; border: 2px solid #fecdd3; border-radius: 12px; padding: 25px; margin-bottom: 20px;}}
         
-        .info-box {{ background-color: #fff1f2; border: 2px solid #fecdd3; border-radius: 12px; padding: 25px; margin-bottom: 20px; text-align: center; }}
-        
-        /* リスト・カードデザイン */
+        .strategy-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }}
+        .strategy-row:last-child {{ margin-bottom: 0; }}
+        .strategy-title {{ font-size: 18px; font-weight: bold; color: #be123c; margin-bottom: 10px; display: flex; align-items: center;}}
+        .strategy-title span {{ background-color: #fecdd3; color: #be123c; font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-left: 10px; font-weight: normal; }}
+
+        /* シミュレーター用スタイル */
+        .calc-box {{ background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; }}
+        .slider-container {{ margin: 20px 0; }}
+        input[type=range] {{ width: 100%; max-width: 400px; accent-color: #be123c; }}
+        .result-grid {{ display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 15px; }}
+        .result-item {{ background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 150px; border-left: 4px solid #be123c; }}
+        .result-label {{ font-size: 12px; color: #64748b; margin-bottom: 5px; }}
+        .result-value {{ font-size: 20px; font-weight: bold; color: #0f172a; }}
+
+        /* ★青いボタンのデザイン設定★ */
+        .search-btn {{ 
+            display: block; 
+            width: 100%; 
+            max-width: 300px; 
+            margin: 20px auto; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
+            color: white; 
+            text-align: center; 
+            text-decoration: none; 
+            border-radius: 30px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3); 
+            transition: transform 0.2s; 
+        }}
+        .search-btn:hover {{ 
+            transform: translateY(-2px); 
+            background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+        }}
+
+        /* 5大ジャンボ一覧のカードデザイン */
         .grid-container {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }}
         .jumbo-card {{ border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; border-left: 4px solid #be123c; }}
         .jumbo-card h3 {{ margin: 0 0 10px 0; color: #0f172a; font-size: 18px; }}
         .jumbo-card p {{ margin: 5px 0; font-size: 14px; color: #475569; }}
         .jumbo-card .prize {{ font-weight: bold; color: #e11d48; }}
 
-        /* カレンダーテーブル */
         table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; text-align: left; }}
         th, td {{ padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }}
         th {{ background-color: #f8fafc; color: #475569; font-weight: bold; }}
-        .lucky-day {{ color: #ea580c; font-weight: bold; background-color: #ffedd5; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 13px; }}
-        .super-lucky {{ color: white; font-weight: bold; background-color: #ef4444; padding: 4px 8px; border-radius: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3); font-size: 13px; }}
+        .lucky-day {{ color: #ea580c; font-weight: bold; background-color: #ffedd5; padding: 4px 8px; border-radius: 4px; display: inline-block;}}
+        .super-lucky {{ color: white; font-weight: bold; background-color: #ef4444; padding: 4px 8px; border-radius: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);}}
 
-        /* 売り場検索ボタン */
-        .search-btn {{ display: block; width: 100%; max-width: 300px; margin: 20px auto; padding: 15px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; text-align: center; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3); transition: transform 0.2s; }}
-        .search-btn:hover {{ transform: translateY(-2px); }}
-
-        /* おみくじ */
         .omikuji-box {{ text-align: center; padding: 25px; background: linear-gradient(135deg, #fef08a, #fde047); border-radius: 8px; border: 2px solid #facc15; box-shadow: 0 4px 10px rgba(250, 204, 21, 0.2); }}
         .omikuji-result {{ font-size: 28px; font-weight: bold; color: #b45309; margin: 15px 0; letter-spacing: 2px; background: white; padding: 15px; border-radius: 8px; display: inline-block; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }}
         .btn-omikuji {{ background-color: #be123c; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background 0.2s; }}
         .btn-omikuji:hover {{ background-color: #9f1239; }}
+
+        @media (max-width: 600px) {{ .strategy-row {{ padding: 15px;}} }}
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
         .footer-links {{ margin-bottom: 15px; }}
@@ -75,6 +110,7 @@ def build_html():
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681" crossorigin="anonymous"></script>
 </head>
 <body>
+
     <header>
         <a href="index.html" style="text-decoration: none;">
             <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
@@ -99,20 +135,16 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">🎯 次回のジャンボ宝くじ</h2>
-            <div class="info-box">
+            <h2 class="section-header"><span>🎯</span> 次回のジャンボ宝くじ情報</h2>
+            <div class="info-box" style="text-align: center;">
                 <h3 style="margin-top: 0; color: #be123c; font-size: 26px;">{next_name}</h3>
-                <p style="font-weight: bold; font-size: 20px; margin-bottom: 10px; color: #0f172a;">
-                    {next_prize}
-                </p>
-                <p style="color: #475569; font-weight: bold; background: white; display: inline-block; padding: 5px 15px; border-radius: 20px;">
-                    発売予定：{next_date}
-                </p>
+                <p style="font-weight: bold; font-size: 20px; margin-bottom: 10px; color: #0f172a;">{next_prize}</p>
+                <p style="color: #475569; font-weight: bold; background: white; display: inline-block; padding: 5px 15px; border-radius: 20px;">発売予定：{next_date}</p>
             </div>
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">✨ 5大ジャンボ宝くじ 概要</h2>
+            <h2 class="section-header"><span>✨</span> 5大ジャンボ宝くじ 概要</h2>
             <p style="font-size: 14px; margin-bottom: 20px;">年間を通じて5回開催される大型宝くじのスケジュールと賞金目安です。</p>
             <div class="grid-container">
                 <div class="jumbo-card">
@@ -144,7 +176,7 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">📢 直近のジャンボ抽選結果</h2>
+            <h2 class="section-header"><span>📢</span> 直近のジャンボ抽選結果</h2>
             <p style="font-size: 14px; color: #64748b;">※最新の確定情報はみずほ銀行または楽天宝くじ公式サイトを必ずご確認ください。</p>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px;">
                 <h3 style="margin-top: 0; color: #1e3a8a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">バレンタインジャンボ宝くじ (第1000回)</h3>
@@ -163,7 +195,49 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">🏆 売り場検索＆有名スポット</h2>
+            <h2 class="section-header"><span>🧮</span> 投資額・回収見込みシミュレーター</h2>
+            <p style="font-size: 14px; margin-bottom: 20px;">購入枚数をスライダーで動かして、必要な資金と「連番・バラ」で購入した際の最低回収額をチェックしてみましょう。</p>
+            <div class="calc-box">
+                <label for="ticket-slider" style="font-weight: bold; font-size: 18px; color: #be123c;">購入枚数: <span id="ticket-count" style="font-size: 24px;">30</span> 枚</label>
+                <div class="slider-container">
+                    <input type="range" id="ticket-slider" min="10" max="300" step="10" value="30">
+                </div>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="result-label">購入資金 (300円/枚)</div>
+                        <div class="result-value" id="calc-cost">9,000円</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">最低回収保証 (10枚単位)</div>
+                        <div class="result-value" id="calc-return" style="color: #16a34a;">900円</div>
+                    </div>
+                </div>
+                <p style="font-size: 11px; color: #94a3b8; margin-top: 15px;">※10枚1セット（連番またはバラ）で購入した場合、必ず末等（300円）が1枚含まれる仕組みに基づいた最低保証額です。</p>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header"><span>💡</span> 高額当選を狙う！プロの買い方</h2>
+            <p style="margin-bottom: 20px;">ただ「連番10枚」「バラ10枚」と言うだけじゃない、通な買い方を紹介します。窓口でこの名前を伝えるとスムーズに購入できます。</p>
+            
+            <div class="strategy-row">
+                <div class="strategy-title">縦バラ（3連バラ） <span>人気No.1</span></div>
+                <p style="font-size: 14px; line-height: 1.6; margin: 0;">「バラ」なのに1等と前後賞の両方を狙える最強の買い方です。同じ組で、番号が連続している3枚を10セット（計30枚・9,000円）購入します。バラのワクワク感と、連番の爆発力を兼ね備えています。</p>
+            </div>
+            
+            <div class="strategy-row">
+                <div class="strategy-title">特連（とくれん） <span>手堅く回収</span></div>
+                <p style="font-size: 14px; line-height: 1.6; margin: 0;">組は10種類、番号の下2桁が「00」から「99」まで揃うように100枚（30,000円）購入する買い方です。下2桁の当選（6等・3,000円）が確実に1本入り、末等と合わせて最低でも6,000円の回収が保証されます。</p>
+            </div>
+
+            <div class="strategy-row">
+                <div class="strategy-title">福バラ100 <span>広範囲をカバー</span></div>
+                <p style="font-size: 14px; line-height: 1.6; margin: 0;">100枚すべてが「違う組」「違う番号」になるように構成されたセットです（30,000円）。下2桁が00〜99まで網羅されているため、こちらも特連と同様に最低6,000円の当選が保証されつつ、より広範囲の当選を狙えます。</p>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header"><span>🏆</span> 売り場検索＆有名スポット</h2>
             <p style="font-size: 14px; line-height: 1.6;">ジャンボ宝くじは「どこで買うか」も楽しみの一つ！スマートフォンの位置情報を利用して、今いる場所から一番近い宝くじ売り場をGoogleマップで一発検索できます。</p>
             
             <a href="https://www.google.com/maps/search/%E5%AE%9D%E3%81%8F%E3%81%98%E5%A3%B2%E3%82%8A%E5%A0%B4/" target="_blank" class="search-btn">
@@ -180,17 +254,38 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">🗓️ 宝くじ購入 吉日カレンダー（2026年 注目日）</h2>
+            <h2 class="section-header"><span>🗓️</span> 宝くじ購入 吉日カレンダー（2026年 春）</h2>
             <p style="font-size: 14px;">一粒万倍日（いちりゅうまんばいび）や天赦日（てんしゃにち）など、お金にまつわる吉日です。高額当選者がわざわざ並んで購入する日として知られています。</p>
+            
             <table>
                 <thead>
-                    <tr><th>日付</th><th>吉日の種類</th><th>おすすめ度</th></tr>
+                    <tr>
+                        <th>日付</th>
+                        <th>吉日の種類</th>
+                        <th>おすすめ度</th>
+                    </tr>
                 </thead>
                 <tbody>
-                    <tr><td>2026年 5月11日 (月)</td><td><span class="super-lucky">天赦日 ＋ 一粒万倍日</span></td><td>★★★★★ (最強開運日🔥)</td></tr>
-                    <tr><td>2026年 5月23日 (土)</td><td><span class="lucky-day">一粒万倍日 ＋ 大安</span></td><td>★★★★☆ (週末で狙い目)</td></tr>
-                    <tr><td>2026年 6月 4日 (木)</td><td><span class="lucky-day">寅の日</span></td><td>★★★☆☆ (金運招来日)</td></tr>
-                    <tr><td>2026年 7月23日 (木)</td><td><span class="super-lucky">天赦日 ＋ 一粒万倍日</span></td><td>★★★★★ (サマー狙い目)</td></tr>
+                    <tr>
+                        <td>2026年 4月15日 (水)</td>
+                        <td><span class="lucky-day">一粒万倍日 ＋ 大安</span></td>
+                        <td>★★★★☆</td>
+                    </tr>
+                    <tr>
+                        <td>2026年 5月11日 (月)</td>
+                        <td><span class="super-lucky">天赦日 ＋ 一粒万倍日</span></td>
+                        <td>★★★★★ (最強開運日🔥)</td>
+                    </tr>
+                    <tr>
+                        <td>2026年 5月23日 (土)</td>
+                        <td><span class="lucky-day">一粒万倍日 ＋ 大安</span></td>
+                        <td>★★★★☆ (週末で狙い目)</td>
+                    </tr>
+                    <tr>
+                        <td>2026年 6月 4日 (木)</td>
+                        <td><span class="lucky-day">寅の日</span></td>
+                        <td>★★★☆☆ (金運招来日)</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -220,18 +315,37 @@ def build_html():
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
         </div>
-        <p><strong>【免責事項】</strong><br>当サイトの情報は高額当選を保証するものではありません。宝くじの購入は無理のない範囲で、自己責任にてお楽しみください。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        <p><strong>【免責事項】</strong><br>当サイトのデータや吉日情報などは高額当選を保証するものではありません。宝くじの購入は無理のない範囲で、自己責任にてお楽しみください。</p>
+        <p style="margin-top: 10px; color: #64748b;">© 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
     <script>
+        // おみくじ機能
         function drawOmikuji() {{
             const kumi = Math.floor(Math.random() * 100) + 1; 
             const keta = Math.floor(Math.random() * 10);      
             const resultDiv = document.getElementById('omikuji-display');
             resultDiv.innerHTML = `組：<span style="color:#ef4444;">${{kumi.toString().padStart(2, '0')}}</span>組 / 下1桁：<span style="color:#ef4444;">${{keta}}</span>`;
         }}
+        
+        // ページ読み込み時に初回のおみくじを引く
         document.addEventListener('DOMContentLoaded', drawOmikuji);
+
+        // シミュレーター計算機能
+        const slider = document.getElementById('ticket-slider');
+        const countDisplay = document.getElementById('ticket-count');
+        const costDisplay = document.getElementById('calc-cost');
+        const returnDisplay = document.getElementById('calc-return');
+
+        slider.addEventListener('input', function() {{
+            const tickets = parseInt(this.value);
+            const cost = tickets * 300;
+            const minReturn = Math.floor(tickets / 10) * 300;
+
+            countDisplay.textContent = tickets;
+            costDisplay.textContent = cost.toLocaleString() + '円';
+            returnDisplay.textContent = minReturn.toLocaleString() + '円';
+        }});
     </script>
 </body>
 </html>"""
@@ -240,4 +354,4 @@ def build_html():
 final_html = build_html()
 with open('jumbo.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完成版] ジャンボ宝くじページの生成が完了しました！")
+print("✨ [完全版] ジャンボ宝くじページの生成が完了しました！")
