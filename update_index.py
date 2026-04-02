@@ -26,27 +26,31 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def get_carryover(url):
-    """楽天宝くじからキャリーオーバー情報をリアルタイム取得する（修正版）"""
+def check_carryover_from_rakuten(url):
+    """
+    【最強ロジック】最新結果の「1等」が「0口」または「該当なし」かをチェックして
+    キャリーオーバー発生中かどうかを確実に判定する
+    """
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         res = requests.get(url, headers=headers, timeout=5)
         res.encoding = 'euc-jp'
         soup = BeautifulSoup(res.content, 'html.parser')
         
-        # HTML全体からテキストを抽出して「キャリーオーバー」の次の金額を探す
-        text = soup.get_text(separator=' ')
-        # 例: "キャリーオーバー 1,234,567,890 円" のようなパターンを探す
-        match = re.search(r'キャリーオーバー[^\d]*([\d,]+)[^\d]*円', text)
-        
-        if match:
-            amount_str = match.group(1)
-            # 0円でなければキャリーオーバー発生中とする
-            if amount_str != '0':
-                return f"💰 キャリーオーバー {amount_str}円 発生中！"
+        # テーブルの中を順番にチェック
+        for tr in soup.find_all('tr'):
+            text = tr.get_text(separator=' ')
+            # 「1等」という文字があり、かつ「0口」や「該当なし」があればキャリーとみなす
+            if '1等' in text and ('0口' in text or '該当なし' in text):
+                # 金額が記載されている場合は抜き出す努力をする
+                match = re.search(r'繰り?越し[^\d]*([\d,]+)[^\d]*円', soup.get_text(separator=' '))
+                if match:
+                    return f"💰 キャリーオーバー {match.group(1)}円 発生中！"
+                else:
+                    return "💰 キャリーオーバー 発生中！(次回チャンス)"
         return None
     except Exception as e:
-        print(f"キャリーオーバー取得エラー ({url}): {e}")
+        print(f"キャリーオーバー判定エラー ({url}): {e}")
         return None
 
 def get_next_jumbo():
@@ -69,10 +73,10 @@ def build_index_html():
     if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバー情報の取得
-    print("📡 キャリーオーバー情報を確認中...")
-    l7_carryover = get_carryover("https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/")
-    l6_carryover = get_carryover("https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/")
+    # キャリーオーバー情報の取得（新ロジック）
+    print("📡 キャリーオーバー情報を判定中...")
+    l7_carryover = check_carryover_from_rakuten("https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/")
+    l6_carryover = check_carryover_from_rakuten("https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/")
     
     jumbo_name, jumbo_prize = get_next_jumbo()
 
@@ -361,7 +365,7 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print("✨ [キャリーオーバー修正版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print("✨ [超完全版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
 
 if __name__ == "__main__":
     build_index_html()
