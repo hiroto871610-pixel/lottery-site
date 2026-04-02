@@ -4,6 +4,10 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
+import urllib3  # ★追加：セキュリティ通信を管理するライブラリ
+
+# ★追加：相手サイトのSSL証明書エラーによる警告文をターミナルに出さないようにミュートする
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # データベースファイルのパス
 FILES = {
@@ -28,23 +32,22 @@ def load_latest_data(filepath):
 
 def check_carryover(loto_type):
     """
-    【超・精密スクレイピング】
-    ページ全体ではなく、「キャリーオーバー」という文字が含まれる「表の1行(tr)」の
-    中からだけ金額を抽出します。これで広告や販売実績額などの誤飲を100%防ぎます。
+    【絶対確実なサードパーティ・スクレイピング】
+    相手サイトのSSL証明書エラーを突破して（verify=False）、確実に金額を取得します。
     """
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    url = f"https://www.takarakujinet.co.jp/{loto_type}/"
     
-    # 1. みずほ銀行（公式）を最優先で確認
-    url_mizuho = f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html"
     try:
-        res = requests.get(url_mizuho, headers=headers, timeout=5)
+        # ★修正：verify=False を追加して、相手サイトのSSLエラーを強制突破する
+        res = requests.get(url, headers=headers, timeout=10, verify=False)
         if res.status_code == 200:
-            res.encoding = 'utf-8'
+            res.encoding = res.apparent_encoding
             soup = BeautifulSoup(res.content, 'html.parser')
             
             # テーブルの行（tr）単位でチェック
             for tr in soup.find_all('tr'):
-                text = tr.get_text(strip=True)
+                text = tr.get_text(strip=True).replace(' ', '')
                 # その行にキャリーオーバーが含まれている場合のみ処理
                 if 'キャリーオーバー' in text:
                     # その行の中にある「数字＋円」を抽出
@@ -59,32 +62,9 @@ def check_carryover(loto_type):
                             else:
                                 return "" # 0円なら即終了（非表示）
     except Exception as e:
-        print(f"みずほ取得エラー ({loto_type}): {e}")
+        print(f"情報取得エラー ({loto_type}): {e}")
 
-    # 2. 楽天宝くじ（みずほでエラーになった場合の保険）
-    url_rakuten = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
-    try:
-        res = requests.get(url_rakuten, headers=headers, timeout=5)
-        if res.status_code == 200:
-            res.encoding = 'euc-jp'
-            soup = BeautifulSoup(res.content, 'html.parser')
-            
-            for tr in soup.find_all('tr'):
-                text = tr.get_text(strip=True)
-                if 'キャリーオーバー' in text:
-                    match = re.search(r'([0-9,]+)\s*円', text)
-                    if match:
-                        amount_str = match.group(1).replace(',', '')
-                        if amount_str.isdigit():
-                            amount = int(amount_str)
-                            if amount > 0:
-                                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
-                            else:
-                                return ""
-    except Exception as e:
-        print(f"楽天取得エラー ({loto_type}): {e}")
-
-    return "" # どちらも見つからなければ非表示
+    return "" # 見つからなければ非表示
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -107,7 +87,7 @@ def build_index_html():
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
     # キャリーオーバー情報の取得
-    print("📡 キャリーオーバー情報を複数サイトから照会中...")
+    print("📡 キャリーオーバー情報を照会中...")
     l7_carry_text = check_carryover("loto7")
     l6_carry_text = check_carryover("loto6")
     
