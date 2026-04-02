@@ -28,55 +28,63 @@ def load_latest_data(filepath):
 
 def check_carryover(loto_type):
     """
-    【最強ロジック:金額抽出特化】キャリーオーバー金額を確実に取得する
-    みずほ銀行公式と楽天宝くじの両方を巡回し、絶対に金額を逃さない
+    【超精密ロジック】広告文の誤認識を防ぐため、
+    テーブルの項目が「キャリーオーバー」に完全一致する場所からのみ金額を抽出します。
     """
-    urls = [
-        f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html",
-        f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
-    ]
-    
-    # 弾かれないように一般的なブラウザを装う
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
-    for url in urls:
-        try:
-            res = requests.get(url, headers=headers, timeout=5)
-            if res.status_code != 200: continue
-            
-            # 文字化け防止対策（楽天はEUC-JP、みずほは自動判定）
-            if 'rakuten' in url:
-                res.encoding = 'euc-jp'
-            else:
-                res.encoding = res.apparent_encoding
-                
+    # --- 1. 楽天宝くじのチェック ---
+    url_rakuten = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
+    try:
+        res = requests.get(url_rakuten, headers=headers, timeout=5)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
             
-            # 方法1: テーブルのセルから確実にお金を抜く
-            for cell in soup.find_all(['th', 'td']):
-                text = cell.get_text(strip=True)
-                if 'キャリーオーバー' in text or '繰越' in text:
-                    next_cell = cell.find_next_sibling('td')
-                    if next_cell:
-                        cell_text = next_cell.get_text(strip=True)
-                        # 0円を弾き、金額だけを抽出（1〜9で始まる数字＋カンマの組み合わせ）
-                        amount_match = re.search(r'([1-9][0-9,]+)', cell_text)
-                        if amount_match:
-                            amount = amount_match.group(1)
-                            return f"💰 キャリーオーバー {amount}円 発生中！"
-                            
-            # 方法2: HTML全体のテキストから正規表現で強制的に抜く（保険）
-            full_text = soup.get_text(separator=' ')
-            match = re.search(r'(?:キャリーオーバー|繰り?越し)[^\d]*([1-9][0-9,]+)[^\d]*円', full_text)
-            if match:
-                amount = match.group(1)
-                return f"💰 キャリーオーバー {amount}円 発生中！"
-                
-        except Exception as e:
-            continue
+            for th in soup.find_all(['th', 'td']):
+                # 広告文を拾わないよう「完全一致」に近い形で判定
+                text = th.get_text(strip=True)
+                if text in ['キャリーオーバー', 'キャリーオーバー額']:
+                    td = th.find_next_sibling('td')
+                    if td:
+                        # 数字だけを抽出 ('2,134,567,890円' -> '2134567890')
+                        raw_text = td.get_text(strip=True)
+                        num_str = re.sub(r'[^\d]', '', raw_text)
+                        if num_str:
+                            amount = int(num_str)
+                            if amount > 0:
+                                # 金額を「〇,〇〇〇円」の形式に綺麗にフォーマット
+                                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
+                            else:
+                                return "" # 0円の場合は確実に非表示にする
+    except Exception as e:
+        print(f"楽天取得エラー ({loto_type}): {e}")
+
+    # --- 2. みずほ銀行のチェック (楽天で失敗した場合の保険) ---
+    url_mizuho = f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html"
+    try:
+        res = requests.get(url_mizuho, headers=headers, timeout=5)
+        if res.status_code == 200:
+            res.encoding = res.apparent_encoding
+            soup = BeautifulSoup(res.content, 'html.parser')
             
-    # 何もなければ空文字を返す（0円のとき、または取得失敗時）
-    return ""
+            for th in soup.find_all(['th', 'td']):
+                text = th.get_text(strip=True)
+                if text in ['キャリーオーバー', 'キャリーオーバー額', '繰越金']:
+                    td = th.find_next_sibling('td')
+                    if td:
+                        raw_text = td.get_text(strip=True)
+                        num_str = re.sub(r'[^\d]', '', raw_text)
+                        if num_str:
+                            amount = int(num_str)
+                            if amount > 0:
+                                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
+                            else:
+                                return ""
+    except Exception as e:
+        print(f"みずほ取得エラー ({loto_type}): {e}")
+
+    return "" # どちらも取得できなければ空文字
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -98,7 +106,7 @@ def build_index_html():
     if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバー情報の取得（最強巡回ロジック）
+    # キャリーオーバー情報の取得（超精密ロジック）
     print("📡 キャリーオーバー情報を複数サイトから照会中...")
     l7_carry_text = check_carryover("loto7")
     l6_carry_text = check_carryover("loto6")
@@ -398,7 +406,7 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"✨ [絶対表示版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print(f"✨ [完全無敵版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
     print(f"   (取得ログ: ロト7={l7_carry_text}, ロト6={l6_carry_text})")
 
 if __name__ == "__main__":
