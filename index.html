@@ -4,101 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>宝くじ当選予想・データ分析ポータル | ロト7・ロト6・ナンバーズ</title>
-    <meta name="description" content="ロト7、ロト6、ナンバーズの最新当選番号速報と、過去データに基づくAI予想を無料公開中！">
     <style>
-        /* 🎨 全体のベースデザイン */
         body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #2d3748; line-height: 1.6; }
-        
-        /* 🌟 リッチなヘッダー */
-        header { background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); color: white; padding: 30px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        header { background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); color: white; padding: 30px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         header a { text-decoration: none; color: white; display: block; }
-        header h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        header p { margin: 10px 0 0 0; font-size: 15px; color: #e2e8f0; font-weight: 300; }
+        header h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+        header p { margin: 10px 0 0 0; font-size: 15px; color: #e2e8f0; }
         
-        /* 🗺️ モダンなナビゲーション */
         nav { display: flex; justify-content: center; background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 100; border-bottom: 1px solid #e2e8f0; }
-        nav a { color: #475569; padding: 16px 24px; text-decoration: none; font-weight: bold; font-size: 15px; transition: all 0.3s ease; position: relative; }
+        nav a { color: #475569; padding: 16px 24px; text-decoration: none; font-weight: bold; transition: all 0.3s ease; }
         nav a:hover { color: #1e3a8a; background-color: #f8fafc; }
         nav a.active { color: #1e3a8a; }
-        nav a.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #3b82f6, #1e3a8a); border-radius: 3px 3px 0 0; }
+        nav a.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #3b82f6, #1e3a8a); }
         
         .container { max-width: 1050px; margin: 40px auto; padding: 0 20px; }
-        
-        /* 🚀 ダッシュボード（速報カード） */
-        .section-title { text-align: center; font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 30px; position: relative; }
-        .section-title::after { content: ''; display: block; width: 60px; height: 4px; background: #3b82f6; margin: 10px auto 0; border-radius: 2px; }
+        .section-title { text-align: center; font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 30px; }
         
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 40px; }
-        .dash-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); text-align: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-decoration: none; color: inherit; position: relative; overflow: hidden; border: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: space-between; }
-        .dash-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px -5px rgba(0,0,0,0.12); border-color: transparent; }
+        .dash-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); text-align: center; transition: all 0.3s; text-decoration: none; color: inherit; border: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: space-between; }
+        .dash-card:hover { transform: translateY(-8px); }
         
         .card-loto7::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #f59e0b, #d97706); }
         .card-loto6::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #38bdf8, #0284c7); }
         .card-numbers::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #4ade80, #16a34a); }
         
-        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px; }
-        .dash-title { font-size: 20px; font-weight: 800; }
-        .title-loto7 { color: #d97706; }
-        .title-loto6 { color: #0284c7; }
-        .title-numbers { color: #16a34a; }
-        
-        .badge-new { background-color: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3); }
-        
-        /* ★キャリーオーバーバッジ（確実に表示させるデザイン）★ */
-        .carryover-badge { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 14px; font-weight: bold; padding: 10px 15px; border-radius: 8px; margin: 15px auto 0; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 4px 10px rgba(239,68,68,0.4); border: 2px solid #fecaca; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); box-shadow: 0 6px 15px rgba(239,68,68,0.6); } 100% { transform: scale(1); } }
+        .carryover-badge { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 14px; font-weight: bold; padding: 10px 15px; border-radius: 8px; margin: 15px auto 0; animation: pulse 2s infinite; box-shadow: 0 4px 10px rgba(239,68,68,0.4); }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
         .dash-kai { font-size: 14px; color: #64748b; margin-bottom: 15px; font-weight: bold; }
-        .dash-nums { font-size: 24px; font-weight: 900; letter-spacing: 3px; margin-bottom: 8px; color: #1e293b; }
-        .dash-nums-nm { font-size: 32px; font-weight: 900; letter-spacing: 8px; margin-bottom: 10px; }
-        .dash-bonus { font-size: 14px; color: #10b981; font-weight: bold; background: #ecfdf5; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        .dash-nums { font-size: 24px; font-weight: 900; letter-spacing: 3px; color: #1e293b; }
+        .dash-nums-nm { font-size: 32px; font-weight: 900; letter-spacing: 8px; }
         
-        .btn-view { margin-top: 25px; padding: 12px 20px; background-color: #f8fafc; color: #334155; border-radius: 10px; font-size: 14px; font-weight: bold; transition: all 0.2s; border: 1px solid #e2e8f0; }
-        .dash-card:hover .btn-view { background-color: #1e3a8a; color: white; border-color: #1e3a8a; }
-        
-        /* 🎁 ジャンボ予告バナー */
-        .jumbo-banner { background: linear-gradient(135deg, #be123c, #9f1239); border-radius: 16px; padding: 25px; color: white; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(190, 18, 60, 0.2); position: relative; overflow: hidden; }
-        .jumbo-banner::after { content: '★'; position: absolute; font-size: 100px; opacity: 0.1; right: 20px; top: -20px; }
-        .jumbo-banner h3 { margin: 0 0 10px 0; font-size: 24px; font-weight: 900; }
-        .jumbo-banner p { margin: 0; font-size: 18px; font-weight: bold; }
-        .jumbo-banner a { display: inline-block; margin-top: 15px; padding: 10px 25px; background: white; color: #be123c; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 14px; transition: transform 0.2s; }
-        .jumbo-banner a:hover { transform: scale(1.05); }
+        .jumbo-banner { background: linear-gradient(135deg, #be123c, #9f1239); border-radius: 16px; padding: 25px; color: white; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(190, 18, 60, 0.2); }
+        .jumbo-banner a { display: inline-block; margin-top: 15px; padding: 10px 25px; background: white; color: #be123c; text-decoration: none; border-radius: 25px; font-weight: bold; }
 
-        /* 🗓️ カレンダー＆おみくじエリア */
         .two-col-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 60px; }
         .feature-card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
-        .feature-card h3 { color: #1e293b; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; font-size: 18px; }
-        
-        .lucky-day { color: #ea580c; font-weight: bold; background-color: #ffedd5; padding: 3px 6px; border-radius: 4px; font-size: 12px; }
-        .super-lucky { color: white; font-weight: bold; background-color: #ef4444; padding: 3px 6px; border-radius: 4px; font-size: 12px; }
         .calendar-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .calendar-table th, .calendar-table td { padding: 10px 5px; border-bottom: 1px solid #f1f5f9; text-align: left; }
+        .lucky-day { color: #ea580c; font-weight: bold; background-color: #ffedd5; padding: 3px 6px; border-radius: 4px; }
+        .super-lucky { color: white; font-weight: bold; background-color: #ef4444; padding: 3px 6px; border-radius: 4px; }
 
         .omikuji-area { text-align: center; padding: 20px 0; }
-        #omikuji-result { font-size: 32px; font-weight: 900; margin: 15px 0; min-height: 48px; }
-        #omikuji-numbers { font-size: 14px; color: #64748b; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 20px; min-height: 21px; }
-        .btn-omikuji { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 30px; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3); transition: transform 0.2s; }
-        .btn-omikuji:hover { transform: translateY(-2px); }
+        #omikuji-result { font-size: 32px; font-weight: 900; margin: 15px 0; }
+        .btn-omikuji { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 30px; cursor: pointer; }
 
-        /* 📖 詳しい宝くじガイドセクション */
-        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
-        .guide-card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
-        .guide-card h3 { display: flex; align-items: center; font-size: 20px; margin-top: 0; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; }
-        .guide-icon { font-size: 24px; margin-right: 10px; }
-        .guide-desc { font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.7; }
-        
-        .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .spec-table th, .spec-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: left; }
-        .spec-table th { width: 35%; color: #64748b; font-weight: normal; }
-        .spec-table td { font-weight: bold; color: #1e293b; }
-        .highlight-prize { color: #dc2626; font-size: 15px; font-weight: 900; }
-
-        footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }
-        .footer-links { margin-bottom: 15px; }
-        .footer-links a { color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }
-        .footer-links a:hover { color: white; text-decoration: underline; }
+        footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }
+        .footer-links a { color: #cbd5e1; text-decoration: none; margin: 0 10px; }
     </style>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681" crossorigin="anonymous"></script>
 </head>
 <body>
     <header>
@@ -115,82 +67,56 @@
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
     </nav>
-    
-    <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
-        <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
-        <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
-    </div>
-        
+
     <div class="container">
         <h2 class="section-title">🔔 最新の抽選結果速報</h2>
         
         <div class="dashboard-grid">
             <a href="loto7.html" class="dash-card card-loto7">
                 <div>
-                    <div class="dash-header">
-                        <div class="dash-title title-loto7">ロト7</div>
-                        <div class="badge-new">UPDATE</div>
-                    </div>
+                    <div style="font-size: 20px; font-weight: 800; color: #d97706; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト7</div>
                     <div class="dash-kai">データなし の結果</div>
                     <div class="dash-nums">----</div>
-                    <div class="dash-bonus"></div>
-                    
-                    
                     
                 </div>
-                <div class="btn-view">データ分析と次回のAI予想を見る &rarr;</div>
             </a>
 
             <a href="loto6.html" class="dash-card card-loto6">
                 <div>
-                    <div class="dash-header">
-                        <div class="dash-title title-loto6">ロト6</div>
-                        <div class="badge-new">UPDATE</div>
-                    </div>
+                    <div style="font-size: 20px; font-weight: 800; color: #0284c7; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト6</div>
                     <div class="dash-kai">第2090回 の結果</div>
                     <div class="dash-nums">02, 03, 06, 09, 24, 36</div>
-                    <div class="dash-bonus">(B: 05)</div>
-                    
-                    
                     
                 </div>
-                <div class="btn-view">データ分析と次回のAI予想を見る &rarr;</div>
             </a>
 
             <a href="numbers.html" class="dash-card card-numbers">
                 <div>
-                    <div class="dash-header">
-                        <div class="dash-title title-numbers">ナンバーズ3＆4</div>
-                        <div class="badge-new">UPDATE</div>
-                    </div>
+                    <div style="font-size: 20px; font-weight: 800; color: #16a34a; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ナンバーズ</div>
                     <div class="dash-kai">第6953回 の結果</div>
                     <div style="display: flex; justify-content: space-around; margin-top: 15px;">
                         <div>
-                            <div style="font-size:12px; color:#64748b; font-weight:bold;">ナンバーズ4</div>
+                            <div style="font-size:12px; color:#64748b;">N4</div>
                             <div class="dash-nums-nm" style="color:#16a34a;">9941</div>
                         </div>
                         <div>
-                            <div style="font-size:12px; color:#64748b; font-weight:bold;">ナンバーズ3</div>
+                            <div style="font-size:12px; color:#64748b;">N3</div>
                             <div class="dash-nums-nm" style="color:#d97706;">095</div>
                         </div>
                     </div>
                 </div>
-                <div class="btn-view">データ分析と次回のAI予想を見る &rarr;</div>
             </a>
         </div>
 
         <div class="jumbo-banner">
             <h3>もうすぐ発売！ 🌸 ドリームジャンボ</h3>
             <p>1等・前後賞合わせて 5億円 のチャンスを見逃すな！</p>
-            <a href="jumbo.html">吉日カレンダーとおすすめの買い方をチェック ＞</a>
+            <a href="jumbo.html">吉日カレンダーをチェック ＞</a>
         </div>
 
         <div class="two-col-grid">
             <div class="feature-card">
                 <h3>🗓️ 近日の吉日カレンダー</h3>
-                <p style="font-size:12px; color:#64748b;">宝くじを買うならこの日がおすすめ！</p>
                 <table class="calendar-table">
                     <tr><td>4月15日 (水)</td><td><span class="lucky-day">一粒万倍日 + 大安</span></td></tr>
                     <tr><td>5月11日 (月)</td><td><span class="super-lucky">天赦日 + 一粒万倍日</span></td></tr>
@@ -203,52 +129,8 @@
                 <h3>⛩️ 今日の運勢おみくじ</h3>
                 <div class="omikuji-area">
                     <div id="omikuji-result">🎯 運試し！</div>
-                    <div id="omikuji-numbers">ボタンを押して占う</div>
                     <button class="btn-omikuji" onclick="drawTopOmikuji()">おみくじを引く</button>
                 </div>
-            </div>
-        </div>
-
-        <div style="text-align: center; margin-bottom: 40px;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
-            <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
-            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
-        </div>
-
-        <h2 class="section-title">📖 取扱宝くじの詳細ガイド</h2>
-        <div class="guide-grid">
-            <div class="guide-card">
-                <h3 style="color: #d97706;"><span class="guide-icon">🥇</span> ロト7 (LOTO7)</h3>
-                <p class="guide-desc">1～37の中から異なる7個を選ぶ宝くじ。キャリーオーバー発生時の爆発力は全宝くじの中でトップクラスです。</p>
-                <table class="spec-table">
-                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">6億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 10億円)</span></td></tr>
-                    <tr><th>🎯 1等当選確率</th><td>約 1 / 10,295,472</td></tr>
-                    <tr><th>🗓️ 抽選日</th><td>毎週 金曜日</td></tr>
-                    <tr><th>💴 1口の価格</th><td>300円</td></tr>
-                </table>
-            </div>
-
-            <div class="guide-card">
-                <h3 style="color: #0284c7;"><span class="guide-icon">🥈</span> ロト6 (LOTO6)</h3>
-                <p class="guide-desc">1～43の中から異なる6個を選ぶ宝くじ。週に2回抽選があるため、コンスタントにワクワクを楽しめるのが特徴です。</p>
-                <table class="spec-table">
-                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">2億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 6億円)</span></td></tr>
-                    <tr><th>🎯 1等当選確率</th><td>約 1 / 6,096,454</td></tr>
-                    <tr><th>🗓️ 抽選日</th><td>毎週 月・木曜日</td></tr>
-                    <tr><th>💴 1口の価格</th><td>200円</td></tr>
-                </table>
-            </div>
-
-            <div class="guide-card">
-                <h3 style="color: #16a34a;"><span class="guide-icon">🔢</span> ナンバーズ</h3>
-                <p class="guide-desc">好きな3桁または4桁の数字を選ぶ宝くじ。並び順まで当てるストレートや、順不同のボックスなど戦略的な買い方が可能です。</p>
-                <table class="spec-table">
-                    <tr><th>💰 1等平均賞金</th><td class="highlight-prize">N4: 約90万円 <span style="font-size:12px; color:#d97706;">(N3: 約9万円)</span></td></tr>
-                    <tr><th>🎯 当選確率</th><td>N4: 1/10,000 <span style="font-size:12px; color:#d97706;">(N3: 1/1,000)</span></td></tr>
-                    <tr><th>🗓️ 抽選日</th><td>毎週 月〜金曜日</td></tr>
-                    <tr><th>💴 1口の価格</th><td>各 200円</td></tr>
-                </table>
             </div>
         </div>
     </div>
@@ -259,27 +141,14 @@
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
         </div>
-        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
     <script>
         function drawTopOmikuji() {
             const fortunes = ["大吉 🌟", "中吉 ☀️", "小吉 🌤️", "吉 ⛅", "末吉 ☁️", "凶 🌧️", "大凶 ⛈️"];
-            const colors = ["#dc2626", "#ea580c", "#d97706", "#65a30d", "#10b981", "#475569", "#1e293b"];
             const idx = Math.floor(Math.random() * fortunes.length);
-            
-            // ロト7用のラッキーナンバーを生成
-            let luckyNums = [];
-            while(luckyNums.length < 7) {
-                let r = Math.floor(Math.random() * 37) + 1;
-                if(luckyNums.indexOf(r) === -1) luckyNums.push(r);
-            }
-            luckyNums.sort((a, b) => a - b);
-            const numStr = luckyNums.map(n => String(n).padStart(2, '0')).join(', ');
-            
-            document.getElementById('omikuji-result').innerHTML = `<span style="color: ${colors[idx]};">${fortunes[idx]}</span>`;
-            document.getElementById('omikuji-numbers').innerHTML = `💡 今日のラッキーナンバー: <strong>${numStr}</strong>`;
+            document.getElementById('omikuji-result').innerText = fortunes[idx];
         }
     </script>
 </body>
