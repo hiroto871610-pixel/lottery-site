@@ -2,11 +2,8 @@ import json
 import os
 import datetime
 import requests
+from bs4 import BeautifulSoup
 import re
-import urllib3
-
-# セキュリティ警告をミュート
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # データベースファイルのパス
 FILES = {
@@ -29,50 +26,44 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def get_carryover_auto(loto_type):
+def check_carryover_auto(loto_type):
     """
-    【最終形態・完全自動取得】
-    HTMLのタグ構造を無視し、生の文字列データから正規表現で直接金額を抜き出します。
+    【完全自動・誤爆防止ロジック】
+    楽天宝くじの最新結果ページから、純粋なテーブル内の金額だけを狙撃します。
+    広告文（例:「MEGA BIG 最高12億円」）を絶対に拾わない厳格なルールを使用します。
     """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
-    }
+    # 以前、ご自身の過去データ取得で実績のあった安全な通信ヘッダーを使用
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    url = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
     
-    # --- 1. 楽天宝くじから抽出 ---
     try:
-        url_rak = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
-        res_rak = requests.get(url_rak, headers=headers, timeout=10)
-        res_rak.encoding = 'euc-jp'
-        
-        # 「キャリーオーバー」の文字の後にある <td> タグの中の金額を直接狙撃
-        match = re.search(r'キャリーオーバー.*?<td[^>]*>\s*([0-9,]+)\s*円', res_rak.text, re.DOTALL)
-        if match:
-            amt = int(match.group(1).replace(',', ''))
-            if amt > 0:
-                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amt)
-            else:
-                return "" # 0円なら非表示
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            text = soup.get_text(separator=' ')
+            
+            # 【最強の正規表現】
+            # 「キャリーオーバー」の直後に来る「数字＋円」だけを抽出する。
+            # ※数字の前に「最高」や「発生時」などの文字が入っているとマッチしないため、広告を完全に無視できる。
+            match = re.search(r'キャリーオーバー(?:額|金)?[\s:：]*([0-9,]+)\s*円', text)
+            
+            if match:
+                # カンマを外して純粋な数値にする
+                amount_str = match.group(1).replace(',', '')
+                if amount_str.isdigit():
+                    amount = int(amount_str)
+                    
+                    # 0円の場合はバッジを出さない
+                    if amount > 0:
+                        # 3桁区切りのカンマ付きでリッチにフォーマット
+                        return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amount)
+                    else:
+                        return "" # 0円なら空文字（非表示）
     except Exception as e:
-        print(f"楽天取得エラー ({loto_type}): {e}")
+        print(f"情報取得エラー ({loto_type}): {e}")
 
-    # --- 2. 宝くじネットから抽出（楽天がダメだった場合の強力な保険） ---
-    try:
-        url_net = f"https://www.takarakujinet.co.jp/{loto_type}/"
-        res_net = requests.get(url_net, headers=headers, timeout=10, verify=False)
-        res_net.encoding = 'utf-8'
-        
-        # 「キャリーオーバー」以降に出現する最初の「数字＋円」を狙撃
-        match = re.search(r'キャリーオーバー.*?([0-9,]+)\s*円', res_net.text, re.DOTALL)
-        if match:
-            amt = int(match.group(1).replace(',', ''))
-            if amt > 0:
-                return f"💰 キャリーオーバー {{:,}}円 発生中！".format(amt)
-            else:
-                return ""
-    except Exception as e:
-        print(f"宝くじネット取得エラー ({loto_type}): {e}")
-
-    return "" # どちらも取得できなければ非表示
+    return "" # 取得失敗時も非表示
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -96,8 +87,8 @@ def build_index_html():
 
     # キャリーオーバー情報の自動取得
     print("📡 キャリーオーバー金額を自動抽出中...")
-    l7_carry_text = get_carryover_auto("loto7")
-    l6_carry_text = get_carryover_auto("loto6")
+    l7_carry_text = check_carryover_auto("loto7")
+    l6_carry_text = check_carryover_auto("loto6")
     
     # HTMLに確実に埋め込むためのパーツを作成
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_text}</div>' if l7_carry_text else ''
@@ -399,3 +390,4 @@ def build_index_html():
 
 if __name__ == "__main__":
     build_index_html()
+  
