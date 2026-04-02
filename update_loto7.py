@@ -4,24 +4,28 @@ from bs4 import BeautifulSoup
 import re
 import json
 import os
-import datetime  # ★ここを追加
+import datetime
 from collections import Counter
 
 HISTORY_FILE = 'history_loto7.json'
 
-# --- 1. 過去データの取得（今年と去年のデータを取得して合体） ---
+# --- 1. 過去データの取得（過去1年分・約50回） ---
 def fetch_history_data():
     base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     history_data = []
     
-    # ★今年と去年の「年」を自動取得
+    # ★修正：ロト7も「月ごと（YYYYMM）」の仕様でした！過去12ヶ月分のURLを自動生成して巡回します
     today = datetime.date.today()
-    target_urls = [
-        f"{base_url}{today.year}/",      # 今年のページ (例: /2026/)
-        f"{base_url}{today.year - 1}/",  # 去年のページ (例: /2025/)
-        f"{base_url}lastresults/"        # 念のための最新ページ
-    ]
+    target_urls = [f"{base_url}lastresults/"]
+    
+    for i in range(12):
+        y = today.year
+        m = today.month - i
+        if m <= 0:
+            m += 12
+            y -= 1
+        target_urls.append(f"{base_url}{y}{m:02d}/")
     
     for url in target_urls:
         try:
@@ -50,14 +54,14 @@ def fetch_history_data():
                         bonus_nums = [n.zfill(2) for n in bonus_raw[:2]]
                         
                         if kai and len(main_nums) == 7:
-                            # ★重複していなければ追加
+                            # ★すでに取得した回号（重複）でなければ追加する
                             if not any(d['kai'] == kai for d in history_data):
                                 history_data.append({
                                     "kai": kai, "date": date, 
                                     "main": main_nums, "bonus": bonus_nums
                                 })
         except Exception:
-            pass # エラーが起きても止まらずに次の年の取得へ進む
+            pass # エラーが起きても止まらずに次の月の取得へ進む
             
     if not history_data:
         raise ValueError("過去データが取得できませんでした。")
@@ -155,7 +159,6 @@ def manage_history(latest_data, new_predictions):
             "best_result": "抽選待ち..."
         })
     
-    # 【今回追加】JSONファイル内の重複バグを強制的に削除する処理
     cleaned_record = []
     seen_kais = set()
     for record in history_record:
@@ -330,7 +333,6 @@ def build_html():
                     </thead>
                     <tbody>
 """
-    # ロト7は週1回なので、50回分表示すれば綺麗に約1年分になります
     for row in history_data[:50]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
@@ -361,4 +363,4 @@ def build_html():
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全版] ロト7 の自動更新が完了しました！重複バグも解消済みです！")
+print("✨ [完全版] ロト7 の自動更新が完了しました！過去1年分のデータ取得バグも解消済みです！")
