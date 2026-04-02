@@ -1,6 +1,9 @@
 import json
 import os
 import datetime
+import requests
+from bs4 import BeautifulSoup
+import re
 
 # データベースファイルのパス
 FILES = {
@@ -23,21 +26,40 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def determine_carryover(data_type):
+def check_carryover_from_rakuten(url):
     """
-    自前のデータベースからキャリーオーバーの『可能性』を判定する安全なロジック
-    ※外部サイトのスクレイピングに依存しないためエラーになりません
+    楽天宝くじのサイトからキャリーオーバー金額を強制的に抽出する
     """
     try:
-        if data_type == 'loto7':
-            # ロト7はキャリーオーバーが頻発するため、常にバッジを表示して期待感を煽る
-            return "💰 キャリーオーバー発生中！(最高10億円)"
-        elif data_type == 'loto6':
-            # ロト6も同様にバッジを表示
-            return "💰 キャリーオーバー発生中！(最高6億円)"
-        return None
-    except Exception:
-        return None
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        res = requests.get(url, headers=headers, timeout=5)
+        res.encoding = 'euc-jp'
+        soup = BeautifulSoup(res.content, 'html.parser')
+        
+        # ページ全体のテキストから「繰り越し」または「キャリーオーバー」の次の金額を抜く
+        text = soup.get_text(separator=' ')
+        
+        # 1等が該当なしかどうかをまずチェック
+        is_carry = False
+        if '1等' in text and ('0口' in text or '該当なし' in text):
+            is_carry = True
+            
+        # 金額の抽出（例: "繰り越し 1,234,567,890 円"）
+        match = re.search(r'(繰り?越し|キャリーオーバー)[^\d]*([\d,]+)[^\d]*円', text)
+        
+        if match:
+            amount = match.group(2)
+            if amount != '0':
+                return f"💰 キャリーオーバー {amount}円 発生中！"
+                
+        # 金額が取れなくても、該当なしなら表示する
+        if is_carry:
+            return "💰 キャリーオーバー発生中！(次回チャンス)"
+            
+        return "" # 何もなければ空文字を返す
+    except Exception as e:
+        print(f"キャリーオーバー判定エラー ({url}): {e}")
+        return ""
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -59,10 +81,14 @@ def build_index_html():
     if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバー情報の取得（安全な内部判定ロジック）
-    print("📡 キャリーオーバー状況を判定中...")
-    l7_carryover = determine_carryover('loto7')
-    l6_carryover = determine_carryover('loto6')
+    # キャリーオーバー情報の取得
+    print("📡 キャリーオーバー情報を判定中...")
+    l7_carry_text = check_carryover_from_rakuten("https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/")
+    l6_carry_text = check_carryover_from_rakuten("https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/")
+    
+    # ★HTMLに確実に埋め込むためのパーツを作成★
+    l7_carry_html = f'<div class="carryover-badge">{l7_carry_text}</div>' if l7_carry_text else ''
+    l6_carry_html = f'<div class="carryover-badge">{l6_carry_text}</div>' if l6_carry_text else ''
     
     jumbo_name, jumbo_prize = get_next_jumbo()
 
@@ -112,9 +138,9 @@ def build_index_html():
         
         .badge-new {{ background-color: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3); }}
         
-        /* ★キャリーオーバーバッジ（絶対に表示される）★ */
-        .carryover-badge {{ background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 13px; font-weight: bold; padding: 8px 12px; border-radius: 6px; margin: 10px auto; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 4px 6px rgba(239,68,68,0.3); }}
-        @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.03); }} 100% {{ transform: scale(1); }} }}
+        /* ★キャリーオーバーバッジ（確実に表示させるデザイン）★ */
+        .carryover-badge {{ background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 14px; font-weight: bold; padding: 10px 15px; border-radius: 8px; margin: 15px auto 0; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 4px 10px rgba(239,68,68,0.4); border: 2px solid #fecaca; }}
+        @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.03); box-shadow: 0 6px 15px rgba(239,68,68,0.6); }} 100% {{ transform: scale(1); }} }}
 
         .dash-kai {{ font-size: 14px; color: #64748b; margin-bottom: 15px; font-weight: bold; }}
         .dash-nums {{ font-size: 24px; font-weight: 900; letter-spacing: 3px; margin-bottom: 8px; color: #1e293b; }}
@@ -204,7 +230,9 @@ def build_index_html():
                     <div class="dash-kai">{l7_data.get('target_kai', '----')} の結果</div>
                     <div class="dash-nums">{l7_data.get('actual_main', '----')}</div>
                     <div class="dash-bonus">{l7_data.get('actual_bonus', '')}</div>
-                    {f'<div class="carryover-badge">{l7_carryover}</div>' if l7_carryover else ''}
+                    
+                    {l7_carry_html}
+                    
                 </div>
                 <div class="btn-view">データ分析と次回のAI予想を見る &rarr;</div>
             </a>
@@ -218,7 +246,9 @@ def build_index_html():
                     <div class="dash-kai">{l6_data.get('target_kai', '----')} の結果</div>
                     <div class="dash-nums">{l6_data.get('actual_main', '----')}</div>
                     <div class="dash-bonus">{l6_data.get('actual_bonus', '')}</div>
-                    {f'<div class="carryover-badge">{l6_carryover}</div>' if l6_carryover else ''}
+                    
+                    {l6_carry_html}
+                    
                 </div>
                 <div class="btn-view">データ分析と次回のAI予想を見る &rarr;</div>
             </a>
@@ -276,7 +306,7 @@ def build_index_html():
         <div style="text-align: center; margin-bottom: 40px;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
             <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
-            <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
+            <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
             <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
         </div>
 
@@ -351,7 +381,8 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print("✨ [キャリーオーバー絶対表示版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print(f"✨ [絶対表示版] オシャレで詳細なトップページ (index.html) の生成が完了しました！")
+    print(f"   (取得ログ: ロト7={l7_carry_text}, ロト6={l6_carry_text})")
 
 if __name__ == "__main__":
     build_index_html()
