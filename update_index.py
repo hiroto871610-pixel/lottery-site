@@ -26,40 +26,57 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def check_carryover_from_rakuten(url):
+def check_carryover(loto_type):
     """
-    楽天宝くじのサイトからキャリーオーバー金額を強制的に抽出する
+    【最強ロジック】キャリーオーバー金額を確実に取得する
+    みずほ銀行と楽天宝くじの複数サイトを巡回し、絶対に金額を逃さない
     """
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        res = requests.get(url, headers=headers, timeout=5)
-        res.encoding = 'euc-jp'
-        soup = BeautifulSoup(res.content, 'html.parser')
-        
-        # ページ全体のテキストから「繰り越し」または「キャリーオーバー」の次の金額を抜く
-        text = soup.get_text(separator=' ')
-        
-        # 1等が該当なしかどうかをまずチェック
-        is_carry = False
-        if '1等' in text and ('0口' in text or '該当なし' in text):
-            is_carry = True
+    urls = [
+        f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html",
+        f"https://www.mizuhobank.co.jp/takarakuji/check/loto/{loto_type}/index.html",
+        f"https://takarakuji.rakuten.co.jp/loto/{loto_type}/",
+        f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
+    ]
+    
+    # 弾かれないように一般的なブラウザを装う
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    carry_amount = "0"
+    is_carry = False
+
+    for url in urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=5)
+            if res.status_code != 200: continue
             
-        # 金額の抽出（例: "繰り越し 1,234,567,890 円"）
-        match = re.search(r'(繰り?越し|キャリーオーバー)[^\d]*([\d,]+)[^\d]*円', text)
-        
-        if match:
-            amount = match.group(2)
-            if amount != '0':
-                return f"💰 キャリーオーバー {amount}円 発生中！"
+            # 文字化け防止対策（楽天はEUC-JP、みずほは自動判定）
+            if 'rakuten' in url:
+                res.encoding = 'euc-jp'
                 
-        # 金額が取れなくても、該当なしなら表示する
-        if is_carry:
-            return "💰 キャリーオーバー発生中！(次回チャンス)"
+            soup = BeautifulSoup(res.content, 'html.parser')
+            text = soup.get_text(separator=' ')
             
-        return "" # 何もなければ空文字を返す
-    except Exception as e:
-        print(f"キャリーオーバー判定エラー ({url}): {e}")
-        return ""
+            # 1. 1等が該当なしかどうかをチェック（金額が取れなかった時の保険）
+            if '1等' in text and ('0口' in text or '該当なし' in text):
+                is_carry = True
+                
+            # 2. 金額の抽出（0円はスキップされ、間に文字があっても金額だけを抜く魔法の正規表現）
+            match = re.search(r'(?:キャリーオーバー|繰り?越し)[^円]*?([1-9][\d,億万]+)\s*円', text)
+            
+            if match:
+                carry_amount = match.group(1)
+                break  # 金額が1つでも取れたら即終了（巡回ストップ）
+        except Exception:
+            continue
+            
+    # 結果の判定
+    if carry_amount != "0":
+        return f"💰 キャリーオーバー {carry_amount}円 発生中！"
+    elif is_carry:
+        max_prize = "10億円" if loto_type == "loto7" else "6億円"
+        return f"💰 キャリーオーバー発生中！(最高{max_prize})"
+        
+    return "" # 何もなければ空文字
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -81,10 +98,10 @@ def build_index_html():
     if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバー情報の取得
-    print("📡 キャリーオーバー情報を判定中...")
-    l7_carry_text = check_carryover_from_rakuten("https://takarakuji.rakuten.co.jp/backnumber/loto7/lastresults/")
-    l6_carry_text = check_carryover_from_rakuten("https://takarakuji.rakuten.co.jp/backnumber/loto6/lastresults/")
+    # キャリーオーバー情報の取得（最強巡回ロジック）
+    print("📡 キャリーオーバー情報を複数サイトから照会中...")
+    l7_carry_text = check_carryover("loto7")
+    l6_carry_text = check_carryover("loto6")
     
     # ★HTMLに確実に埋め込むためのパーツを作成★
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_text}</div>' if l7_carry_text else ''
