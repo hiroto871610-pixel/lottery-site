@@ -9,23 +9,19 @@ from collections import Counter
 
 HISTORY_FILE = 'history_loto7.json'
 
-# --- 1. 過去データの取得（過去1年分・約50回） ---
+# --- 1. 過去データの取得（今年と去年の全データを取得して合体） ---
 def fetch_history_data():
     base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     history_data = []
     
-    # ★修正：ロト7も「月ごと（YYYYMM）」の仕様でした！過去12ヶ月分のURLを自動生成して巡回します
+    # ★重要修正：ロト7は「年単位（YYYY）」でページが分かれています
     today = datetime.date.today()
-    target_urls = [f"{base_url}lastresults/"]
-    
-    for i in range(12):
-        y = today.year
-        m = today.month - i
-        if m <= 0:
-            m += 12
-            y -= 1
-        target_urls.append(f"{base_url}{y}{m:02d}/")
+    target_urls = [
+        f"{base_url}lastresults/",      # 最新分
+        f"{base_url}{today.year}/",      # 2026年分（今年）
+        f"{base_url}{today.year - 1}/"   # 2025年分（去年）
+    ]
     
     for url in target_urls:
         try:
@@ -54,19 +50,19 @@ def fetch_history_data():
                         bonus_nums = [n.zfill(2) for n in bonus_raw[:2]]
                         
                         if kai and len(main_nums) == 7:
-                            # ★すでに取得した回号（重複）でなければ追加する
+                            # 重複チェックをして追加
                             if not any(d['kai'] == kai for d in history_data):
                                 history_data.append({
                                     "kai": kai, "date": date, 
                                     "main": main_nums, "bonus": bonus_nums
                                 })
-        except Exception:
-            pass # エラーが起きても止まらずに次の月の取得へ進む
+        except Exception as e:
+            print(f"⚠️ URL取得スキップ: {url}")
             
     if not history_data:
-        raise ValueError("過去データが取得できませんでした。")
+        raise ValueError("過去データが取得できませんでした。サイトの構造が変わった可能性があります。")
         
-    # ★最後にすべてのデータを「回号の新しい順（降順）」に並び替える
+    # ★回号の大きい順（最新順）に並び替え
     history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
         
     return history_data
@@ -74,6 +70,7 @@ def fetch_history_data():
 # --- 2. ホット＆コールド算出 ---
 def analyze_trends(history_data):
     all_nums = []
+    # 過去1年分のデータすべてを使って出現頻度を計算
     for data in history_data:
         all_nums.extend(data['main'])
     
@@ -175,14 +172,14 @@ def manage_history(latest_data, new_predictions):
 
 # --- 5. HTML構築 ---
 def build_html():
-    print("🔄 データ取得＆アルゴリズム解析を開始...")
+    print("🔄 ロト7 データ取得＆アルゴリズム解析を開始...")
     history_data = fetch_history_data()
     latest_data = history_data[0]
     hot, cold = analyze_trends(history_data)
     predictions = generate_algo_predictions(hot, cold)
     history_record = manage_history(latest_data, predictions)
     
-    print(f"📡 LOTO7 データ取得成功: {latest_data['kai']} ({latest_data['date']})")
+    print(f"📡 データ取得成功: 最新回 {latest_data['kai']} ({latest_data['date']})")
     
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -256,16 +253,13 @@ def build_html():
             <div class="prediction-box">
 """
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
-    
     for i, pred in enumerate(history_record[0]['predictions']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
     
-    html += """            </div>
+    html += f"""            </div>
         </div>
 
-        """
-    html += f"""
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
             <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
@@ -285,7 +279,7 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>
+            <h2 class="section-header">📊 直近の出現傾向 (過去1年分の集計)</h2>
             <div class="hc-container">
                 <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>"""
     for n, count in hot:
@@ -325,7 +319,7 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
-            <p style="font-size: 14px; color: #64748b;">※楽天宝くじの直近データ（最大50回分）</p>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじのアーカイブデータより抽出（過去1年分）</p>
             <div class="scroll-table-container">
                 <table>
                     <thead>
@@ -333,7 +327,8 @@ def build_html():
                     </thead>
                     <tbody>
 """
-    for row in history_data[:50]:
+    # 過去1年分のデータをすべて表示
+    for row in history_data[:52]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
                             <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{", ".join(row['main'])}</span></td>
@@ -344,7 +339,6 @@ def build_html():
                 </table>
             </div>
         </div>
-
     </div>
     <footer>
         <div class="footer-links">
@@ -359,8 +353,7 @@ def build_html():
 </html>"""
     return html
 
-# 実行
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全版] ロト7 の自動更新が完了しました！過去1年分のデータ取得バグも解消済みです！")
+print("✨ [修正完了] ロト7 の1年分データ取得が完了しました！")
