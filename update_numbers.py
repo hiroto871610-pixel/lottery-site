@@ -4,35 +4,58 @@ from bs4 import BeautifulSoup
 import re
 import json
 import os
+import datetime  # ★ここを追加
 from collections import Counter
 
 HISTORY_FILE = 'history_numbers.json'
 
 # --- 1. 過去データの取得（目印に頼らない最強抽出ロジック） ---
-def fetch_single_history(url, length):
+def fetch_single_history(base_url, length):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    res = requests.get(url, headers=headers, timeout=10)
-    res.encoding = 'euc-jp'
-    soup = BeautifulSoup(res.content, 'html.parser')
-    
-    text = soup.get_text(separator=' ')
-    
-    # 【最強抽出】「第〇〇回」〜「日付」〜「当せん番号」の塊を強制的にぶっこ抜く
-    pattern = r'第\s*(\d+)\s*回[^第]*?(\d{4}[/年]\d{1,2}[/月]\d{1,2})[^第]*?当せん番号\D*(\d{' + str(length) + r'})'
-    matches = re.finditer(pattern, text)
-    
     data = []
-    for m in matches:
-        kai = f"第{m.group(1)}回"
-        date = m.group(2).replace('年', '/').replace('月', '/')
-        win_num = m.group(3)
-        data.append({"kai": kai, "date": date, "win_num": win_num})
-        
+    
+    # ★今月と先月の年月を自動計算
+    today = datetime.date.today()
+    y1, m1 = today.year, today.month
+    y2, m2 = (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
+    
+    # ★アクセスするURLのリスト（デフォルト画面、今月指定、先月指定の3つを順番に巡回する）
+    target_urls = [
+        base_url,
+        f"{base_url}?year={y1}&month={m1:02d}",
+        f"{base_url}?year={y2}&month={m2:02d}"
+    ]
+    
+    for url in target_urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            text = soup.get_text(separator=' ')
+            
+            # 【最強抽出】「第〇〇回」〜「日付」〜「当せん番号」の塊を強制的にぶっこ抜く
+            pattern = r'第\s*(\d+)\s*回[^第]*?(\d{4}[/年]\d{1,2}[/月]\d{1,2})[^第]*?当せん番号\D*(\d{' + str(length) + r'})'
+            matches = re.finditer(pattern, text)
+            
+            for m in matches:
+                kai = f"第{m.group(1)}回"
+                date = m.group(2).replace('年', '/').replace('月', '/')
+                win_num = m.group(3)
+                
+                # ★すでに取得した回号（重複）でなければ追加する
+                if not any(d['kai'] == kai for d in data):
+                    data.append({"kai": kai, "date": date, "win_num": win_num})
+        except Exception:
+            pass # エラーが起きても止まらずに次の月の取得へ進む
+            
+    # ★最後にすべてのデータを「回号の新しい順（降順）」に並び替える
+    data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
+    
     return data
 
 def fetch_both_history():
     print("🔄 ナンバーズ3＆4のデータ取得＆解析を開始...")
-    # 【修正】ナンバーズは「lastresults/」という専用ページがなく、通常ページに過去一覧がある！
     n4_history = fetch_single_history("https://takarakuji.rakuten.co.jp/backnumber/numbers4/", 4)
     n3_history = fetch_single_history("https://takarakuji.rakuten.co.jp/backnumber/numbers3/", 3)
     
@@ -196,10 +219,10 @@ def build_html():
         .footer-links {{ margin-bottom: 15px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
         .footer-links a:hover {{ color: white; text-decoration: underline; }}
-</style> 
-<meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
-     crossorigin="anonymous"></script>
+    </style> 
+    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
+         crossorigin="anonymous"></script>
 </head>
 <body>
     <header><h1>宝くじ当選予想・データ分析ポータル</h1></header>
@@ -210,6 +233,7 @@ def build_html():
         <a href="numbers.html" class="active">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
     </nav>
+    <div class="container">
     <div style="text-align: center; margin-bottom: 40px;">
     <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
     <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
