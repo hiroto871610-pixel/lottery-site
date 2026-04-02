@@ -226,7 +226,6 @@ def build_html():
             <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
         </a>
     </header>
-    <header><h1>宝くじ当選予想・データ分析ポータル</h1></header>
     <nav>
         <a href="index.html">トップ</a>
         <a href="loto7.html">ロト7</a>
