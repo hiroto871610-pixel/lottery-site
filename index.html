@@ -48,6 +48,17 @@
         #omikuji-result { font-size: 32px; font-weight: 900; margin: 15px 0; }
         .btn-omikuji { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 30px; cursor: pointer; }
 
+        /* 詳細ガイド（復元） */
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .guide-card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .guide-card h3 { display: flex; align-items: center; font-size: 20px; margin-top: 0; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; }
+        .guide-desc { font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.7; }
+        .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .spec-table th, .spec-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: left; }
+        .spec-table th { width: 35%; color: #64748b; font-weight: normal; }
+        .spec-table td { font-weight: bold; color: #1e293b; }
+        .highlight-prize { color: #dc2626; font-size: 15px; font-weight: 900; }
+
         footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }
         .footer-links a { color: #cbd5e1; text-decoration: none; margin: 0 10px; }
     </style>
@@ -86,7 +97,7 @@
                     <div style="font-size: 20px; font-weight: 800; color: #0284c7; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト6</div>
                     <div class="dash-kai">第2090回 の結果</div>
                     <div class="dash-nums">02, 03, 06, 09, 24, 36</div>
-                    
+                    <div class="carryover-badge">💰 キャリーオーバー発生中！(最高6億円)</div>
                 </div>
             </a>
 
@@ -131,6 +142,42 @@
                     <div id="omikuji-result">🎯 運試し！</div>
                     <button class="btn-omikuji" onclick="drawTopOmikuji()">おみくじを引く</button>
                 </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">📖 取扱宝くじの詳細ガイド</h2>
+        <div class="guide-grid">
+            <div class="guide-card">
+                <h3 style="color: #d97706;">🥇 ロト7 (LOTO7)</h3>
+                <p class="guide-desc">1～37の中から異なる7個を選ぶ宝くじ。キャリーオーバー発生時の爆発力は全宝くじの中でトップクラスです。</p>
+                <table class="spec-table">
+                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">6億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 10億円)</span></td></tr>
+                    <tr><th>🎯 1等当選確率</th><td>約 1 / 10,295,472</td></tr>
+                    <tr><th>🗓️ 抽選日</th><td>毎週 金曜日</td></tr>
+                    <tr><th>💴 1口の価格</th><td>300円</td></tr>
+                </table>
+            </div>
+
+            <div class="guide-card">
+                <h3 style="color: #0284c7;">🥈 ロト6 (LOTO6)</h3>
+                <p class="guide-desc">1～43の中から異なる6個を選ぶ宝くじ。週に2回抽選があるため、コンスタントにワクワクを楽しめるのが特徴です。</p>
+                <table class="spec-table">
+                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">2億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 6億円)</span></td></tr>
+                    <tr><th>🎯 1等当選確率</th><td>約 1 / 6,096,454</td></tr>
+                    <tr><th>🗓️ 抽選日</th><td>毎週 月・木曜日</td></tr>
+                    <tr><th>💴 1口の価格</th><td>200円</td></tr>
+                </table>
+            </div>
+
+            <div class="guide-card">
+                <h3 style="color: #16a34a;">🔢 ナンバーズ</h3>
+                <p class="guide-desc">好きな3桁または4桁の数字を選ぶ宝くじ。並び順まで当てるストレートや、順不同のボックスなど戦略的な買い方が可能です。</p>
+                <table class="spec-table">
+                    <tr><th>💰 1等平均賞金</th><td class="highlight-prize">N4: 約90万円 <span style="font-size:12px; color:#d97706;">(N3: 約9万円)</span></td></tr>
+                    <tr><th>🎯 当選確率</th><td>N4: 1/10,000 <span style="font-size:12px; color:#d97706;">(N3: 1/1,000)</span></td></tr>
+                    <tr><th>🗓️ 抽選日</th><td>毎週 月〜金曜日</td></tr>
+                    <tr><th>💴 1口の価格</th><td>各 200円</td></tr>
+                </table>
             </div>
         </div>
     </div>
