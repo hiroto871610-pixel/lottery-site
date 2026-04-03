@@ -175,6 +175,14 @@ def build_html():
             </div>
         </div>
 
+        
+<div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
+<img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
+<img border="0" width="1" height="1" src="https://www11.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" alt="">
+    </div>
+
         <div class="section-card">
             <h2 class="section-header"><span>📢</span> 直近のジャンボ抽選結果</h2>
             <p style="font-size: 14px; color: #64748b;">※最新の確定情報はみずほ銀行または楽天宝くじ公式サイトを必ずご確認ください。</p>
