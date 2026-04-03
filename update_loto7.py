@@ -6,8 +6,40 @@ import json
 import os
 import datetime
 from collections import Counter
+import tweepy  # ←追加：Xポスト用
+import urllib3 # ←追加：エラー回避用
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HISTORY_FILE = 'history_loto7.json'
+
+# =========================================================
+# 𝕏 (旧Twitter) API設定（取得した4つのキーをここに入力します）
+# =========================================================
+X_API_KEY = "zjHb9R5TMtpyUF4FWedZ1PKBz"
+X_API_SECRET = "eAkrikgqWvhtvj8rq8thNuftnJpM5bvfR0ECIg7druedlLAHui"
+X_ACCESS_TOKEN = "2040049940643086336-tTssw8aKVmrN9IRakTTCs4zDVJbJud"
+X_ACCESS_SECRET = "j5iF1Z1HfbkLx3E3kQ7lDLiVEEgbwHUszkz8zFTOV5oV8"
+
+def post_to_x(message):
+    """X(Twitter)へ自動投稿する機能"""
+    # キーが初期状態のままならスキップする安全設計
+    if X_API_KEY.startswith("ここに"):
+        print("⚠️ XのAPIキーが設定されていないため、自動ポストをスキップしました。")
+        return
+
+    try:
+        client = tweepy.Client(
+            consumer_key=X_API_KEY,
+            consumer_secret=X_API_SECRET,
+            access_token=X_ACCESS_TOKEN,
+            access_token_secret=X_ACCESS_SECRET
+        )
+        client.create_tweet(text=message)
+        print("✅ X(Twitter)への自動ポストが成功しました！")
+    except Exception as e:
+        print(f"❌ Xポストエラー: {e}")
+# =========================================================
 
 # --- 1. 過去データの取得（過去1年分・約50回） ---
 def fetch_history_data():
@@ -387,13 +419,53 @@ def build_html():
             <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        # (前略：フッターのHTML部分)
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 </body>
 </html>"""
+
+    # --- ⭐️ 自動ポスト用のメッセージを作成して実行 ⭐️ ---
+    import datetime
+    
+    # 今日の曜日を取得 (0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日)
+    today_weekday = datetime.datetime.now().weekday()
+    
+    next_kai = history_record[0]['target_kai']
+    # サイトのURLを設定してください
+    site_url = "https://loto-yosou-ai.com/loto7.html" 
+    
+    # ①【前日】木曜日の場合：抽選日予告
+    if today_weekday == 3:
+        tweet_msg = f"【明日は #ロト7 抽選日🎯】\nいよいよ明日は {next_kai} の抽選日です！\n"
+        if carryover_text:
+            tweet_msg += f"{carryover_text}\n"
+        tweet_msg += f"\n当サイトのAIアルゴリズムが弾き出した最新予想を無料で公開中！購入前にぜひチェックしてください👇\n{site_url}\n#宝くじ予想"
+
+    # ②【当日】金曜日の場合：抽選結果速報とサイト誘導
+    elif today_weekday == 4:
+        # 最新の抽選結果（1つ前の履歴データ）を取得
+        finished_record = history_record[1]
+        finished_kai = finished_record['target_kai']
+        best_res = finished_record['best_result']
+        
+        tweet_msg = f"【#ロト7 抽選結果速報🔔】\n本日 {finished_kai} の結果が発表されました！\n当サイトのAI予想成績は…【{best_res}】でした！\n\n実際の当選番号と、次回({next_kai})の最新予想はこちらから👇\n{site_url}\n#宝くじ結果"
+
+    # ③【それ以外】土〜水曜日の場合：予想通知
+    else:
+        tweet_msg = f"【#ロト7 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n"
+        if carryover_text:
+            tweet_msg += f"{carryover_text}\n"
+        tweet_msg += f"\n過去1年分のデータから導き出した最新HOT・COLD数字はこちら👇\n{site_url}\n#宝くじ予想"
+    
+    # 決定したメッセージをポストする
+    post_to_x(tweet_msg)
+    # --------------------------------------------------------
+
     return html
 
+# 最終実行部分（ここは関数の外側に戻します）
 final_html = build_html()
 with open('loto7.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全無敵版] ロト7の全データ取得が完了しました！")
+print("✨ ロト7の全データ取得と自動ポストが完了しました！")
