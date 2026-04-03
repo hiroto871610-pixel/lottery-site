@@ -124,7 +124,7 @@ def build_html():
         <a href="loto6.html">ロト6</a>
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html" class="active">ジャンボ</a>
-        <a href="column.html">コラム🔰</a>
+        <a href="column.html" class="active">攻略ガイド🔰</a>
     </nav>
 
     <div class="container">
