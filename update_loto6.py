@@ -329,6 +329,7 @@ def build_html():
         <a href="loto6.html" class="active">ロト6</a>
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">コラム🔰</a>
     </nav>
     <div style="text-align: center; margin-bottom: 40px;">
     <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
