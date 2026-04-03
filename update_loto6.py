@@ -177,6 +177,20 @@ def manage_history(latest_data, new_predictions):
         
     return history_record
 
+# --- 追加：キャリーオーバー判定（内部データ利用） ---
+def check_loto6_carryover(history_record):
+    """
+    history_loto6.json の最新の「確定」データから、
+    1等が出ているかどうかでキャリーオーバーの有無を判定します。
+    """
+    for record in history_record:
+        if record.get('status') == 'finished':
+            best_res = record.get('best_result', '')
+            if '1等' not in best_res and best_res != '----':
+                return "💰 キャリーオーバー発生中！(最高6億円)"
+            break
+    return ""
+
 # --- 5. HTML構築 ---
 def build_html():
     print("🔄 ロト6 データ取得＆解析を開始...")
@@ -187,12 +201,17 @@ def build_html():
     history_record = manage_history(latest_data, predictions)
     
     print(f"📡 LOTO6 データ取得成功: {latest_data['kai']} ({latest_data['date']})")
+
+    # キャリーオーバー情報の取得とHTMLパーツ作成
+    carryover_text = check_loto6_carryover(history_record)
+    carryover_html = f'<div class="carryover-badge">{carryover_text}</div>' if carryover_text else ''
     
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <title>ロト6 当選予想・データ分析ポータル</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }}
@@ -209,7 +228,18 @@ def build_html():
         .row-label {{ font-size: 18px; font-weight: bold; color: #1e3a8a; background-color: #e0e7ff; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }}
         .ball-container {{ display: flex; gap: 8px; flex-wrap: wrap; }}
         .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 42px; height: 42px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-size: 18px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }}
-        @media (max-width: 600px) {{ .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px;}} .row-label {{ margin-bottom: 10px; }} .ball {{ width: 36px; height: 36px; font-size: 16px;}} }}
+
+        /* キャリーオーバーバッジのスタイル（レスポンシブ対応） */
+        .carryover-badge {{ background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 14px; font-weight: bold; padding: 10px 15px; border-radius: 8px; margin: 15px 0; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 4px 10px rgba(239,68,68,0.4); text-align: center; width: 100%; box-sizing: border-box; }}
+        @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.02); }} 100% {{ transform: scale(1); }} }}
+
+        @media (max-width: 600px) {{ 
+            .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px;}} 
+            .row-label {{ margin-bottom: 10px; }} 
+            .ball {{ width: 36px; height: 36px; font-size: 16px;}}
+            .carryover-badge {{ font-size: 13px; padding: 8px; margin: 10px 0; }} 
+        }}
+        
         .hc-container {{ display: flex; gap: 20px; flex-wrap: wrap; }}
         .hc-box {{ flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; }}
         .hot-box {{ background-color: #fee2e2; border: 1px solid #fca5a5; }}
@@ -259,6 +289,7 @@ def build_html():
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト6の予想</h2>
             <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
+            {carryover_html}
             <div class="prediction-box">
 """
     labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
@@ -360,4 +391,4 @@ def build_html():
 final_html = build_html()
 with open('loto6.html', 'w', encoding='utf-8') as f:
     f.write(final_html)
-print("✨ [完全無敵版] ロト6 の自動更新が完了しました！")
+print("✨ [自動取得・完全決着版] ロト6 の自動更新が完了しました！")
