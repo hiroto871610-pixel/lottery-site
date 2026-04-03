@@ -32,10 +32,17 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
         .dash-kai { font-size: 14px; color: #64748b; margin-bottom: 15px; font-weight: bold; }
-        .dash-nums { font-size: 24px; font-weight: 900; letter-spacing: 3px; color: #1e293b; margin-bottom: 8px; }
+        .dash-nums { font-size: 24px; font-weight: 900; letter-spacing: 2px; color: #1e293b; margin-bottom: 8px; word-wrap: break-word; }
         .dash-bonus { font-size: 14px; color: #10b981; font-weight: bold; background: #ecfdf5; display: inline-block; padding: 4px 12px; border-radius: 20px; }
         .dash-nums-nm { font-size: 32px; font-weight: 900; letter-spacing: 8px; margin-bottom: 10px; }
         
+        /* スマートフォン向けレスポンシブ対応 */
+        @media (max-width: 600px) {
+            .dash-nums { font-size: 18px; letter-spacing: 1px; }
+            .dash-nums-nm { font-size: 26px; letter-spacing: 4px; }
+            .dash-title { font-size: 18px; }
+        }
+
         .jumbo-banner { background: linear-gradient(135deg, #be123c, #9f1239); border-radius: 16px; padding: 25px; color: white; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(190, 18, 60, 0.2); }
         .jumbo-banner a { display: inline-block; margin-top: 15px; padding: 10px 25px; background: white; color: #be123c; text-decoration: none; border-radius: 25px; font-weight: bold; }
 
@@ -49,7 +56,7 @@
         #omikuji-result { font-size: 32px; font-weight: 900; margin: 15px 0; }
         .btn-omikuji { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 30px; cursor: pointer; }
 
-        /* 詳細ガイド（復元） */
+        /* 詳細ガイド */
         .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
         .guide-card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
         .guide-card h3 { display: flex; align-items: center; font-size: 20px; margin-top: 0; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; }
@@ -94,9 +101,9 @@
             <a href="loto7.html" class="dash-card card-loto7">
                 <div>
                     <div style="font-size: 20px; font-weight: 800; color: #d97706; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト7</div>
-                    <div class="dash-kai">データなし の結果</div>
-                    <div class="dash-nums">----</div>
-                    <div class="dash-bonus"></div>
+                    <div class="dash-kai">第0671回 の結果</div>
+                    <div class="dash-nums">07, 13, 16, 22, 28, 33, 36</div>
+                    <div class="dash-bonus">(B: 02, 25)</div>
                     
                 </div>
             </a>
@@ -118,11 +125,11 @@
                     <div style="display: flex; justify-content: space-around; margin-top: 15px;">
                         <div>
                             <div style="font-size:12px; color:#64748b;">N4</div>
-                            <div class="dash-nums-nm" style="color:#16a34a;">3698</div>
+                            <div class="dash-nums-nm" style="color:#16a34a;">6952</div>
                         </div>
                         <div>
                             <div style="font-size:12px; color:#64748b;">N3</div>
-                            <div class="dash-nums-nm" style="color:#d97706;">479</div>
+                            <div class="dash-nums-nm" style="color:#d97706;">695</div>
                         </div>
                     </div>
                 </div>
@@ -205,7 +212,8 @@
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
         </div>
-        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
     <script>
