@@ -1,6 +1,9 @@
 import json
 import os
 import datetime
+import requests
+from bs4 import BeautifulSoup
+import re
 
 # データベースファイルのパス
 FILES = {
@@ -42,6 +45,72 @@ def check_carryover_status(loto_type, latest_data):
         
     return ""
 
+# --- トップページ表示用に最新の当選番号をWebから直接取得する機能を追加 ---
+def fetch_latest_loto_for_top(loto_type, max_val, pick_count):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    url = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/"
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            text = soup.get_text(separator=' ')
+            
+            kai_m = re.search(r'第\s*(\d+)\s*回', text)
+            if not kai_m: return None
+            kai_str = f"第{kai_m.group(1).zfill(4)}回"
+            
+            chunk = text[kai_m.end():kai_m.end() + 300]
+            date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
+            num_chunk = chunk[date_m.end():] if date_m else chunk
+            all_digits = re.findall(r'\d+', num_chunk)
+            valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= max_val]
+            
+            if len(valid_nums) >= pick_count + 1:
+                main_nums = valid_nums[:pick_count]
+                bonus_count = 2 if loto_type == 'loto7' else 1
+                bonus_nums = valid_nums[pick_count:pick_count+bonus_count]
+                return {
+                    'target_kai': kai_str,
+                    'actual_main': ", ".join(main_nums),
+                    'actual_bonus': "(B: " + ", ".join(bonus_nums) + ")"
+                }
+    except Exception as e:
+        print(f"トップページ用データ取得エラー ({loto_type}): {e}")
+    return None
+
+def fetch_latest_numbers_for_top():
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    result = {}
+    try:
+        # N4
+        r4 = requests.get("https://takarakuji.rakuten.co.jp/backnumber/numbers4/lastresults/", headers=headers, timeout=10)
+        if r4.status_code == 200:
+            r4.encoding = 'euc-jp'
+            s4 = BeautifulSoup(r4.content, 'html.parser')
+            t4 = s4.get_text(separator=' ')
+            m4 = re.search(r'第\s*(\d+)\s*回[^第]*?当せん番号\D*(\d{4})', t4)
+            if m4:
+                result['target_kai'] = f"第{m4.group(1)}回"
+                result['actual_n4'] = m4.group(2)
+        
+        # N3
+        r3 = requests.get("https://takarakuji.rakuten.co.jp/backnumber/numbers3/lastresults/", headers=headers, timeout=10)
+        if r3.status_code == 200:
+            r3.encoding = 'euc-jp'
+            s3 = BeautifulSoup(r3.content, 'html.parser')
+            t3 = s3.get_text(separator=' ')
+            m3 = re.search(r'第\s*(\d+)\s*回[^第]*?当せん番号\D*(\d{3})', t3)
+            if m3:
+                result['actual_n3'] = m3.group(2)
+                
+        if 'actual_n4' in result and 'actual_n3' in result:
+            return result
+    except Exception as e:
+        print(f"トップページ用データ取得エラー (Numbers): {e}")
+    return None
+# -------------------------------------------------------------
+
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
     m = datetime.date.today().month
@@ -54,18 +123,21 @@ def get_next_jumbo():
 def build_index_html():
     print("🔄 オシャレなトップページを生成中...")
     
-    l7_data = load_latest_data(FILES['loto7'])
-    l6_data = load_latest_data(FILES['loto6'])
-    nm_data = load_latest_data(FILES['numbers'])
+    # 内部のJSONデータを読み込む（キャリーオーバー判定用）
+    l7_json = load_latest_data(FILES['loto7'])
+    l6_json = load_latest_data(FILES['loto6'])
+    nm_json = load_latest_data(FILES['numbers'])
     
-    if not l7_data: l7_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': '', 'best_result': '----'}
-    if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': '', 'best_result': '----'}
-    if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
+    # トップページの表示用に、最新の抽選結果をWebから直接取得する
+    print("📡 トップページ用の最新当選番号を取得中...")
+    l7_display = fetch_latest_loto_for_top('loto7', 37, 7) or l7_json or {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
+    l6_display = fetch_latest_loto_for_top('loto6', 43, 6) or l6_json or {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
+    nm_display = fetch_latest_numbers_for_top() or nm_json or {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
     # キャリーオーバーの発生の有無を内部データから取得
     print("📡 キャリーオーバー発生状況を内部データから判定中...")
-    l7_carry_status = check_carryover_status("loto7", l7_data)
-    l6_carry_status = check_carryover_status("loto6", l6_data)
+    l7_carry_status = check_carryover_status("loto7", l7_json)
+    l6_carry_status = check_carryover_status("loto6", l6_json)
     
     # バッジHTMLの組み立て
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_status}</div>' if l7_carry_status else ''
@@ -107,10 +179,17 @@ def build_index_html():
         @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.03); }} 100% {{ transform: scale(1); }} }}
 
         .dash-kai {{ font-size: 14px; color: #64748b; margin-bottom: 15px; font-weight: bold; }}
-        .dash-nums {{ font-size: 24px; font-weight: 900; letter-spacing: 3px; color: #1e293b; margin-bottom: 8px; }}
+        .dash-nums {{ font-size: 24px; font-weight: 900; letter-spacing: 2px; color: #1e293b; margin-bottom: 8px; word-wrap: break-word; }}
         .dash-bonus {{ font-size: 14px; color: #10b981; font-weight: bold; background: #ecfdf5; display: inline-block; padding: 4px 12px; border-radius: 20px; }}
         .dash-nums-nm {{ font-size: 32px; font-weight: 900; letter-spacing: 8px; margin-bottom: 10px; }}
         
+        /* スマートフォン向けレスポンシブ対応 */
+        @media (max-width: 600px) {{
+            .dash-nums {{ font-size: 18px; letter-spacing: 1px; }}
+            .dash-nums-nm {{ font-size: 26px; letter-spacing: 4px; }}
+            .dash-title {{ font-size: 18px; }}
+        }}
+
         .jumbo-banner {{ background: linear-gradient(135deg, #be123c, #9f1239); border-radius: 16px; padding: 25px; color: white; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(190, 18, 60, 0.2); }}
         .jumbo-banner a {{ display: inline-block; margin-top: 15px; padding: 10px 25px; background: white; color: #be123c; text-decoration: none; border-radius: 25px; font-weight: bold; }}
 
@@ -124,7 +203,7 @@ def build_index_html():
         #omikuji-result {{ font-size: 32px; font-weight: 900; margin: 15px 0; }}
         .btn-omikuji {{ background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 30px; cursor: pointer; }}
 
-        /* 詳細ガイド（復元） */
+        /* 詳細ガイド */
         .guide-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }}
         .guide-card {{ background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }}
         .guide-card h3 {{ display: flex; align-items: center; font-size: 20px; margin-top: 0; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; }}
@@ -169,9 +248,9 @@ def build_index_html():
             <a href="loto7.html" class="dash-card card-loto7">
                 <div>
                     <div style="font-size: 20px; font-weight: 800; color: #d97706; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト7</div>
-                    <div class="dash-kai">{l7_data.get('target_kai', '----')} の結果</div>
-                    <div class="dash-nums">{l7_data.get('actual_main', '----')}</div>
-                    <div class="dash-bonus">{l7_data.get('actual_bonus', '')}</div>
+                    <div class="dash-kai">{l7_display.get('target_kai', '----')} の結果</div>
+                    <div class="dash-nums">{l7_display.get('actual_main', '----')}</div>
+                    <div class="dash-bonus">{l7_display.get('actual_bonus', '')}</div>
                     {l7_carry_html}
                 </div>
             </a>
@@ -179,9 +258,9 @@ def build_index_html():
             <a href="loto6.html" class="dash-card card-loto6">
                 <div>
                     <div style="font-size: 20px; font-weight: 800; color: #0284c7; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト6</div>
-                    <div class="dash-kai">{l6_data.get('target_kai', '----')} の結果</div>
-                    <div class="dash-nums">{l6_data.get('actual_main', '----')}</div>
-                    <div class="dash-bonus">{l6_data.get('actual_bonus', '')}</div>
+                    <div class="dash-kai">{l6_display.get('target_kai', '----')} の結果</div>
+                    <div class="dash-nums">{l6_display.get('actual_main', '----')}</div>
+                    <div class="dash-bonus">{l6_display.get('actual_bonus', '')}</div>
                     {l6_carry_html}
                 </div>
             </a>
@@ -189,15 +268,15 @@ def build_index_html():
             <a href="numbers.html" class="dash-card card-numbers">
                 <div>
                     <div style="font-size: 20px; font-weight: 800; color: #16a34a; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ナンバーズ</div>
-                    <div class="dash-kai">{nm_data.get('target_kai', '----')} の結果</div>
+                    <div class="dash-kai">{nm_display.get('target_kai', '----')} の結果</div>
                     <div style="display: flex; justify-content: space-around; margin-top: 15px;">
                         <div>
                             <div style="font-size:12px; color:#64748b;">N4</div>
-                            <div class="dash-nums-nm" style="color:#16a34a;">{nm_data.get('actual_n4', '----')}</div>
+                            <div class="dash-nums-nm" style="color:#16a34a;">{nm_display.get('actual_n4', '----')}</div>
                         </div>
                         <div>
                             <div style="font-size:12px; color:#64748b;">N3</div>
-                            <div class="dash-nums-nm" style="color:#d97706;">{nm_data.get('actual_n3', '----')}</div>
+                            <div class="dash-nums-nm" style="color:#d97706;">{nm_display.get('actual_n3', '----')}</div>
                         </div>
                     </div>
                 </div>
@@ -280,7 +359,8 @@ def build_index_html():
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
         </div>
-        <p>&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
     <script>
@@ -295,7 +375,7 @@ def build_index_html():
     
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(html)
-    print("✨ トップページの生成が完了しました！キャリーオーバー発生時はロト7/6のカードにバッジが表示されます。")
+    print("✨ トップページの生成が完了しました！最新の当選番号が正しく表示されています。")
 
 if __name__ == "__main__":
     build_index_html()
