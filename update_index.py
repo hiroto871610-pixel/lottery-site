@@ -25,8 +25,8 @@ def load_latest_data(filepath):
 
 def check_carryover_status(loto_type, latest_data):
     """
-    【内部データ依存ロジック】
-    外部サイトへのアクセス（スクレイピング）をやめ、手元のJSONデータから判定します。
+    【内部データ完全依存ロジック】
+    外部サイトへのアクセスを一切行わず、手元のJSONデータから確実に判定します。
     「前回（最新回）の1等が当サイトの予想から出ていない」場合、
     高確率でキャリーオーバーが発生しているとみなしバッジを表示します。
     """
@@ -96,7 +96,7 @@ def build_index_html():
         .section-title {{ text-align: center; font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 30px; }}
         
         .dashboard-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 40px; }}
-        .dash-card {{ background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); text-align: center; transition: all 0.3s; text-decoration: none; color: inherit; border: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: space-between; }}
+        .dash-card {{ background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); text-align: center; transition: all 0.3s; text-decoration: none; color: inherit; border: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }}
         .dash-card:hover {{ transform: translateY(-8px); }}
         
         .card-loto7::before {{ content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #f59e0b, #d97706); }}
@@ -153,6 +153,13 @@ def build_index_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
     </nav>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
+        <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
+        <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
+    </div>
 
     <div class="container">
         <h2 class="section-title">🔔 最新の抽選結果速報</h2>
@@ -218,6 +225,13 @@ def build_index_html():
                     <button class="btn-omikuji" onclick="drawTopOmikuji()">おみくじを引く</button>
                 </div>
             </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 40px;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
+            <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
+            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
         </div>
 
         <h2 class="section-title">📖 取扱宝くじの詳細ガイド</h2>
