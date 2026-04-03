@@ -6,8 +6,39 @@ import json
 import os
 import datetime
 from collections import Counter
+import tweepy  # ←追加：Xポスト用
+import urllib3 # ←追加：エラー回避用
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HISTORY_FILE = 'history_numbers.json'
+
+# =========================================================
+# 𝕏 (旧Twitter) API設定
+# =========================================================
+X_API_KEY = "kjirp4z5V0sQPLdpbakvHUKo7"
+X_API_SECRET = "zNEepgKHYsW5OdvHzYLwNwwl9bEa4t7tyGb7QBCkvyPw76jtVF"
+X_ACCESS_TOKEN = "2040049940643086336-kBXZWHARtoxpzJaSVR3ZcrAqeeQOyT"
+X_ACCESS_SECRET = "r4cMeool2cvMBgUCWvQccL7qJykGQS8lsss6fhG77FquD"
+
+def post_to_x(message):
+    """X(Twitter)へ自動投稿する機能"""
+    if X_API_KEY.startswith("ここに"):
+        print("⚠️ XのAPIキーが設定されていないため、自動ポストをスキップしました。")
+        return
+
+    try:
+        client = tweepy.Client(
+            consumer_key=X_API_KEY,
+            consumer_secret=X_API_SECRET,
+            access_token=X_ACCESS_TOKEN,
+            access_token_secret=X_ACCESS_SECRET
+        )
+        client.create_tweet(text=message)
+        print("✅ X(Twitter)への自動ポストが成功しました！")
+    except Exception as e:
+        print(f"❌ Xポストエラー: {e}")
+# =========================================================
 
 # --- 1. 過去データの取得（目印に頼らない最強抽出ロジック） ---
 def fetch_single_history(base_url, length):
@@ -117,33 +148,41 @@ def manage_history(latest_data, n4_preds, n3_preds):
             history_record = []
             
     latest_kai = latest_data['kai']
+    latest_kai_num = int(re.search(r'\d+', latest_kai).group()) # 最新回の数字部分だけを抽出
     actual_n4 = latest_data['n4_win']
     actual_n3 = latest_data['n3_win']
     
     for record in history_record:
-        if record.get('status') == 'waiting' and record.get('target_kai') == latest_kai:
-            # ナンバーズ4の判定
-            res_n4 = "ハズレ"
-            for p in record['n4_preds']:
-                if p == actual_n4: res_n4 = "ストレート🎯"
-                elif sorted(p) == sorted(actual_n4) and "🎯" not in res_n4: res_n4 = "ボックス🎯"
+        record_kai_match = re.search(r'\d+', record.get('target_kai', ''))
+        if record.get('status') == 'waiting' and record_kai_match:
+            record_kai_num = int(record_kai_match.group())
             
-            # ナンバーズ3の判定
-            res_n3 = "ハズレ"
-            for p in record['n3_preds']:
-                if p == actual_n3: res_n3 = "ストレート🎯"
-                elif sorted(p) == sorted(actual_n3) and "🎯" not in res_n3: res_n3 = "ボックス🎯"
+            # ★修正：「第6000回」と「第06000回」の違いを無視し、数字ベースで判定して更新
+            if record_kai_num == latest_kai_num:
+                # ナンバーズ4の判定
+                res_n4 = "ハズレ"
+                for p in record['n4_preds']:
+                    if p == actual_n4: res_n4 = "ストレート🎯"
+                    elif sorted(p) == sorted(actual_n4) and "🎯" not in res_n4: res_n4 = "ボックス🎯"
                 
-            record['status'] = 'finished'
-            record['actual_n4'] = actual_n4
-            record['actual_n3'] = actual_n3
-            record['result_n4'] = res_n4
-            record['result_n3'] = res_n3
-            
-    next_kai_num = int(re.search(r'\d+', latest_kai).group()) + 1
-    next_kai = f"第{next_kai_num}回"
+                # ナンバーズ3の判定
+                res_n3 = "ハズレ"
+                for p in record['n3_preds']:
+                    if p == actual_n3: res_n3 = "ストレート🎯"
+                    elif sorted(p) == sorted(actual_n3) and "🎯" not in res_n3: res_n3 = "ボックス🎯"
+                    
+                record['status'] = 'finished'
+                record['actual_n4'] = actual_n4
+                record['actual_n3'] = actual_n3
+                record['result_n4'] = res_n4
+                record['result_n3'] = res_n3
+                record['target_kai'] = latest_kai # フォーマットを最新のものに上書き
+                
+    # 次回号の生成 (ナンバーズは通常4桁表記)
+    next_kai_num = latest_kai_num + 1
+    next_kai = f"第{next_kai_num:04d}回"
     
-    if not any(r.get('target_kai') == next_kai for r in history_record):
+    if not any(int(re.search(r'\d+', r.get('target_kai', '0')).group()) == next_kai_num for r in history_record if re.search(r'\d+', r.get('target_kai', '0'))):
         history_record.insert(0, {
             "target_kai": next_kai,
             "status": "waiting",
@@ -232,7 +271,7 @@ def build_html():
 <body>
     <header>
         <a href="index.html" style="text-decoration: none;">
-            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <img src="Lotologo.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
             <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ナンバーズ当選予想・速報</div>
         </a>
     </header>
@@ -350,13 +389,44 @@ def build_html():
             <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局 All Rights Reserved.</p>
     </footer>
 </body>
 </html>"""
+
+    # --- ⭐️ 自動ポスト用のメッセージを作成して実行 ⭐️ ---
+    import datetime
+    
+    # 今日の曜日を取得 (0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日)
+    today_weekday = datetime.datetime.now().weekday()
+    
+    next_kai = history_record[0]['target_kai']
+    # サイトのURLを設定してください
+    site_url = "https://loto-yosou-ai.com/numbers.html" 
+    
+    # ナンバーズは【月曜〜金曜】が毎日抽選日です
+    
+    # 【月〜金 (0〜4)】 抽選結果速報と次回予想
+    if 0 <= today_weekday <= 4:
+        finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
+        finished_kai = finished_record['target_kai']
+        res_n4 = finished_record.get('result_n4', '----')
+        res_n3 = finished_record.get('result_n3', '----')
+        
+        tweet_msg = f"【#ナンバーズ 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想成績\nN4: {res_n4}\nN3: {res_n3}\n\n実際の当選番号と、次回({next_kai})の最新予想はこちら👇\n{site_url}\n#宝くじ結果"
+
+    # 【土・日 (5, 6)】 次回予想の通知のみ
+    else:
+        tweet_msg = f"【#ナンバーズ 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n\n直近の出現傾向データから導き出した最新HOT・COLD数字と推奨予想はこちら👇\n{site_url}\n#宝くじ予想"
+    
+    # 決定したメッセージをポストする
+    post_to_x(tweet_msg)
+    # --------------------------------------------------------
+
     return html
 
-final_html = build_html()
-with open('numbers.html', 'w', encoding='utf-8') as f:
-    f.write(final_html)
-print("✨ [完全版] ナンバーズ3＆4 の自動更新が完了しました！")
+if __name__ == "__main__":
+    final_html = build_html()
+    with open('numbers.html', 'w', encoding='utf-8') as f:
+        f.write(final_html)
+    print("✨ [自動取得・完全決着版] ナンバーズ3＆4 の自動更新とXへのポストが完了しました！")
