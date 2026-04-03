@@ -17,6 +17,15 @@
         
         .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
         
+        /* 目次（タブ）のスタイル追加 */
+        .toc-container { background: white; border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .toc-title { font-size: 18px; font-weight: bold; color: #1e3a8a; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .toc-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 20px; cursor: pointer; font-weight: bold; color: #475569; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .toc-item:hover { background: #f1f5f9; border-color: #cbd5e1; color: #1e3a8a; }
+        .toc-item.active { background: #eff6ff; border-color: #3b82f6; color: #1e3a8a; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
+        .toc-item.active::after { content: "▼ 閲覧中"; font-size: 12px; color: #3b82f6; }
+
         .article-card { background: white; border-radius: 16px; padding: 40px; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
         .article-tag { display: inline-block; background-color: #e0f2fe; color: #0284c7; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
         .article-tag-loto { background-color: #fef08a; color: #b45309; }
@@ -54,6 +63,7 @@
             .article-card { padding: 20px; }
             .article-title { font-size: 22px; }
             .comparison-table th, .comparison-table td { padding: 8px; font-size: 13px; }
+            .toc-item { font-size: 14px; padding: 10px 15px; }
         }
     </style>
 </head>
@@ -75,7 +85,17 @@
         
     <div class="container">
 
-        <article class="article-card">
+        <div class="toc-container">
+            <h2 class="toc-title">📑 読みたいコラムを選んでください</h2>
+            <ul class="toc-list">
+                <li class="toc-item active" onclick="switchArticle('article4', this)">【初心者向け】宝くじはネット購入が最強？メリット・デメリット</li>
+                <li class="toc-item" onclick="switchArticle('article3', this)">【初心者向け】キャリーオーバー発生時、絶対にやってはいけない買い方</li>
+                <li class="toc-item" onclick="switchArticle('article2', this)">【初心者向け】ロト7とロト6、初心者が買うならどっち？</li>
+                <li class="toc-item" onclick="switchArticle('article1', this)">【初心者向け】ナンバーズの「ストレート」と「ボックス」の違い</li>
+            </ul>
+        </div>
+
+        <article class="article-card article-section" id="article4">
             <span class="article-tag article-tag-money">基礎知識・お得情報</span>
             <h2 class="article-title">【初心者向け】宝くじはネット購入が最強？楽天やみずほ銀行で買うメリット・デメリット</h2>
             
@@ -115,7 +135,7 @@
                 </div>
             </div>
         </article>
-        <article class="article-card">
+        <article class="article-card article-section" id="article3" style="display: none;">
             <span class="article-tag article-tag-alert">要注意・必読</span>
             <h2 class="article-title">【初心者向け】キャリーオーバー発生時、絶対にやってはいけない3つの買い方</h2>
             
@@ -148,7 +168,7 @@
                 </div>
             </div>
         </article>
-        <article class="article-card">
+        <article class="article-card article-section" id="article2" style="display: none;">
             <span class="article-tag article-tag-loto">ロト攻略</span>
             <h2 class="article-title">【初心者向け】ロト7とロト6、初心者が買うならどっち？当選確率と特徴を徹底比較！</h2>
             
@@ -219,7 +239,7 @@
                 </div>
             </div>
         </article>
-        <article class="article-card">
+        <article class="article-card article-section" id="article1" style="display: none;">
             <span class="article-tag">ナンバーズ攻略</span>
             <h2 class="article-title">【初心者向け】ナンバーズの「ストレート」と「ボックス」って何が違うの？</h2>
             
@@ -264,5 +284,25 @@
         </div>
         <p>&copy; 2026 ロト＆ナンバーズ攻略局 All Rights Reserved.</p>
     </footer>
+
+    <script>
+        function switchArticle(targetId, element) {
+            // ① すべての記事を非表示にする
+            var articles = document.querySelectorAll('.article-section');
+            articles.forEach(function(article) {
+                article.style.display = 'none';
+            });
+            
+            // ② すべての目次メニューから「active（選択中）」の状態を外す
+            var tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach(function(item) {
+                item.classList.remove('active');
+            });
+            
+            // ③ クリックされた対象の記事だけを表示し、目次を「active」にする
+            document.getElementById(targetId).style.display = 'block';
+            element.classList.add('active');
+        }
+    </script>
 </body>
 </html>
