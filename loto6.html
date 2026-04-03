@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>ロト6 当選予想・データ分析ポータル</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }
         header { background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }
@@ -19,7 +20,18 @@
         .row-label { font-size: 18px; font-weight: bold; color: #1e3a8a; background-color: #e0e7ff; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }
         .ball-container { display: flex; gap: 8px; flex-wrap: wrap; }
         .ball { display: inline-flex; justify-content: center; align-items: center; width: 42px; height: 42px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-size: 18px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }
-        @media (max-width: 600px) { .numbers-row { flex-direction: column; align-items: flex-start; padding: 15px;} .row-label { margin-bottom: 10px; } .ball { width: 36px; height: 36px; font-size: 16px;} }
+
+        /* キャリーオーバーバッジのスタイル（レスポンシブ対応） */
+        .carryover-badge { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 14px; font-weight: bold; padding: 10px 15px; border-radius: 8px; margin: 15px 0; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 4px 10px rgba(239,68,68,0.4); text-align: center; width: 100%; box-sizing: border-box; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+        @media (max-width: 600px) { 
+            .numbers-row { flex-direction: column; align-items: flex-start; padding: 15px;} 
+            .row-label { margin-bottom: 10px; } 
+            .ball { width: 36px; height: 36px; font-size: 16px;}
+            .carryover-badge { font-size: 13px; padding: 8px; margin: 10px 0; } 
+        }
+        
         .hc-container { display: flex; gap: 20px; flex-wrap: wrap; }
         .hc-box { flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; }
         .hot-box { background-color: #fee2e2; border: 1px solid #fca5a5; }
@@ -69,6 +81,7 @@
         <div class="section-card">
             <h2 class="section-header">🎯 次回 (第2091回) ロト6の予想</h2>
             <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
+            <div class="carryover-badge">💰 キャリーオーバー発生中！(最高6億円)</div>
             <div class="prediction-box">
                 <div class="numbers-row"><div class="row-label">予想A</div><div class="ball-container"><span class="ball">05</span><span class="ball">20</span><span class="ball">33</span><span class="ball">37</span><span class="ball">39</span><span class="ball">42</span></div></div>
                 <div class="numbers-row"><div class="row-label">予想B</div><div class="ball-container"><span class="ball">04</span><span class="ball">13</span><span class="ball">18</span><span class="ball">30</span><span class="ball">34</span><span class="ball">39</span></div></div>
