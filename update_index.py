@@ -1,13 +1,6 @@
 import json
 import os
 import datetime
-import requests
-import re
-import urllib3
-import unicodedata
-
-# セキュリティ警告をミュート
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # データベースファイルのパス
 FILES = {
@@ -30,51 +23,24 @@ def load_latest_data(filepath):
             print(f"⚠️ {filepath} の読み込みエラー: {e}")
     return None
 
-def check_carryover_status(loto_type):
+def check_carryover_status(loto_type, latest_data):
     """
-    【確実性重視ロジック】
-    金額の完全な抽出ができなくても、発生していること（有無）を確実にキャッチします。
+    【内部データ依存ロジック】
+    外部サイトへのアクセス（スクレイピング）をやめ、手元のJSONデータから判定します。
+    「前回（最新回）の1等が当サイトの予想から出ていない」場合、
+    高確率でキャリーオーバーが発生しているとみなしバッジを表示します。
     """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-    
-    # 判定用URL（楽天とみずほを両方確認）
-    urls = [
-        (f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/lastresults/", 'euc-jp'),
-        (f"https://www.mizuhobank.co.jp/retail/takarakuji/check/loto/{loto_type}/index.html", 'utf-8')
-    ]
-    
-    for url, enc in urls:
-        try:
-            res = requests.get(url, headers=headers, timeout=10, verify=False)
-            if res.status_code != 200: continue
-            res.encoding = enc
-            
-            # HTMLを正規化（全角を半角、空白除去、小文字化）
-            raw_content = unicodedata.normalize('NFKC', res.text)
-            clean_content = re.sub(r'\s+', '', raw_content)
+    if not latest_data or latest_data.get('best_result') == '----':
+        return ""
 
-            # 広告文（最高12億円など）を排除したエリアで検索するために
-            # 「1等」の情報がある行付近を特定する
-            if 'キャリーオーバー' in clean_content:
-                # 1. まず金額の抽出を試みる（数字1〜9で始まるもの）
-                # キャリーオーバーという文字の直後30文字以内にある数字を探す
-                match = re.search(r'キャリーオーバー.*?([1-9][0-9,]{4,})円', clean_content)
-                if match:
-                    amt = match.group(1)
-                    return f"💰 キャリーオーバー {amt}円 発生中！"
-                
-                # 2. 金額が取れなくても「0円」や「該当なし(0口)」でなければ発生とみなす
-                # 楽天やみずほの「1等」の横に「0口」や「該当なし」があるか確認
-                if '1等' in clean_content and ('該当なし' in clean_content or '0口' in clean_content):
-                    return "💰 キャリーオーバー発生中！"
-                    
-        except Exception as e:
-            print(f"接続エラー ({loto_type}): {e}")
-            continue
-            
-    return "" # どちらのサイトでも確認できなければ非表示
+    best_result = latest_data.get('best_result', '')
+    
+    # 1等が出ていなければキャリーオーバー発生中とみなす
+    if '1等' not in best_result:
+        max_prize = "10億円" if loto_type == "loto7" else "6億円"
+        return f"💰 キャリーオーバー発生中！(最高{max_prize})"
+        
+    return ""
 
 def get_next_jumbo():
     """季節に合わせて次回ジャンボを判定"""
@@ -92,14 +58,14 @@ def build_index_html():
     l6_data = load_latest_data(FILES['loto6'])
     nm_data = load_latest_data(FILES['numbers'])
     
-    if not l7_data: l7_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
-    if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
+    if not l7_data: l7_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': '', 'best_result': '----'}
+    if not l6_data: l6_data = {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': '', 'best_result': '----'}
     if not nm_data: nm_data = {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバーの発生の有無を自動取得
-    print("📡 キャリーオーバー発生状況を確認中...")
-    l7_carry_status = check_carryover_status("loto7")
-    l6_carry_status = check_carryover_status("loto6")
+    # キャリーオーバーの発生の有無を内部データから取得
+    print("📡 キャリーオーバー発生状況を内部データから判定中...")
+    l7_carry_status = check_carryover_status("loto7", l7_data)
+    l6_carry_status = check_carryover_status("loto6", l6_data)
     
     # バッジHTMLの組み立て
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_status}</div>' if l7_carry_status else ''
@@ -156,6 +122,17 @@ def build_index_html():
         .omikuji-area {{ text-align: center; padding: 20px 0; }}
         #omikuji-result {{ font-size: 32px; font-weight: 900; margin: 15px 0; }}
         .btn-omikuji {{ background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 30px; cursor: pointer; }}
+
+        /* 詳細ガイド（復元） */
+        .guide-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }}
+        .guide-card {{ background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }}
+        .guide-card h3 {{ display: flex; align-items: center; font-size: 20px; margin-top: 0; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; }}
+        .guide-desc {{ font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.7; }}
+        .spec-table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+        .spec-table th, .spec-table td {{ padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: left; }}
+        .spec-table th {{ width: 35%; color: #64748b; font-weight: normal; }}
+        .spec-table td {{ font-weight: bold; color: #1e293b; }}
+        .highlight-prize {{ color: #dc2626; font-size: 15px; font-weight: 900; }}
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; }}
@@ -240,6 +217,42 @@ def build_index_html():
                     <div id="omikuji-result">🎯 運試し！</div>
                     <button class="btn-omikuji" onclick="drawTopOmikuji()">おみくじを引く</button>
                 </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">📖 取扱宝くじの詳細ガイド</h2>
+        <div class="guide-grid">
+            <div class="guide-card">
+                <h3 style="color: #d97706;">🥇 ロト7 (LOTO7)</h3>
+                <p class="guide-desc">1～37の中から異なる7個を選ぶ宝くじ。キャリーオーバー発生時の爆発力は全宝くじの中でトップクラスです。</p>
+                <table class="spec-table">
+                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">6億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 10億円)</span></td></tr>
+                    <tr><th>🎯 1等当選確率</th><td>約 1 / 10,295,472</td></tr>
+                    <tr><th>🗓️ 抽選日</th><td>毎週 金曜日</td></tr>
+                    <tr><th>💴 1口の価格</th><td>300円</td></tr>
+                </table>
+            </div>
+
+            <div class="guide-card">
+                <h3 style="color: #0284c7;">🥈 ロト6 (LOTO6)</h3>
+                <p class="guide-desc">1～43の中から異なる6個を選ぶ宝くじ。週に2回抽選があるため、コンスタントにワクワクを楽しめるのが特徴です。</p>
+                <table class="spec-table">
+                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">2億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 6億円)</span></td></tr>
+                    <tr><th>🎯 1等当選確率</th><td>約 1 / 6,096,454</td></tr>
+                    <tr><th>🗓️ 抽選日</th><td>毎週 月・木曜日</td></tr>
+                    <tr><th>💴 1口の価格</th><td>200円</td></tr>
+                </table>
+            </div>
+
+            <div class="guide-card">
+                <h3 style="color: #16a34a;">🔢 ナンバーズ</h3>
+                <p class="guide-desc">好きな3桁または4桁の数字を選ぶ宝くじ。並び順まで当てるストレートや、順不同のボックスなど戦略的な買い方が可能です。</p>
+                <table class="spec-table">
+                    <tr><th>💰 1等平均賞金</th><td class="highlight-prize">N4: 約90万円 <span style="font-size:12px; color:#d97706;">(N3: 約9万円)</span></td></tr>
+                    <tr><th>🎯 当選確率</th><td>N4: 1/10,000 <span style="font-size:12px; color:#d97706;">(N3: 1/1,000)</span></td></tr>
+                    <tr><th>🗓️ 抽選日</th><td>毎週 月〜金曜日</td></tr>
+                    <tr><th>💴 1口の価格</th><td>各 200円</td></tr>
+                </table>
             </div>
         </div>
     </div>
