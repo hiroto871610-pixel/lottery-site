@@ -16,10 +16,10 @@ HISTORY_FILE = 'history_loto7.json'
 # =========================================================
 # 𝕏 (旧Twitter) API設定（取得した4つのキーをここに入力します）
 # =========================================================
-X_API_KEY = "zjHb9R5TMtpyUF4FWedZ1PKBz"
-X_API_SECRET = "eAkrikgqWvhtvj8rq8thNuftnJpM5bvfR0ECIg7druedlLAHui"
-X_ACCESS_TOKEN = "2040049940643086336-tTssw8aKVmrN9IRakTTCs4zDVJbJud"
-X_ACCESS_SECRET = "j5iF1Z1HfbkLx3E3kQ7lDLiVEEgbwHUszkz8zFTOV5oV8"
+X_API_KEY = "kjirp4z5V0sQPLdpbakvHUKo7"
+X_API_SECRET = "zNEepgKHYsW5OdvHzYLwNwwl9bEa4t7tyGb7QBCkvyPw76jtVF"
+X_ACCESS_TOKEN = "2040049940643086336-kBXZWHARtoxpzJaSVR3ZcrAqeeQOyT"
+X_ACCESS_SECRET = "r4cMeool2cvMBgUCWvQccL7qJykGQS8lsss6fhG77FquD"
 
 def post_to_x(message):
     """X(Twitter)へ自動投稿する機能"""
@@ -161,39 +161,48 @@ def manage_history(latest_data, new_predictions):
             history_record = []
             
     latest_kai = latest_data['kai']
+    latest_kai_num = int(re.search(r'\d+', latest_kai).group()) # 最新回の数字部分だけを抽出
     win_main = set(latest_data['main'])
     win_bonus = set(latest_data['bonus'])
     
     for record in history_record:
-        if record.get('status') == 'waiting' and record.get('target_kai') == latest_kai:
-            best_match = 0
-            best_result = "ハズレ"
-            for p in record['predictions']:
-                p_set = set(p)
-                match_main = len(p_set & win_main)
-                has_bonus = len(p_set & win_bonus) > 0
-                
-                if match_main == 7: result = "1等🎯"
-                elif match_main == 6 and has_bonus: result = "2等🎯"
-                elif match_main == 6: result = "3等"
-                elif match_main == 5: result = "4等"
-                elif match_main == 4: result = "5等"
-                elif match_main == 3 and has_bonus: result = "6等"
-                else: result = f"ハズレ({match_main}個一致)"
-                
-                if match_main > best_match:
-                    best_match = match_main
-                    best_result = result
-                    
-            record['status'] = 'finished'
-            record['actual_main'] = ", ".join(latest_data['main'])
-            record['actual_bonus'] = "(B: " + ", ".join(latest_data['bonus']) + ")"
-            record['best_result'] = best_result
+        record_kai_match = re.search(r'\d+', record.get('target_kai', ''))
+        if record.get('status') == 'waiting' and record_kai_match:
+            record_kai_num = int(record_kai_match.group())
             
-    next_kai_num = int(re.search(r'\d+', latest_kai).group()) + 1
-    next_kai = f"第{next_kai_num}回"
+            # ★修正：「第671回」と「第0671回」の違いを無視し、数字ベースで判定して更新
+            if record_kai_num == latest_kai_num:
+                best_match = 0
+                best_result = "ハズレ"
+                for p in record['predictions']:
+                    p_set = set(p)
+                    match_main = len(p_set & win_main)
+                    has_bonus = len(p_set & win_bonus) > 0
+                    
+                    if match_main == 7: result = "1等🎯"
+                    elif match_main == 6 and has_bonus: result = "2等🎯"
+                    elif match_main == 6: result = "3等"
+                    elif match_main == 5: result = "4等"
+                    elif match_main == 4: result = "5等"
+                    elif match_main == 3 and has_bonus: result = "6等"
+                    else: result = f"ハズレ({match_main}個一致)"
+                    
+                    if match_main > best_match:
+                        best_match = match_main
+                        best_result = result
+                        
+                record['status'] = 'finished'
+                record['actual_main'] = ", ".join(latest_data['main'])
+                record['actual_bonus'] = "(B: " + ", ".join(latest_data['bonus']) + ")"
+                record['best_result'] = best_result
+                record['target_kai'] = latest_kai # フォーマットを最新のゼロ埋めに上書き
+                
+    # 次回号をゼロ埋めフォーマット（4桁）で生成
+    next_kai_num = latest_kai_num + 1
+    next_kai = f"第{next_kai_num:04d}回"
     
-    if not any(r.get('target_kai') == next_kai for r in history_record):
+    # すでに次回号が追加されていないか、数字ベースで重複チェック
+    if not any(int(re.search(r'\d+', r.get('target_kai', '0')).group()) == next_kai_num for r in history_record if re.search(r'\d+', r.get('target_kai', '0'))):
         history_record.insert(0, {
             "target_kai": next_kai,
             "status": "waiting",
@@ -206,9 +215,12 @@ def manage_history(latest_data, new_predictions):
     cleaned_record = []
     seen_kais = set()
     for record in history_record:
-        if record.get('target_kai') not in seen_kais:
-            cleaned_record.append(record)
-            seen_kais.add(record.get('target_kai'))
+        kai_num_match = re.search(r'\d+', record.get('target_kai', ''))
+        if kai_num_match:
+            k_num = int(kai_num_match.group())
+            if k_num not in seen_kais:
+                cleaned_record.append(record)
+                seen_kais.add(k_num)
             
     history_record = cleaned_record[:10]
     
@@ -419,7 +431,6 @@ def build_html():
             <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        # (前略：フッターのHTML部分)
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 </body>
