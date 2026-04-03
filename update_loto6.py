@@ -6,8 +6,39 @@ import json
 import os
 import datetime
 from collections import Counter
+import tweepy  # ←追加：Xポスト用
+import urllib3 # ←追加：エラー回避用
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HISTORY_FILE = 'history_loto6.json'
+
+# =========================================================
+# 𝕏 (旧Twitter) API設定（取得した4つのキーをここに入力します）
+# =========================================================
+X_API_KEY = "kjirp4z5V0sQPLdpbakvHUKo7"
+X_API_SECRET = "zNEepgKHYsW5OdvHzYLwNwwl9bEa4t7tyGb7QBCkvyPw76jtVF"
+X_ACCESS_TOKEN = "2040049940643086336-kBXZWHARtoxpzJaSVR3ZcrAqeeQOyT"
+X_ACCESS_SECRET = "r4cMeool2cvMBgUCWvQccL7qJykGQS8lsss6fhG77FquD"
+
+def post_to_x(message):
+    """X(Twitter)へ自動投稿する機能"""
+    if X_API_KEY.startswith("ここに"):
+        print("⚠️ XのAPIキーが設定されていないため、自動ポストをスキップしました。")
+        return
+
+    try:
+        client = tweepy.Client(
+            consumer_key=X_API_KEY,
+            consumer_secret=X_API_SECRET,
+            access_token=X_ACCESS_TOKEN,
+            access_token_secret=X_ACCESS_SECRET
+        )
+        client.create_tweet(text=message)
+        print("✅ X(Twitter)への自動ポストが成功しました！")
+    except Exception as e:
+        print(f"❌ Xポストエラー: {e}")
+# =========================================================
 
 # --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
@@ -130,38 +161,47 @@ def manage_history(latest_data, new_predictions):
             history_record = []
             
     latest_kai = latest_data['kai']
+    latest_kai_num = int(re.search(r'\d+', latest_kai).group()) # 最新回の数字部分だけを抽出
     win_main = set(latest_data['main'])
     win_bonus = set(latest_data['bonus'])
     
     for record in history_record:
-        if record.get('status') == 'waiting' and record.get('target_kai') == latest_kai:
-            best_match = 0
-            best_result = "ハズレ"
-            for p in record['predictions']:
-                p_set = set(p)
-                match_main = len(p_set & win_main)
-                has_bonus = len(p_set & win_bonus) > 0
-                
-                if match_main == 6: result = "1等🎯"
-                elif match_main == 5 and has_bonus: result = "2等🎯"
-                elif match_main == 5: result = "3等"
-                elif match_main == 4: result = "4等"
-                elif match_main == 3: result = "5等"
-                else: result = f"ハズレ({match_main}個一致)"
-                
-                if match_main > best_match:
-                    best_match = match_main
-                    best_result = result
-                    
-            record['status'] = 'finished'
-            record['actual_main'] = ", ".join(latest_data['main'])
-            record['actual_bonus'] = "(B: " + ", ".join(latest_data['bonus']) + ")"
-            record['best_result'] = best_result
+        record_kai_match = re.search(r'\d+', record.get('target_kai', ''))
+        if record.get('status') == 'waiting' and record_kai_match:
+            record_kai_num = int(record_kai_match.group())
             
-    next_kai_num = int(re.search(r'\d+', latest_kai).group()) + 1
-    next_kai = f"第{next_kai_num}回"
+            # ★修正：「第1900回」と「第01900回」の違いを無視し、数字ベースで判定して更新
+            if record_kai_num == latest_kai_num:
+                best_match = 0
+                best_result = "ハズレ"
+                for p in record['predictions']:
+                    p_set = set(p)
+                    match_main = len(p_set & win_main)
+                    has_bonus = len(p_set & win_bonus) > 0
+                    
+                    if match_main == 6: result = "1等🎯"
+                    elif match_main == 5 and has_bonus: result = "2等🎯"
+                    elif match_main == 5: result = "3等"
+                    elif match_main == 4: result = "4等"
+                    elif match_main == 3: result = "5等"
+                    else: result = f"ハズレ({match_main}個一致)"
+                    
+                    if match_main > best_match:
+                        best_match = match_main
+                        best_result = result
+                        
+                record['status'] = 'finished'
+                record['actual_main'] = ", ".join(latest_data['main'])
+                record['actual_bonus'] = "(B: " + ", ".join(latest_data['bonus']) + ")"
+                record['best_result'] = best_result
+                record['target_kai'] = latest_kai # フォーマットを最新のゼロ埋めに上書き
+                
+    # 次回号をゼロ埋めフォーマット（4桁）で生成
+    next_kai_num = latest_kai_num + 1
+    next_kai = f"第{next_kai_num:04d}回"
     
-    if not any(r.get('target_kai') == next_kai for r in history_record):
+    # すでに次回号が追加されていないか、数字ベースで重複チェック
+    if not any(int(re.search(r'\d+', r.get('target_kai', '0')).group()) == next_kai_num for r in history_record if re.search(r'\d+', r.get('target_kai', '0'))):
         history_record.insert(0, {
             "target_kai": next_kai,
             "status": "waiting",
@@ -171,7 +211,18 @@ def manage_history(latest_data, new_predictions):
             "best_result": "抽選待ち..."
         })
     
-    history_record = history_record[:10]
+    cleaned_record = []
+    seen_kais = set()
+    for record in history_record:
+        kai_num_match = re.search(r'\d+', record.get('target_kai', ''))
+        if kai_num_match:
+            k_num = int(kai_num_match.group())
+            if k_num not in seen_kais:
+                cleaned_record.append(record)
+                seen_kais.add(k_num)
+            
+    history_record = cleaned_record[:10]
+    
     with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
         json.dump(history_record, f, ensure_ascii=False, indent=2)
         
@@ -362,7 +413,7 @@ def build_html():
                         <tr><th>回号 (抽選日)</th><th>本数字</th><th>ボーナス数字</th></tr>
                     </thead>
                     <tbody>\n"""
-    # ロト6は週2回あるので、1年分出すためにここを大きく広げておきます（表示上限は設けていません）
+    # ロト6は週2回あるので、1年分出すためにここを大きく広げておきます
     for row in history_data[:104]:
         html += f"""                        <tr>
                             <td style="font-weight:bold; color:#1e3a8a;">{row['kai']}<br><span style="font-size:12px; font-weight:normal; color:#666;">({row['date']})</span></td>
@@ -385,10 +436,51 @@ def build_html():
     </footer>
 </body>
 </html>"""
+
+    # --- ⭐️ 自動ポスト用のメッセージを作成して実行 ⭐️ ---
+    import datetime
+    
+    # 今日の曜日を取得 (0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日)
+    today_weekday = datetime.datetime.now().weekday()
+    
+    next_kai = history_record[0]['target_kai']
+    # サイトのURLを設定してください
+    site_url = "https://loto-yosou-ai.com/loto6.html" 
+    
+    # ロト6は毎週【月曜日】と【木曜日】が抽選日です
+    
+    # ①【前日】日曜日・水曜日の場合：抽選日予告
+    if today_weekday in [2, 6]:
+        tweet_msg = f"【明日は #ロト6 抽選日🎯】\nいよいよ明日は {next_kai} の抽選日です！\n"
+        if carryover_text:
+            tweet_msg += f"{carryover_text}\n"
+        tweet_msg += f"\n当サイトのAIアルゴリズムが弾き出した最新予想を無料で公開中！購入前にぜひチェックしてください👇\n{site_url}\n#宝くじ予想"
+
+    # ②【当日】月曜日・木曜日の場合：抽選結果速報とサイト誘導
+    elif today_weekday in [0, 3]:
+        # 最新の抽選結果（1つ前の履歴データ）を取得
+        finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
+        finished_kai = finished_record['target_kai']
+        best_res = finished_record['best_result']
+        
+        tweet_msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果が発表されました！\n当サイトのAI予想成績は…【{best_res}】でした！\n\n実際の当選番号と、次回({next_kai})の最新予想はこちらから👇\n{site_url}\n#宝くじ結果"
+
+    # ③【それ以外】火・金・土曜日の場合：予想通知
+    else:
+        tweet_msg = f"【#ロト6 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n"
+        if carryover_text:
+            tweet_msg += f"{carryover_text}\n"
+        tweet_msg += f"\n過去1年分のデータから導き出した最新HOT・COLD数字はこちら👇\n{site_url}\n#宝くじ予想"
+    
+    # 決定したメッセージをポストする
+    post_to_x(tweet_msg)
+    # --------------------------------------------------------
+
     return html
 
 # --- 最後にファイルを書き出す ---
-final_html = build_html()
-with open('loto6.html', 'w', encoding='utf-8') as f:
-    f.write(final_html)
-print("✨ [自動取得・完全決着版] ロト6 の自動更新が完了しました！")
+if __name__ == "__main__":
+    final_html = build_html()
+    with open('loto6.html', 'w', encoding='utf-8') as f:
+        f.write(final_html)
+    print("✨ [自動取得・完全決着版] ロト6 の自動更新とXへのポストが完了しました！")
