@@ -107,8 +107,9 @@ def build_index_html():
         @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.03); }} 100% {{ transform: scale(1); }} }}
 
         .dash-kai {{ font-size: 14px; color: #64748b; margin-bottom: 15px; font-weight: bold; }}
-        .dash-nums {{ font-size: 24px; font-weight: 900; letter-spacing: 3px; color: #1e293b; }}
-        .dash-nums-nm {{ font-size: 32px; font-weight: 900; letter-spacing: 8px; }}
+        .dash-nums {{ font-size: 24px; font-weight: 900; letter-spacing: 3px; color: #1e293b; margin-bottom: 8px; }}
+        .dash-bonus {{ font-size: 14px; color: #10b981; font-weight: bold; background: #ecfdf5; display: inline-block; padding: 4px 12px; border-radius: 20px; }}
+        .dash-nums-nm {{ font-size: 32px; font-weight: 900; letter-spacing: 8px; margin-bottom: 10px; }}
         
         .jumbo-banner {{ background: linear-gradient(135deg, #be123c, #9f1239); border-radius: 16px; padding: 25px; color: white; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(190, 18, 60, 0.2); }}
         .jumbo-banner a {{ display: inline-block; margin-top: 15px; padding: 10px 25px; background: white; color: #be123c; text-decoration: none; border-radius: 25px; font-weight: bold; }}
@@ -160,7 +161,7 @@ def build_index_html():
         <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
         <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
     </div>
-
+        
     <div class="container">
         <h2 class="section-title">🔔 最新の抽選結果速報</h2>
         
@@ -170,6 +171,7 @@ def build_index_html():
                     <div style="font-size: 20px; font-weight: 800; color: #d97706; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト7</div>
                     <div class="dash-kai">{l7_data.get('target_kai', '----')} の結果</div>
                     <div class="dash-nums">{l7_data.get('actual_main', '----')}</div>
+                    <div class="dash-bonus">{l7_data.get('actual_bonus', '')}</div>
                     {l7_carry_html}
                 </div>
             </a>
@@ -179,6 +181,7 @@ def build_index_html():
                     <div style="font-size: 20px; font-weight: 800; color: #0284c7; border-bottom: 1px dashed #e2e8f0; margin-bottom:15px; padding-bottom:10px;">ロト6</div>
                     <div class="dash-kai">{l6_data.get('target_kai', '----')} の結果</div>
                     <div class="dash-nums">{l6_data.get('actual_main', '----')}</div>
+                    <div class="dash-bonus">{l6_data.get('actual_bonus', '')}</div>
                     {l6_carry_html}
                 </div>
             </a>
