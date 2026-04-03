@@ -322,6 +322,7 @@ def build_html():
         <a href="loto6.html">ロト6</a>
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">コラム🔰</a>
     </nav>
     <div class="container">
         <div style="text-align: center; margin-bottom: 40px;">
