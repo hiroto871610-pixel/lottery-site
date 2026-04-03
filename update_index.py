@@ -217,6 +217,9 @@ def build_index_html():
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; }}
     </style>
+    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
+     crossorigin="anonymous"></script>
 </head>
 <body>
     <header>
