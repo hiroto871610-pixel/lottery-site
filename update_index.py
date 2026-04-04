@@ -29,7 +29,6 @@ def load_latest_data(filepath):
 def check_carryover_status(loto_type, latest_data):
     """
     【修正版：実際のデータ依存ロジック】
-    以前の「当サイト予想がハズレならキャリーオーバーとみなす」誤った判定ロジックを廃止し、
     Webから直接取得した「実際のキャリーオーバー状況」だけを正確に表示します。
     """
     if latest_data and 'carry_status' in latest_data:
@@ -51,23 +50,27 @@ def fetch_latest_loto_for_top(loto_type, max_val, pick_count):
             if not kai_m: return None
             kai_str = f"第{kai_m.group(1).zfill(4)}回"
             
-            # ★キャリーオーバー額まで確実に拾うため、文字数を多めに確保
-            chunk = text[kai_m.end():kai_m.end() + 2000]
+            chunk = text[kai_m.end():kai_m.end() + 300]
             date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
             num_chunk = chunk[date_m.end():] if date_m else chunk
             all_digits = re.findall(r'\d+', num_chunk)
             valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= max_val]
             
-            # --- ★超強力版: 実際のサイトからキャリーオーバー額を抽出 ---
+            # --- ★究極版: BeautifulSoupでHTMLタグから直接キャリーオーバーを判定 ---
             carry_status = ""
-            # [\s\S]{0,50}? を使い、文字と金額の間に大量の空白やゴミがあっても無理やり貫通して取得する
-            carry_m = re.search(r'キャリーオーバー[\s\S]{0,50}?([0-9,]+)\s*円', chunk)
-            if carry_m:
-                amt_str = carry_m.group(1).replace(',', '')
-                # 金額が0より大きい場合（実際に発生している時）のみステータスを生成
-                if amt_str.isdigit() and int(amt_str) > 0:
-                    max_prize = "10億円" if loto_type == "loto7" else "6億円"
-                    carry_status = f"💰 キャリーオーバー発生中！(最高{max_prize})"
+            # HTML全体から「キャリーオーバー」というテキストを含む要素を探す
+            carry_element = soup.find(string=re.compile(r'キャリーオーバー'))
+            
+            if carry_element:
+                # その要素の親玉（<tr>など行全体）を取得
+                parent_row = carry_element.find_parent('tr')
+                if parent_row:
+                    # 行の中のテキストをすべて結合
+                    row_text = parent_row.get_text(strip=True)
+                    # もし行の中に「0円」と書いてなければ、キャリーオーバー発生とみなす
+                    if "0円" not in row_text:
+                        max_prize = "10億円" if loto_type == "loto7" else "6億円"
+                        carry_status = f"💰 キャリーオーバー発生中！(最高{max_prize})"
             # --------------------------------------------------------
 
             if len(valid_nums) >= pick_count + 1:
@@ -150,7 +153,6 @@ def build_index_html():
     
     jumbo_name, jumbo_prize = get_next_jumbo()
 
-    # ▼ ここから下のHTMLは、ご提示いただいたコードと一字一句同じです ▼
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
