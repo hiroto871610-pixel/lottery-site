@@ -443,7 +443,7 @@ def build_html():
 <body>
     <header>
         <a href="index.html" style="text-decoration: none;">
-            <img src="Lotologo.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
+            <img src="Lotologo001.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
             <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ロト7当選予想・速報</div>
         </a>
     </header>
