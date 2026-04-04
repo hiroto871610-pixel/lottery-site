@@ -40,7 +40,7 @@ def post_to_x(message):
         print(f"❌ Xポストエラー: {e}")
 # =========================================================
 
-# --- 1. 過去データの取得（目印に頼らない最強抽出ロジック） ---
+# --- 1. 過去データの取得（★ロトと同様のカット方式に修正） ---
 def fetch_single_history(base_url, length):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     data = []
@@ -66,18 +66,36 @@ def fetch_single_history(base_url, length):
             
             text = soup.get_text(separator=' ')
             
-            # 【最強抽出】「第〇〇回」〜「日付」〜「当せん番号」の塊を強制的にぶっこ抜く
-            pattern = r'第\s*(\d+)\s*回[^第]*?(\d{4}[/年]\d{1,2}[/月]\d{1,2})[^第]*?当せん番号\D*(\d{' + str(length) + r'})'
-            matches = re.finditer(pattern, text)
-            
-            for m in matches:
+            # 文章の中から「第〇〇回」をすべて見つける
+            for m in re.finditer(r'第\s*(\d+)\s*回', text):
                 kai = f"第{m.group(1)}回"
-                date = m.group(2).replace('年', '/').replace('月', '/')
-                win_num = m.group(3)
                 
-                # ★すでに取得した回号（重複）でなければ追加する
-                if not any(d['kai'] == kai for d in data):
-                    data.append({"kai": kai, "date": date, "win_num": win_num})
+                # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
+                chunk = text[m.end():m.end() + 300]
+                
+                # ★【修正部分】別の回号のデータが混ざらないよう、次の「第〇〇回」が現れたらそこでカットする
+                next_kai_match = re.search(r'第\s*\d+\s*回', chunk)
+                if next_kai_match:
+                    chunk = chunk[:next_kai_match.start()]
+                
+                # 切り出した中から「日付」を見つける
+                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
+                if not date_m: continue
+                
+                date = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
+                
+                # 日付の直後から残りのテキストを切り出す
+                num_chunk = chunk[date_m.end():]
+                
+                # 「当せん番号」の文字の後の数字を抽出
+                win_m = re.search(r'当せん番号\D*(\d{' + str(length) + r'})', num_chunk)
+                if win_m:
+                    win_num = win_m.group(1)
+                    
+                    # ★すでに取得した回号（重複）でなければ追加する
+                    if not any(d['kai'] == kai for d in data):
+                        data.append({"kai": kai, "date": date, "win_num": win_num})
+                        
         except Exception:
             pass # エラーが起きても止まらずに次の月の取得へ進む
             
