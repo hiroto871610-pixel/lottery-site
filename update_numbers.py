@@ -323,6 +323,24 @@ def manage_history(latest_data, n4_preds, n3_preds):
         
     return history_record
 
+def get_next_numbers_date():
+    """現在時刻から次回のナンバーズ抽選日(月〜金)を自動計算する"""
+    now = datetime.datetime.now()
+    # 18:30以降に実行された場合は、当日の購入は終了したとみなして翌日基準で計算
+    if now.hour >= 19 or (now.hour == 18 and now.minute >= 30):
+        base_date = now.date() + datetime.timedelta(days=1)
+    else:
+        base_date = now.date()
+
+    # ナンバーズは月〜金 (0〜4)
+    n_days = 0
+    while (base_date + datetime.timedelta(days=n_days)).weekday() > 4:
+        n_days += 1
+    next_date = base_date + datetime.timedelta(days=n_days)
+
+    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
+
 # --- 5. HTML構築 ---
 def build_html():
     history_data = fetch_both_history()
@@ -334,6 +352,8 @@ def build_html():
     n3_preds = generate_advanced_predictions(history_data, 3, 'n3_win')
     
     history_record = manage_history(latest_data, n4_preds, n3_preds)
+
+    next_date_str = get_next_numbers_date()
     
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -416,6 +436,22 @@ def build_html():
 <img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1"></a>
 <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
     </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
+<img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1"></a>
+<img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
+    </div>
+
+        <div class="section-card" style="background: linear-gradient(to right, #ffffff, #f0fdf4); border-left: 5px solid #16a34a; padding: 20px;">
+            <div style="font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">⏰ 次回抽選日と購入期限</div>
+            <div style="font-size: 15px; color: #475569;">
+                <span style="display:inline-block; margin-right: 20px;">次回抽選: <strong style="color: #16a34a; font-size: 18px;">{next_date_str}</strong></span>
+                <span style="display:inline-block;">購入期限: 当日 <strong style="color: #ef4444; font-size: 18px;">18:30</strong> まで</span>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top: 5px;">※ネット購入（楽天銀行等）の原則的な締め切り時間です。</div>
+        </div>
 
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ナンバーズ4 予想</h2>
