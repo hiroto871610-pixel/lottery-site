@@ -128,6 +128,40 @@ def get_next_jumbo():
     elif 8 <= m <= 10: return "🎃 ハロウィンジャンボ", "1等・前後賞合わせて 5億円"
     else: return "⛄ 年末ジャンボ", "1等・前後賞合わせて 10億円"
 
+def get_next_draw_dates():
+    """現在時刻から各宝くじの次回抽選日を自動計算する"""
+    now = datetime.datetime.now()
+    # 18:30以降に実行された場合は、当日の抽選・購入は終了したとみなして翌日基準で計算
+    if now.hour >= 19 or (now.hour == 18 and now.minute >= 30):
+        base_date = now.date() + datetime.timedelta(days=1)
+    else:
+        base_date = now.date()
+
+    # ナンバーズ (月〜金)
+    n_days = 0
+    while (base_date + datetime.timedelta(days=n_days)).weekday() > 4:
+        n_days += 1
+    next_numbers = base_date + datetime.timedelta(days=n_days)
+
+    # ロト6 (月、木: 0, 3)
+    l6_days = 0
+    while (base_date + datetime.timedelta(days=l6_days)).weekday() not in [0, 3]:
+        l6_days += 1
+    next_loto6 = base_date + datetime.timedelta(days=l6_days)
+
+    # ロト7 (金: 4)
+    l7_days = 0
+    while (base_date + datetime.timedelta(days=l7_days)).weekday() != 4:
+        l7_days += 1
+    next_loto7 = base_date + datetime.timedelta(days=l7_days)
+
+    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    return {
+        "numbers": f"{next_numbers.month}月{next_numbers.day}日({weekdays[next_numbers.weekday()]})",
+        "loto6": f"{next_loto6.month}月{next_loto6.day}日({weekdays[next_loto6.weekday()]})",
+        "loto7": f"{next_loto7.month}月{next_loto7.day}日({weekdays[next_loto7.weekday()]})"
+    }
+
 def build_index_html():
     print("🔄 オシャレなトップページを生成中...")
     
@@ -152,6 +186,7 @@ def build_index_html():
     l6_carry_html = f'<div class="carryover-badge">{l6_carry_status}</div>' if l6_carry_status else ''
     
     jumbo_name, jumbo_prize = get_next_jumbo()
+    next_dates = get_next_draw_dates()
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -250,6 +285,28 @@ def build_index_html():
     </div>
         
     <div class="container">
+        
+        <div class="feature-card" style="margin-bottom: 30px; background: linear-gradient(to right, #ffffff, #f8fafc);">
+            <h3 style="margin-top:0; color:#1e293b; font-size:20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; display: flex; align-items: center;">⏰ 次回抽選日と購入期限</h3>
+            <table class="spec-table" style="font-size:15px; margin-bottom: 0;">
+                <tr>
+                    <th style="width:25%; color:#d97706; font-size: 16px;">🥇 ロト7</th>
+                    <td style="width:35%;">次回抽選: <strong>{next_dates['loto7']}</strong></td>
+                    <td>購入期限: 当日 <strong style="color:#ef4444;">18:30</strong> まで</td>
+                </tr>
+                <tr>
+                    <th style="color:#0284c7; font-size: 16px;">🥈 ロト6</th>
+                    <td>次回抽選: <strong>{next_dates['loto6']}</strong></td>
+                    <td>購入期限: 当日 <strong style="color:#ef4444;">18:30</strong> まで</td>
+                </tr>
+                <tr>
+                    <th style="color:#16a34a; font-size: 16px;">🔢 ナンバーズ</th>
+                    <td>次回抽選: <strong>{next_dates['numbers']}</strong></td>
+                    <td>購入期限: 当日 <strong style="color:#ef4444;">18:30</strong> まで</td>
+                </tr>
+            </table>
+            <p style="font-size:12px; color:#64748b; margin:10px 0 0 0; text-align:right;">※ネット購入（楽天銀行等）の原則的な締め切り時間です。</p>
+        </div>
         <h2 class="section-title">🔔 最新の抽選結果速報</h2>
         
         <div class="dashboard-grid">
