@@ -264,7 +264,7 @@ def build_index_html():
 <body>
     <header>
         <a href="index.html">
-            <img src="Lotologo.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
+            <img src="Lotologo001.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
             <div style="font-size: 24px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ロト＆ナンバーズ攻略局🎯完全無料のAI予想</div>
         </a>
     </header>
