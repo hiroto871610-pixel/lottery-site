@@ -28,21 +28,12 @@ def load_latest_data(filepath):
 
 def check_carryover_status(loto_type, latest_data):
     """
-    【内部データ完全依存ロジック】
-    外部サイトへのアクセスを一切行わず、手元のJSONデータから確実に判定します。
-    「前回（最新回）の1等が当サイトの予想から出ていない」場合、
-    高確率でキャリーオーバーが発生しているとみなしバッジを表示します。
+    【修正版：実際のデータ依存ロジック】
+    以前の「当サイト予想がハズレならキャリーオーバーとみなす」という誤った判定ロジックを廃止し、
+    Webから直接取得した「実際のキャリーオーバー状況」だけを正確に表示します。
     """
-    if not latest_data or latest_data.get('best_result') == '----':
-        return ""
-
-    best_result = latest_data.get('best_result', '')
-    
-    # 1等が出ていなければキャリーオーバー発生中とみなす
-    if '1等' not in best_result:
-        max_prize = "10億円" if loto_type == "loto7" else "6億円"
-        return f"💰 キャリーオーバー発生中！(最高{max_prize})"
-        
+    if latest_data and 'carry_status' in latest_data:
+        return latest_data['carry_status']
     return ""
 
 # --- トップページ表示用に最新の当選番号をWebから直接取得する機能を追加 ---
@@ -60,12 +51,24 @@ def fetch_latest_loto_for_top(loto_type, max_val, pick_count):
             if not kai_m: return None
             kai_str = f"第{kai_m.group(1).zfill(4)}回"
             
-            chunk = text[kai_m.end():kai_m.end() + 300]
+            # ★修正：キャリーオーバー金額まで確実に拾うため、取得する文字数を2000文字に拡張
+            chunk = text[kai_m.end():kai_m.end() + 2000]
             date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
             num_chunk = chunk[date_m.end():] if date_m else chunk
             all_digits = re.findall(r'\d+', num_chunk)
             valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= max_val]
             
+            # --- ★追加: 実際のサイトからキャリーオーバー額を抽出 ---
+            carry_status = ""
+            carry_m = re.search(r'キャリーオーバー\D*?([0-9,]+)\s*円', chunk)
+            if carry_m:
+                amt_str = carry_m.group(1).replace(',', '')
+                # 金額が0より大きい場合（実際に発生している時）のみステータスを生成
+                if amt_str.isdigit() and int(amt_str) > 0:
+                    max_prize = "10億円" if loto_type == "loto7" else "6億円"
+                    carry_status = f"💰 キャリーオーバー発生中！(最高{max_prize})"
+            # --------------------------------------------------------
+
             if len(valid_nums) >= pick_count + 1:
                 main_nums = valid_nums[:pick_count]
                 bonus_count = 2 if loto_type == 'loto7' else 1
@@ -73,7 +76,8 @@ def fetch_latest_loto_for_top(loto_type, max_val, pick_count):
                 return {
                     'target_kai': kai_str,
                     'actual_main': ", ".join(main_nums),
-                    'actual_bonus': "(B: " + ", ".join(bonus_nums) + ")"
+                    'actual_bonus': "(B: " + ", ".join(bonus_nums) + ")",
+                    'carry_status': carry_status # 実際のキャリーオーバーステータスを渡す
                 }
     except Exception as e:
         print(f"トップページ用データ取得エラー ({loto_type}): {e}")
@@ -123,7 +127,7 @@ def get_next_jumbo():
 def build_index_html():
     print("🔄 オシャレなトップページを生成中...")
     
-    # 内部のJSONデータを読み込む（キャリーオーバー判定用）
+    # 内部のJSONデータを読み込む
     l7_json = load_latest_data(FILES['loto7'])
     l6_json = load_latest_data(FILES['loto6'])
     nm_json = load_latest_data(FILES['numbers'])
@@ -134,10 +138,10 @@ def build_index_html():
     l6_display = fetch_latest_loto_for_top('loto6', 43, 6) or l6_json or {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     nm_display = fetch_latest_numbers_for_top() or nm_json or {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバーの発生の有無を内部データから取得
-    print("📡 キャリーオーバー発生状況を内部データから判定中...")
-    l7_carry_status = check_carryover_status("loto7", l7_json)
-    l6_carry_status = check_carryover_status("loto6", l6_json)
+    # キャリーオーバーの発生の有無を実際のデータ(l7_display, l6_display)から取得するように修正
+    print("📡 キャリーオーバー発生状況を実際のデータから判定中...")
+    l7_carry_status = check_carryover_status("loto7", l7_display)
+    l6_carry_status = check_carryover_status("loto6", l6_display)
     
     # バッジHTMLの組み立て
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_status}</div>' if l7_carry_status else ''
@@ -217,9 +221,6 @@ def build_index_html():
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; }}
     </style>
-    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
-     crossorigin="anonymous"></script>
 </head>
 <body>
     <header>
@@ -235,14 +236,13 @@ def build_index_html():
         <a href="loto6.html">ロト6</a>
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
-        <a href="column.html">攻略ガイド🔰</a>
     </nav>
 
     <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
-<img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
+        <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
+        <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
     </div>
         
     <div class="container">
@@ -292,13 +292,6 @@ def build_index_html():
             <p>{jumbo_prize} のチャンスを見逃すな！</p>
             <a href="jumbo.html">吉日カレンダーをチェック ＞</a>
         </div>
-
-        <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" rel="nofollow">
-        <img border="0" width="300" height="250" alt="" src="https://www28.a8.net/svt/bgt?aid=260331146268&wid=001&eno=01&mid=s00000015326001028000&mc=1"></a>
-        <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4FK6WI+3A98+64C3L" alt="">
-    </div>
 
         <div class="two-col-grid">
             <div class="feature-card">
@@ -363,13 +356,6 @@ def build_index_html():
             </div>
         </div>
     </div>
-
-    <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
-<img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www11.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" alt="">
-    </div>
     
     <footer>
         <div class="footer-links">
@@ -378,7 +364,7 @@ def build_index_html():
             <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
     <script>
