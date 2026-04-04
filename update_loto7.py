@@ -77,6 +77,11 @@ def fetch_history_data():
                 # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
                 chunk = text[m.end():m.end() + 300]
                 
+                # ★【修正部分】別の回号のデータが混ざらないよう、次の「第〇〇回」が現れたらそこでカットする
+                next_kai_match = re.search(r'第\s*\d+\s*回', chunk)
+                if next_kai_match:
+                    chunk = chunk[:next_kai_match.start()]
+                
                 # 切り出した中から「日付」を見つける
                 date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
                 if not date_m: continue
@@ -332,30 +337,18 @@ def manage_history(latest_data, new_predictions):
         
     return history_record
 
-# --- 追加：キャリーオーバー判定（確実・正確なWeb抽出に変更） ---
-def check_loto7_carryover():
+# --- 追加：キャリーオーバー判定（内部データ利用） ---
+def check_loto7_carryover(history_record):
     """
-    楽天宝くじのロト7トップページに直接アクセスし、
-    HTML構造（BeautifulSoup）から確実にキャリーオーバーの発生有無を判定します。
+    history_loto7.json の最新の「確定」データから、
+    1等が出ているかどうかでキャリーオーバーの有無を判定します。
     """
-    url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200:
-            res.encoding = 'euc-jp'
-            soup = BeautifulSoup(res.content, 'html.parser')
-            
-            # HTML構造から「キャリーオーバー」を含む要素を探し、その行(tr)の中に「0円」がないかを判定
-            carry_element = soup.find(string=re.compile(r'キャリーオーバー'))
-            if carry_element:
-                parent_row = carry_element.find_parent('tr')
-                if parent_row:
-                    row_text = parent_row.get_text(strip=True)
-                    if "0円" not in row_text:
-                        return "💰 キャリーオーバー発生中！(最高10億円)"
-    except Exception as e:
-        print(f"キャリーオーバー判定エラー: {e}")
+    for record in history_record:
+        if record.get('status') == 'finished':
+            best_res = record.get('best_result', '')
+            if '1等' not in best_res and best_res != '----':
+                return "💰 キャリーオーバー発生中！(最高10億円)"
+            break
     return ""
 
 # --- 5. HTML構築 ---
@@ -373,7 +366,7 @@ def build_html():
     print(f"📡 データ取得成功: 最新回 {latest_data['kai']} ({latest_data['date']})")
     
     # キャリーオーバー情報の取得とHTMLパーツ作成
-    carryover_text = check_loto7_carryover()
+    carryover_text = check_loto7_carryover(history_record)
     carryover_html = f'<div class="carryover-badge">{carryover_text}</div>' if carryover_text else ''
     
     html = f"""<!DOCTYPE html>
