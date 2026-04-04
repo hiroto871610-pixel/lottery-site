@@ -107,7 +107,7 @@ def fetch_both_history():
     print(f"📡 データ取得成功: 最新回 {merged[0]['kai']} (N4: {merged[0]['n4_win']}, N3: {merged[0]['n3_win']})")
     return merged
 
-# --- 2. ホット＆コールド算出 (0〜9の数字頻度) ---
+# --- 2. ホット＆コールド算出 (HTML表示用維持) ---
 def analyze_digit_trends(history_data):
     all_digits = []
     for data in history_data:
@@ -122,18 +122,123 @@ def analyze_digit_trends(history_data):
     cold = list(reversed(sorted_counts))[:3] # 下位3つ
     return hot, cold
 
-# --- 3. アルゴリズム予想生成 ---
-def generate_algo_predictions(hot, cold, length):
-    hot_digits = [item[0] for item in hot]
-    cold_digits = [item[0] for item in cold]
-    all_digits = [str(n) for n in range(10)]
+# --- 3. 複合アルゴリズム予想生成（★今回刷新した高度分析ロジック） ---
+def generate_advanced_predictions(history_data, length, win_key):
+    draws = [d[win_key] for d in history_data]
+    if not draws:
+        return []
+
+    # 【分析1】合計値分析
+    sums = [sum(int(n) for n in draw) for draw in draws]
+    min_sum, max_sum = min(sums), max(sums)
+
+    # 【分析2】奇数偶数バランス分析
+    odd_counts = [sum(1 for n in draw if int(n) % 2 != 0) for draw in draws]
+    avg_odd = round(sum(odd_counts) / len(odd_counts)) if odd_counts else (length // 2)
+    target_odds = [max(0, avg_odd - 1), avg_odd, min(length, avg_odd + 1)] # 平均値±1の範囲
+
+    # 【分析3】連続数字分析 (12, 13などの連続的数字)
+    def has_seq(draw_str):
+        nums = sorted([int(n) for n in draw_str])
+        return any(nums[i]+1 == nums[i+1] for i in range(len(nums)-1))
     
+    seq_count = sum(1 for draw in draws if has_seq(draw))
+    seq_prob = seq_count / len(draws)
+
+    # 【分析4】連続出現数字分析 (前回と同じ数字が引っ張られる確率)
+    repeat_count = sum(len(set(draws[i]) & set(draws[i+1])) for i in range(len(draws)-1))
+    total_nums = length * (len(draws) - 1) if len(draws) > 1 else 1
+    repeat_prob = repeat_count / total_nums
+
+    # 【分析5＆6】過去1年の傾向 (HOT/COLD) ＆ 最新最古数字分析
+    freq = {str(i): 0 for i in range(10)}
+    freq_10 = {str(i): 0 for i in range(10)}
+    last_seen = {str(i): 999 for i in range(10)}
+
+    for idx, draw in enumerate(draws):
+        for n in draw:
+            freq[n] += 1
+            if idx < 10:
+                freq_10[n] += 1
+            if last_seen[n] == 999:
+                last_seen[n] = idx
+
+    # 【分析7】各数字の順位付け（確率スコアリング）
+    scores = {}
+    for i in range(10):
+        n = str(i)
+        score = 1.0
+        # 過去一年間の傾向 (ベースポイント)
+        score += freq[n] * 0.5 
+        # ★直近の傾向(過去10回)に重点をおく (高ウェイト)
+        score += freq_10[n] * 2.5 
+
+        # 最新・最古および連続出現の反映
+        if last_seen[n] == 0:
+            # 前回出た数字は、連続出現確率(repeat_prob)を元にスコア加算
+            score += (repeat_prob * 10)
+        elif last_seen[n] > 15:
+            # 最も出ていない古い数字は「そろそろ出る」として優先度(確率)を上げる
+            score += 3.0
+        else:
+            score += 1.0
+
+        scores[n] = max(0.1, score)
+
+    # --- 分析結果の掛け合わせによる選定・抽出 ---
     predictions = []
-    for _ in range(3): # 予想A〜C
-        p = [random.choice(hot_digits), random.choice(cold_digits)]
-        p += random.choices(all_digits, k=(length - 2))
-        random.shuffle(p)
-        predictions.append("".join(p))
+    digits = [str(i) for i in range(10)]
+    weights = [scores[n] for n in digits]
+
+    # 大量の候補セットを生成し、すべての分析条件をクリアしたものだけを抽出
+    candidates = []
+    for _ in range(2000):
+        # 順位付け(スコア)に基づいた重み付きランダム抽出 (重複許可)
+        cand = random.choices(digits, weights=weights, k=length)
+        random.shuffle(cand) # 順番をランダムに
+        candidates.append("".join(cand))
+
+    valid_candidates = []
+    for cand in candidates:
+        cand_nums = [int(x) for x in cand]
+        
+        # 条件適用①: 合計値分析 (最大値〜最小値の間に収める)
+        if not (min_sum <= sum(cand_nums) <= max_sum): 
+            continue
+
+        # 条件適用②: 奇数偶数バランス
+        odds = sum(1 for n in cand_nums if n % 2 != 0)
+        if odds not in target_odds: 
+            continue
+
+        # 条件適用③: 連続数字分析の確率を掛け合わせ (スコア補正)
+        cand_has_seq = has_seq(cand)
+        cand_score = sum(scores[n] for n in cand)
+        
+        if (cand_has_seq and seq_prob > 0.5) or (not cand_has_seq and seq_prob <= 0.5):
+            cand_score *= 1.2 # 確率の高い傾向に沿っている組み合わせのスコアを強化
+
+        valid_candidates.append((cand_score, cand))
+
+    # スコア順にランキングし、上位5つの予想を選定
+    valid_candidates.sort(key=lambda x: x[0], reverse=True)
+    seen = set()
+    for score, cand in valid_candidates:
+        # 重複するパターンを省きながら追加
+        if cand not in seen:
+            seen.add(cand)
+            predictions.append(cand)
+        # 予想A〜Eの5つを抽出
+        if len(predictions) == 5:
+            break
+
+    # 万が一、条件が厳しすぎて5個揃わなかった場合の安全処理
+    while len(predictions) < 5:
+        cand = "".join(random.choices(digits, k=length))
+        if cand not in seen:
+            seen.add(cand)
+            predictions.append(cand)
+
     return predictions
 
 # --- 4. 履歴の保存と成績の自動照合 ---
@@ -206,8 +311,10 @@ def build_html():
     latest_data = history_data[0]
     hot, cold = analyze_digit_trends(history_data)
     
-    n4_preds = generate_algo_predictions(hot, cold, 4)
-    n3_preds = generate_algo_predictions(hot, cold, 3)
+    # ★新設した高度な複合分析ロジックを使用 (N4とN3それぞれで生成)
+    n4_preds = generate_advanced_predictions(history_data, 4, 'n4_win')
+    n3_preds = generate_advanced_predictions(history_data, 3, 'n3_win')
+    
     history_record = manage_history(latest_data, n4_preds, n3_preds)
     
     html = f"""<!DOCTYPE html>
@@ -271,7 +378,7 @@ def build_html():
 <body>
     <header>
         <a href="index.html" style="text-decoration: none;">
-            <img src="Lotologo.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
+            <img src="Lotologo.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
             <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ナンバーズ当選予想・速報</div>
         </a>
     </header>
@@ -297,8 +404,9 @@ def build_html():
             <p>直近の傾向からHOT数字とCOLD数字を掛け合わせたアルゴリズム予想です。</p>
             <div class="prediction-box">
 """
-    labels = ['予想A', '予想B', '予想C']
-    tags4 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>']
+    # ★予想A〜Eの5つに対応するため、配列の要素数を拡張
+    labels = ['予想A', '予想B', '予想C', '予想D', '予想E']
+    tags4 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>']
     for i, pred in enumerate(history_record[0]['n4_preds']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div>{tags4[i]}</div>\n'
@@ -307,7 +415,8 @@ def build_html():
             <h2 class="section-header" style="margin-top: 40px;">🎯 次回 ({history_record[0]['target_kai']}) ナンバーズ3 予想</h2>
             <div class="prediction-box">
 """
-    tags3 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ミニ推奨</span>']
+    # ★こちらも同様に5つに拡張
+    tags3 = ['<span class="recommend-tag tag-straight">ストレート推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ミニ推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>', '<span class="recommend-tag tag-box">ボックス推奨</span>']
     for i, pred in enumerate(history_record[0]['n3_preds']):
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div>{tags3[i]}</div>\n'
@@ -398,7 +507,7 @@ def build_html():
             <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 </body>
 </html>"""
