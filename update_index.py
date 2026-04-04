@@ -46,7 +46,7 @@ def check_carryover_status(loto_type):
                 amt_str = m.group(1).replace(',', '')
                 # 0円より大きければ確実に発生していると判定
                 if amt_str.isdigit() and int(amt_str) > 0:
-                    max_prize = "10億円" if loto_type == "loto7" else "6億円"
+                    max_prize = "12億円" if loto_type == "loto7" else "6億円"
                     return f"💰 キャリーオーバー発生中！(最高{max_prize})"
     except Exception as e:
         print(f"キャリーオーバー判定エラー ({loto_type}): {e}")
@@ -395,7 +395,7 @@ def build_index_html():
                 <h3 style="color: #d97706;">🥇 ロト7 (LOTO7)</h3>
                 <p class="guide-desc">1～37の中から異なる7個を選ぶ宝くじ。キャリーオーバー発生時の爆発力は全宝くじの中でトップクラスです。</p>
                 <table class="spec-table">
-                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">6億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 10億円)</span></td></tr>
+                    <tr><th>💰 1等最高賞金</th><td class="highlight-prize">6億円 <span style="font-size:11px; font-weight:normal; color:#64748b;">(キャリー時 12億円)</span></td></tr>
                     <tr><th>🎯 1等当選確率</th><td>約 1 / 10,295,472</td></tr>
                     <tr><th>🗓️ 抽選日</th><td>毎週 金曜日</td></tr>
                     <tr><th>💴 1口の価格</th><td>300円</td></tr>
