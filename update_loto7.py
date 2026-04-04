@@ -347,7 +347,7 @@ def check_loto7_carryover(history_record):
         if record.get('status') == 'finished':
             best_res = record.get('best_result', '')
             if '1等' not in best_res and best_res != '----':
-                return "💰 キャリーオーバー発生中！(最高10億円)"
+                return "💰 キャリーオーバー発生中！(最高12億円)"
             break
     return ""
 
