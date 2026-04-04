@@ -76,6 +76,11 @@ def fetch_history_data():
                 # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
                 chunk = text[m.end():m.end() + 300]
                 
+                # ★【修正部分】別の回号のデータが混ざらないよう、次の「第〇〇回」が現れたらそこでカットする
+                next_kai_match = re.search(r'第\s*\d+\s*回', chunk)
+                if next_kai_match:
+                    chunk = chunk[:next_kai_match.start()]
+                
                 # 切り出した中から「日付」を見つける
                 date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
                 if not date_m: continue
