@@ -489,9 +489,6 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
-
-        <div class="section-card">
-            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
             <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
                 <div class="numbers-row">
                     <div class="row-label" style="background-color: #e2e8f0; color: #475569;">本数字</div>
