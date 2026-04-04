@@ -28,21 +28,12 @@ def load_latest_data(filepath):
 
 def check_carryover_status(loto_type, latest_data):
     """
-    【内部データ完全依存ロジック】
-    外部サイトへのアクセスを一切行わず、手元のJSONデータから確実に判定します。
-    「前回（最新回）の1等が当サイトの予想から出ていない」場合、
-    高確率でキャリーオーバーが発生しているとみなしバッジを表示します。
+    【修正版：実際のデータ依存ロジック】
+    以前の「当サイト予想がハズレならキャリーオーバーとみなす」誤った判定ロジックを廃止し、
+    Webから直接取得した「実際のキャリーオーバー状況」だけを正確に表示します。
     """
-    if not latest_data or latest_data.get('best_result') == '----':
-        return ""
-
-    best_result = latest_data.get('best_result', '')
-    
-    # 1等が出ていなければキャリーオーバー発生中とみなす
-    if '1等' not in best_result:
-        max_prize = "10億円" if loto_type == "loto7" else "6億円"
-        return f"💰 キャリーオーバー発生中！(最高{max_prize})"
-        
+    if latest_data and 'carry_status' in latest_data:
+        return latest_data['carry_status']
     return ""
 
 # --- トップページ表示用に最新の当選番号をWebから直接取得する機能を追加 ---
@@ -60,12 +51,25 @@ def fetch_latest_loto_for_top(loto_type, max_val, pick_count):
             if not kai_m: return None
             kai_str = f"第{kai_m.group(1).zfill(4)}回"
             
-            chunk = text[kai_m.end():kai_m.end() + 300]
+            # ★キャリーオーバー額まで確実に拾うため、文字数を多めに確保
+            chunk = text[kai_m.end():kai_m.end() + 2000]
             date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
             num_chunk = chunk[date_m.end():] if date_m else chunk
             all_digits = re.findall(r'\d+', num_chunk)
             valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= max_val]
             
+            # --- ★超強力版: 実際のサイトからキャリーオーバー額を抽出 ---
+            carry_status = ""
+            # [\s\S]{0,50}? を使い、文字と金額の間に大量の空白やゴミがあっても無理やり貫通して取得する
+            carry_m = re.search(r'キャリーオーバー[\s\S]{0,50}?([0-9,]+)\s*円', chunk)
+            if carry_m:
+                amt_str = carry_m.group(1).replace(',', '')
+                # 金額が0より大きい場合（実際に発生している時）のみステータスを生成
+                if amt_str.isdigit() and int(amt_str) > 0:
+                    max_prize = "10億円" if loto_type == "loto7" else "6億円"
+                    carry_status = f"💰 キャリーオーバー発生中！(最高{max_prize})"
+            # --------------------------------------------------------
+
             if len(valid_nums) >= pick_count + 1:
                 main_nums = valid_nums[:pick_count]
                 bonus_count = 2 if loto_type == 'loto7' else 1
@@ -73,7 +77,8 @@ def fetch_latest_loto_for_top(loto_type, max_val, pick_count):
                 return {
                     'target_kai': kai_str,
                     'actual_main': ", ".join(main_nums),
-                    'actual_bonus': "(B: " + ", ".join(bonus_nums) + ")"
+                    'actual_bonus': "(B: " + ", ".join(bonus_nums) + ")",
+                    'carry_status': carry_status # 実際のキャリーオーバーステータスを渡す
                 }
     except Exception as e:
         print(f"トップページ用データ取得エラー ({loto_type}): {e}")
@@ -123,7 +128,7 @@ def get_next_jumbo():
 def build_index_html():
     print("🔄 オシャレなトップページを生成中...")
     
-    # 内部のJSONデータを読み込む（キャリーオーバー判定用）
+    # 内部のJSONデータを読み込む
     l7_json = load_latest_data(FILES['loto7'])
     l6_json = load_latest_data(FILES['loto6'])
     nm_json = load_latest_data(FILES['numbers'])
@@ -134,10 +139,10 @@ def build_index_html():
     l6_display = fetch_latest_loto_for_top('loto6', 43, 6) or l6_json or {'target_kai': 'データなし', 'actual_main': '----', 'actual_bonus': ''}
     nm_display = fetch_latest_numbers_for_top() or nm_json or {'target_kai': 'データなし', 'actual_n4': '----', 'actual_n3': '----'}
 
-    # キャリーオーバーの発生の有無を内部データから取得
-    print("📡 キャリーオーバー発生状況を内部データから判定中...")
-    l7_carry_status = check_carryover_status("loto7", l7_json)
-    l6_carry_status = check_carryover_status("loto6", l6_json)
+    # キャリーオーバーの発生の有無を実際のデータ(l7_display, l6_display)から取得するように修正
+    print("📡 キャリーオーバー発生状況を実際のデータから判定中...")
+    l7_carry_status = check_carryover_status("loto7", l7_display)
+    l6_carry_status = check_carryover_status("loto6", l6_display)
     
     # バッジHTMLの組み立て
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_status}</div>' if l7_carry_status else ''
@@ -145,6 +150,7 @@ def build_index_html():
     
     jumbo_name, jumbo_prize = get_next_jumbo()
 
+    # ▼ ここから下のHTMLは、ご提示いただいたコードと一字一句同じです ▼
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -363,7 +369,7 @@ def build_index_html():
             </div>
         </div>
     </div>
-
+    
     <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
