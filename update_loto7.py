@@ -351,6 +351,24 @@ def check_loto7_carryover(history_record):
             break
     return ""
 
+def get_next_loto7_date():
+    """現在時刻から次回のロト7抽選日(金曜)を自動計算する"""
+    now = datetime.datetime.now()
+    # 18:30以降に実行された場合は、当日の購入は終了したとみなして翌日基準で計算
+    if now.hour >= 19 or (now.hour == 18 and now.minute >= 30):
+        base_date = now.date() + datetime.timedelta(days=1)
+    else:
+        base_date = now.date()
+
+    # ロト7 (金: 4)
+    l7_days = 0
+    while (base_date + datetime.timedelta(days=l7_days)).weekday() != 4:
+        l7_days += 1
+    next_date = base_date + datetime.timedelta(days=l7_days)
+
+    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
+
 # --- 5. HTML構築 ---
 def build_html():
     print("🔄 ロト7 データ取得＆アルゴリズム解析を開始...")
@@ -368,6 +386,8 @@ def build_html():
     # キャリーオーバー情報の取得とHTMLパーツ作成
     carryover_text = check_loto7_carryover(history_record)
     carryover_html = f'<div class="carryover-badge">{carryover_text}</div>' if carryover_text else ''
+
+    next_date_str = get_next_loto7_date()
     
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -455,6 +475,17 @@ def build_html():
     
     html += f"""            </div>
         </div>
+
+        <div class="section-card" style="background: linear-gradient(to right, #ffffff, #fffbeb); border-left: 5px solid #d97706; padding: 20px;">
+            <div style="font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">⏰ 次回抽選日と購入期限</div>
+            <div style="font-size: 15px; color: #475569;">
+                <span style="display:inline-block; margin-right: 20px;">次回抽選: <strong style="color: #d97706; font-size: 18px;">{next_date_str}</strong></span>
+                <span style="display:inline-block;">購入期限: 当日 <strong style="color: #ef4444; font-size: 18px;">18:30</strong> まで</span>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top: 5px;">※ネット購入（楽天銀行等）の原則的な締め切り時間です。</div>
+        </div>
+        <div class="section-card">
+            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
 
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
