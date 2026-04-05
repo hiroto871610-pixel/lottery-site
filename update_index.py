@@ -180,6 +180,26 @@ def build_index_html():
     print("📡 キャリーオーバー発生状況を判定中...")
     l7_carry_status = check_carryover_status("loto7")
     l6_carry_status = check_carryover_status("loto6")
+
+    # ▼▼▼ 👇ここから追加：実績バッジのHTMLを生成👇 ▼▼▼
+    badge_html = ""
+    if os.path.exists("latest_achievement.json"):
+        try:
+            with open("latest_achievement.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            badge_html = f"""
+            <div style="background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%); margin: 20px auto; max-width: 90%; width: 800px; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4); border: 3px solid #fff; animation: pulse 2s infinite;">
+                <p style="color: #fff; font-weight: bold; margin: 0; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">＼ 🚨 緊急・超高額的中実績 🚨 ／</p>
+                <h2 style="color: #b91c1c; margin: 10px 0; font-size: 24px; font-weight: 900; background: #fff; display: inline-block; padding: 5px 20px; border-radius: 30px; word-break: break-all;">
+                    【{data['lottery_name']}】{data['kai']}<br>AI予想が🎊 {data['prize']} 🎊的中！
+                </h2>
+                <p style="color: #fff; font-weight: bold; margin: 5px 0 0 0; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">最新の予想は下の各メニューからチェック👇</p>
+            </div>
+            """
+        except Exception as e:
+            print(f"バッジ読み込みエラー: {e}")
+    # ▲▲▲ 👆ここまで追加👆 ▲▲▲
     
     # バッジHTMLの組み立て
     l7_carry_html = f'<div class="carryover-badge">{l7_carry_status}</div>' if l7_carry_status else ''
@@ -285,6 +305,8 @@ def build_index_html():
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
     </nav>
+
+    {badge_html}
 
 <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
