@@ -25,6 +25,39 @@ X_API_SECRET = os.environ.get("X_API_SECRET")
 X_ACCESS_TOKEN = os.environ.get("X_ACCESS_TOKEN")
 X_ACCESS_SECRET = os.environ.get("X_ACCESS_SECRET")
 
+# ▼▼▼ ここから追加：LINE公式アカウント API設定 ▼▼▼
+LINE_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+
+def post_to_line(message):
+    """LINE公式アカウントへ一斉送信(ブロードキャスト)する機能"""
+    if not LINE_ACCESS_TOKEN:
+        print("⚠️ LINEのアクセストークンが.envファイルから取得できないため、LINE配信をスキップしました。")
+        return
+
+    url = "https://api.line.me/v2/bot/message/broadcast"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_ACCESS_TOKEN}"
+    }
+    data = {
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
+    
+    try:
+        res = requests.post(url, headers=headers, json=data)
+        if res.status_code == 200:
+            print("✅ LINEへの自動配信が成功しました！")
+        else:
+            print(f"❌ LINE配信エラー: {res.status_code} - {res.text}")
+    except Exception as e:
+        print(f"❌ LINE通信エラー: {e}")
+# ▲▲▲ ここまで追加 ▲▲▲
+
 def post_to_x(message):
     """X(Twitter)へ自動投稿する機能"""
     # 環境変数（.env）からキーが取得できていない場合はスキップする安全設計
