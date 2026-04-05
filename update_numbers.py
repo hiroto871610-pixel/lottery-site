@@ -436,6 +436,12 @@ def build_html():
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
     </nav>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
+        </div>
+
     <div class="container">
     
         <div style="text-align: center; margin: 20px 0;">
