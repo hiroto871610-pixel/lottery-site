@@ -412,6 +412,12 @@ def build_html():
     <meta charset="UTF-8">
     <title>【{history_record[0]['target_kai']}】ロト6当選予想・データ分析ポータル | 最新AI予想</title>
     <meta name="description" content="{history_record[0]['target_kai']}のロト6当選予想。過去1年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！最高6億円のキャリーオーバー情報も。">
+    <meta property="og:title" content="【{history_record[0]['target_kai']}】ロト6最新AI予想">
+    <meta property="og:description" content="過去1年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://loto-yosou-ai.com/loto6.html">
+    <meta property="og:image" content="https://loto-yosou-ai.com/Lotologo001.png">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://loto-yosou-ai.com/loto6.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
