@@ -626,33 +626,57 @@ def build_html():
 </body>
 </html>"""
 
-    # --- ⭐️ 自動ポスト用のメッセージを作成して実行 ⭐️ ---
+    # --- ⭐️ 【改良版】自動ポスト・LINE配信ロジック ⭐️ ---
     import datetime
     
-    # 今日の曜日を取得 (0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日)
-    today_weekday = datetime.datetime.now().weekday()
+    now = datetime.datetime.now()
+    today_weekday = now.weekday() # 0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日
+    current_hour = now.hour
     
     next_kai = history_record[0]['target_kai']
-    # サイトのURLを設定してください
     site_url = "https://loto-yosou-ai.com/numbers.html" 
     
-    # ナンバーズは【月曜〜金曜】が毎日抽選日です
-    
-    # 【月〜金 (0〜4)】 抽選結果速報と次回予想
-    if 0 <= today_weekday <= 4:
-        finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
-        finished_kai = finished_record['target_kai']
-        res_n4 = finished_record.get('result_n4', '----')
-        res_n3 = finished_record.get('result_n3', '----')
-        
-        tweet_msg = f"【#ナンバーズ 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想成績\nN4: {res_n4}\nN3: {res_n3}\n\n実際の当選番号と、次回({next_kai})の最新予想はこちら👇\n{site_url}\n#宝くじ結果"
+    send_flag = False
+    msg = ""
 
-    # 【土・日 (5, 6)】 次回予想の通知のみ
+    # ■ 平日 (月〜金) の処理
+    if today_weekday < 5:
+        # 朝の予告はスキップ (何もしない)
+        if current_hour < 19:
+            pass 
+        
+        # 夜の結果確認
+        else:
+            finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
+            finished_kai = finished_record['target_kai']
+            n3_res = finished_record.get('n3_result', '')
+            n4_res = finished_record.get('n4_result', '')
+            
+            # 「的中」という言葉が含まれている場合のみフラグを立てる
+            if "的中" in n3_res or "的中" in n4_res:
+                send_flag = True
+                msg = f"【#ナンバーズ 的中速報🎯】\n第 {finished_kai} 回でAI予想が的中しました！\n"
+                msg += f"・ナンバーズ3：{n3_res}\n・ナンバーズ4：{n4_res}\n"
+                msg += f"\n的中した具体的な数字と、明日({next_kai})の最新予想はこちら👇\n{site_url}"
+
+    # ■ 土曜日 (5) の夜に週末通知を送る
+    elif today_weekday == 5:
+        if current_hour >= 19:
+            send_flag = True
+            msg = f"【#ナンバーズ 週末の予想更新🎯】\n来週、第 {next_kai} 回からの最新AI予想を公開しました！\n"
+            msg += f"\n週末の間に最新の出現傾向データをチェックして、次回の戦略を立てましょう👇\n{site_url}"
+
+    # ■ 日曜日 (6) は何もしない (土曜に送っているため)
     else:
-        tweet_msg = f"【#ナンバーズ 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n\n直近の出現傾向データから導き出した最新HOT・COLD数字と推奨予想はこちら👇\n{site_url}\n#宝くじ予想"
-    
-    # 決定したメッセージをポストする
-    post_to_x(tweet_msg)
+        pass
+
+    # 配信フラグが立っている場合のみ送信
+    if send_flag and msg:
+        post_to_x(msg)
+        post_to_line(msg)
+        print(f"✅ 条件に合致したため配信を実行しました。")
+    else:
+        print(f"💤 配信条件外（的中なし、または配信時間外）のためスキップしました。")
     # --------------------------------------------------------
 
     return html
