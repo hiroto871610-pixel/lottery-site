@@ -662,43 +662,47 @@ def build_html():
 </body>
 </html>"""
 
-    # --- ⭐️ 自動ポスト用のメッセージを作成して実行 ⭐️ ---
+    # --- ⭐️ 自動ポスト・LINE配信用のメッセージを作成して実行 ⭐️ ---
     import datetime
     
-    # 今日の曜日を取得 (0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日)
-    today_weekday = datetime.datetime.now().weekday()
+    now = datetime.datetime.now()
+    today_weekday = now.weekday() # 0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日
+    current_hour = now.hour       # 現在の「時間」を取得 (0〜23)
     
     next_kai = history_record[0]['target_kai']
-    # サイトのURLを設定してください
     site_url = "https://loto-yosou-ai.com/loto6.html" 
     
-    # ロト6は毎週【月曜日】と【木曜日】が抽選日です
-    
-    # ①【前日】日曜日・水曜日の場合：抽選日予告
-    if today_weekday in [2, 6]:
-        tweet_msg = f"【明日は #ロト6 抽選日🎯】\nいよいよ明日は {next_kai} の抽選日です！\n"
-        if carryover_text:
-            tweet_msg += f"{carryover_text}\n"
-        tweet_msg += f"\n当サイトのAIアルゴリズムが弾き出した最新予想を無料で公開中！購入前にぜひチェックしてください👇\n{site_url}\n#宝くじ予想"
-
-    # ②【当日】月曜日・木曜日の場合：抽選結果速報とサイト誘導
-    elif today_weekday in [0, 3]:
-        # 最新の抽選結果（1つ前の履歴データ）を取得
-        finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
-        finished_kai = finished_record['target_kai']
-        best_res = finished_record['best_result']
+    # ロト6は【月曜日(0)】と【木曜日(3)】が抽選日
+    if today_weekday in [0, 3]:
         
-        tweet_msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果が発表されました！\n当サイトのAI予想成績は…【{best_res}】でした！\n\n実際の当選番号と、次回({next_kai})の最新予想はこちらから👇\n{site_url}\n#宝くじ結果"
+        # ①【抽選日の朝〜夕方 (18時台まで)】に実行された場合：抽選日予告
+        if current_hour < 19:
+            msg = f"【本日は #ロト6 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n"
+            if carryover_text:
+                msg += f"{carryover_text}\n"
+            msg += f"\n当サイトのAIアルゴリズムが弾き出した最新予想を無料で公開中！購入前にぜひチェック👇\n{site_url}"
 
-    # ③【それ以外】火・金・土曜日の場合：予想通知
+        # ②【抽選日の夜 (19時以降)】に実行された場合：結果速報と次回予想
+        else:
+            finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
+            finished_kai = finished_record['target_kai']
+            best_res = finished_record.get('best_result', '----')
+            
+            msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想成績は…【{best_res}】でした！\n"
+            if carryover_text:
+                msg += f"\n{carryover_text}\n"
+            msg += f"\n実際の当選番号と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
+
+    # ③【それ以外の曜日 (火・水・金・土・日)】に実行された場合：予想更新通知
     else:
-        tweet_msg = f"【#ロト6 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n"
+        msg = f"【#ロト6 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n"
         if carryover_text:
-            tweet_msg += f"{carryover_text}\n"
-        tweet_msg += f"\n過去1年分のデータから導き出した最新HOT・COLD数字はこちら👇\n{site_url}\n#宝くじ予想"
+            msg += f"{carryover_text}\n"
+        msg += f"\n過去1年分のデータから導き出した最新HOT・COLD数字とAI予想はこちら👇\n{site_url}"
     
-    # 決定したメッセージをポストする
-    post_to_x(tweet_msg)
+    # 決定したメッセージを X(Twitter) と LINE の両方に送信する
+    post_to_x(msg)
+    post_to_line(msg)
     # --------------------------------------------------------
 
     return html
