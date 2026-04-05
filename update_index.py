@@ -194,7 +194,7 @@ def build_index_html():
                 <h2 style="color: #b91c1c; margin: 10px 0; font-size: 24px; font-weight: 900; background: #fff; display: inline-block; padding: 5px 20px; border-radius: 30px; word-break: break-all;">
                     【{data['lottery_name']}】{data['kai']}<br>AI予想が🎊 {data['prize']} 🎊的中！
                 </h2>
-                <p style="color: #fff; font-weight: bold; margin: 5px 0 0 0; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">最新の予想は下の各メニューからチェック👇</p>
+                <p style="color: #fff; font-weight: bold; margin: 5px 0 0 0; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">最新の予想は上の各メニューからチェック👆</p>
             </div>
             """
         except Exception as e:
