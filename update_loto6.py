@@ -8,23 +8,30 @@ import datetime
 from collections import Counter
 import tweepy  # ←追加：Xポスト用
 import urllib3 # ←追加：エラー回避用
+# ▼▼▼ 追加：.envファイルを読み込むためのライブラリ ▼▼▼
+from dotenv import load_dotenv
+
+# .envファイルを読み込む
+load_dotenv()
+# ▲▲▲ ここまで追加 ▲▲▲
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HISTORY_FILE = 'history_loto6.json'
 
 # =========================================================
-# 𝕏 (旧Twitter) API設定（取得した4つのキーをここに入力します）
+# 𝕏 (旧Twitter) API設定（.envファイルから読み込むように変更）
 # =========================================================
-X_API_KEY = "kjirp4z5V0sQPLdpbakvHUKo7"
-X_API_SECRET = "zNEepgKHYsW5OdvHzYLwNwwl9bEa4t7tyGb7QBCkvyPw76jtVF"
-X_ACCESS_TOKEN = "2040049940643086336-kBXZWHARtoxpzJaSVR3ZcrAqeeQOyT"
-X_ACCESS_SECRET = "r4cMeool2cvMBgUCWvQccL7qJykGQS8lsss6fhG77FquD"
+X_API_KEY = os.environ.get("X_API_KEY")
+X_API_SECRET = os.environ.get("X_API_SECRET")
+X_ACCESS_TOKEN = os.environ.get("X_ACCESS_TOKEN")
+X_ACCESS_SECRET = os.environ.get("X_ACCESS_SECRET")
 
 def post_to_x(message):
     """X(Twitter)へ自動投稿する機能"""
-    if X_API_KEY.startswith("ここに"):
-        print("⚠️ XのAPIキーが設定されていないため、自動ポストをスキップしました。")
+    # 環境変数（.env）からキーが取得できていない場合はスキップする安全設計
+    if not all([X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET]):
+        print("⚠️ XのAPIキーが.envファイルから取得できないため、自動ポストをスキップしました。")
         return
 
     try:
