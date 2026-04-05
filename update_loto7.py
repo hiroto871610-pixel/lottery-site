@@ -398,7 +398,8 @@ def build_html():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ロト7 当選予想・データ分析ポータル</title>
+    <title>【{history_record[0]['target_kai']}】ロト7当選予想・データ分析ポータル | 最新AI予想</title>
+    <meta name="description" content="{history_record[0]['target_kai']}のロト7当選予想。過去1年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！最高12億円のキャリーオーバー情報も。">
     <link rel="canonical" href="https://loto-yosou-ai.com/loto7.html">
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
