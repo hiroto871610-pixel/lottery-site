@@ -321,6 +321,19 @@ def build_index_html():
             </table>
             <p style="font-size:12px; color:#64748b; margin:10px 0 0 0; text-align:right;">※ネット購入（楽天銀行等）の原則的な締め切り時間です。</p>
         </div>
+
+<div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f0fdf4); border: 2px solid #22c55e; margin-bottom: 30px;">
+            <h3 style="color: #15803d; margin-top: 0; font-size: 20px;">📱 最新のAI予想をLINEでお届け！</h3>
+            <p style="font-size: 15px; color: #475569; margin-bottom: 20px;">
+                抽選日の朝に「今日の予想」を直接スマホにお知らせします。<br>
+                買い忘れ防止や、キャリーオーバーの速報受け取りにぜひ登録してください！
+            </p>
+            
+            <a href="https://lin.ee/rKXCkr3" style="display: inline-block; background-color: #06C755; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3); transition: transform 0.2s;">
+                💬 LINEで無料通知を受け取る
+            </a>
+        </div>
+
         <h2 class="section-title">🔔 最新の抽選結果速報</h2>
         
         <div class="dashboard-grid">
