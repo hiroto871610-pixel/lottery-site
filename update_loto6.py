@@ -682,16 +682,35 @@ def build_html():
                 msg += f"{carryover_text}\n"
             msg += f"\n当サイトのAIアルゴリズムが弾き出した最新予想を無料で公開中！購入前にぜひチェック👇\n{site_url}"
 
-        # ②【抽選日の夜 (19時以降)】に実行された場合：結果速報と次回予想
+        # ②【抽選日の夜 (19時以降)】：結果速報と次回予想
         else:
             finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
             finished_kai = finished_record['target_kai']
-            best_res = finished_record.get('best_result', '----')
+            best_res = finished_record.get('best_result', 'ハズレ')
             
-            msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想成績は…【{best_res}】でした！\n"
-            if carryover_text:
-                msg += f"\n{carryover_text}\n"
-            msg += f"\n実際の当選番号と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            # ▼▼▼ ここから特別演出の判定ロジック ▼▼▼
+            # 1等、2等、3等のいずれかの文字が含まれているかチェック
+            is_high_prize = any(prize in best_res for prize in ["1等", "2等", "3等"])
+            
+            if is_high_prize:
+                # 🌟 【高額当選】豪華な特別メッセージ
+                msg = f"🚨【緊急・超特大ニュース】🚨\n\nなんと！本日発表の {finished_kai} で\n当サイトのAI予想が…\n\n🎉👑【 {best_res} 】👑🎉\n\nを超高額的中させました！！！\n"
+                msg += f"長年のデータ分析がついに完全一致✨\n歴史的瞬間の詳細と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            
+            elif "4等" in best_res or "5等" in best_res:
+                # 🎈 【通常当選】いつもの的中メッセージ
+                msg = f"【#ロト6 的中速報🎯】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想が見事【{best_res}】を的中させました！\n"
+                if carryover_text:
+                    msg += f"\n{carryover_text}\n"
+                msg += f"\n着実に利益を積み重ねています✨\n次回({next_kai})の最新予想はこちら👇\n{site_url}"
+                
+            else:
+                # 💧 【ハズレ等】通常の速報メッセージ
+                msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n"
+                if carryover_text:
+                    msg += f"\n{carryover_text}\n"
+                msg += f"\nデータは日々学習・進化中！次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            # ▲▲▲ ここまで ▲▲▲
 
     # ③【それ以外の曜日 (火・水・金・土・日)】に実行された場合：予想更新通知
     else:

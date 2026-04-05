@@ -671,12 +671,32 @@ def build_html():
         else:
             finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
             finished_kai = finished_record['target_kai']
-            best_res = finished_record.get('best_result', '----')
+            best_res = finished_record.get('best_result', 'ハズレ')
             
-            msg = f"【#ロト7 抽選結果速報🔔】\n本日 {finished_kai} の結果が発表されました！\n当サイトのAI予想成績は…【{best_res}】でした！\n"
-            if carryover_text:
-                msg += f"\n{carryover_text}\n"
-            msg += f"\n当選番号の確認と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            # ▼▼▼ ここから特別演出の判定ロジック ▼▼▼
+            # 1等、2等、3等のいずれかの文字が含まれているかチェック
+            is_high_prize = any(prize in best_res for prize in ["1等", "2等", "3等"])
+            
+            if is_high_prize:
+                # 🌟 【高額当選】豪華な特別メッセージ（号外風）
+                msg = f"🚨【号外：超高額当選発生】🚨\n\nなんと！本日発表の {finished_kai} で\n当サイトのAI予想が…\n\n🎉👑【 {best_res} 】👑🎉\n\nを超高額的中させました！！！\n"
+                msg += f"最高12億円のロト7で歴史的快挙✨\n興奮の的中実績と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            
+            # ロト7は6等まであるため、4〜6等を通常的中とする
+            elif any(prize in best_res for prize in ["4等", "5等", "6等"]):
+                # 🎈 【通常当選】いつもの的中メッセージ
+                msg = f"【#ロト7 的中速報🎯】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想が見事【{best_res}】を的中させました！\n"
+                if carryover_text:
+                    msg += f"\n{carryover_text}\n"
+                msg += f"\n着実に利益を積み重ねています✨\n次回({next_kai})の最新予想はこちら👇\n{site_url}"
+                
+            else:
+                # 💧 【ハズレ等】通常の速報メッセージ
+                msg = f"【#ロト7 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n"
+                if carryover_text:
+                    msg += f"\n{carryover_text}\n"
+                msg += f"\nAIはさらにデータを学習し進化します！次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            # ▲▲▲ ここまで ▲▲▲
 
     # ③【それ以外の曜日 (月・火・水・木・土・日)】：予想更新通知
     else:
