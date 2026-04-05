@@ -411,6 +411,7 @@ def build_html():
 <head>
     <meta charset="UTF-8">
     <title>ロト6 当選予想・データ分析ポータル</title>
+    <link rel="canonical" href="https://loto-yosou-ai.com/loto6.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
