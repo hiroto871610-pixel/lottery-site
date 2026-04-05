@@ -696,6 +696,18 @@ def build_html():
                 # 🌟 【高額当選】豪華な特別メッセージ
                 msg = f"🚨【緊急・超特大ニュース】🚨\n\nなんと！本日発表の {finished_kai} で\n当サイトのAI予想が…\n\n🎉👑【 {best_res} 】👑🎉\n\nを超高額的中させました！！！\n"
                 msg += f"長年のデータ分析がついに完全一致✨\n歴史的瞬間の詳細と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
+
+                # ------ 👇ここから追加：トップページ表示用のメモを保存👇 ------
+                import json
+                achievement_data = {
+                    "lottery_name": "ロト6",          # ロト7の場合は「ロト7」に変更
+                    "kai": finished_kai,
+                    "prize": best_res
+                }
+                # "latest_achievement.json" という名前でファイルに保存
+                with open("latest_achievement.json", "w", encoding="utf-8") as f:
+                    json.dump(achievement_data, f, ensure_ascii=False)
+                # ------ 👆ここまで追加👆 ------
             
             elif "4等" in best_res or "5等" in best_res:
                 # 🎈 【通常当選】いつもの的中メッセージ
