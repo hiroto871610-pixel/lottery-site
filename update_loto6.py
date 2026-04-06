@@ -667,29 +667,31 @@ def build_html():
     
     now = datetime.datetime.now()
     today_weekday = now.weekday() # 0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日
-    current_hour = now.hour       # 現在の「時間」を取得 (0〜23)
+    current_hour = now.hour       # 現在の「時間」を取得
     
     next_kai = history_record[0]['target_kai']
     site_url = "https://loto-yosou-ai.com/loto6.html" 
     
-    # ロト6は【月曜日(0)】と【木曜日(3)】が抽選日
+    msg = ""
+    send_flag = False  # 初期値は「配信しない」
+
+    # ■【月曜日(0)】と【木曜日(3)】：抽選日当日の配信ロジック
     if today_weekday in [0, 3]:
+        send_flag = True
         
-        # ①【抽選日の朝〜夕方 (18時台まで)】に実行された場合：抽選日予告
+        # ①【朝〜夕方 (19時前)】：抽選日予告
         if current_hour < 19:
             msg = f"【本日は #ロト6 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n"
             if carryover_text:
                 msg += f"{carryover_text}\n"
             msg += f"\n当サイトのAIアルゴリズムが弾き出した最新予想を無料で公開中！購入前にぜひチェック👇\n{site_url}"
 
-        # ②【抽選日の夜 (19時以降)】：結果速報と次回予想
+        # ②【夜 (19時以降)】：結果速報と次回予想
         else:
             finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
             finished_kai = finished_record['target_kai']
             best_res = finished_record.get('best_result', 'ハズレ')
             
-            # ▼▼▼ ここから特別演出の判定ロジック ▼▼▼
-            # 1等、2等、3等のいずれかの文字が含まれているかチェック
             is_high_prize = any(prize in best_res for prize in ["1等", "2等", "3等"])
             
             if is_high_prize:
@@ -697,19 +699,17 @@ def build_html():
                 msg = f"🚨【緊急・超特大ニュース】🚨\n\nなんと！本日発表の {finished_kai} で\n当サイトのAI予想が…\n\n🎉👑【 {best_res} 】👑🎉\n\nを超高額的中させました！！！\n"
                 msg += f"長年のデータ分析がついに完全一致✨\n歴史的瞬間の詳細と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
 
-                # ------ 👇ここから追加：トップページ表示用のメモを保存👇 ------
+                # ------ トップページ表示用のメモを保存 ------
                 import json
                 achievement_data = {
-                    "lottery_name": "ロト6",          # ロト7の場合は「ロト7」に変更
+                    "lottery_name": "ロト6",
                     "kai": finished_kai,
                     "prize": best_res
                 }
-                # "latest_achievement.json" という名前でファイルに保存
                 with open("latest_achievement.json", "w", encoding="utf-8") as f:
                     json.dump(achievement_data, f, ensure_ascii=False)
-                # ------ 👆ここまで追加👆 ------
             
-            elif "4等" in best_res or "5等" in best_res:
+            elif any(prize in best_res for prize in ["4等", "5等"]):
                 # 🎈 【通常当選】いつもの的中メッセージ
                 msg = f"【#ロト6 的中速報🎯】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想が見事【{best_res}】を的中させました！\n"
                 if carryover_text:
@@ -722,14 +722,28 @@ def build_html():
                 if carryover_text:
                     msg += f"\n{carryover_text}\n"
                 msg += f"\nデータは日々学習・進化中！次回({next_kai})の最新予想はこちら👇\n{site_url}"
-            # ▲▲▲ ここまで ▲▲▲
 
-    # ③【それ以外の曜日 (火・水・金・土・日)】に実行された場合：予想更新通知
+    # ■【水曜日(2)】と【土曜日(5)】：キャリーオーバー発生時のみ配信
+    elif today_weekday in [2, 5]:
+        # キャリーオーバーが発生しており、かつ「夜（19時以降）」の場合のみ送る
+        if carryover_text and current_hour >= 19:
+            send_flag = True
+            msg = f"【#ロト6 キャリーオーバー発生中🔥】\n次回({next_kai})は高額当選の大チャンス！\n"
+            msg += f"現在、{carryover_text}\n"
+            msg += f"\n過去1年分のデータから導き出した最新AI予想はこちら👇\n{site_url}"
+
+    # ■ それ以外の曜日（火・金・日）：配信しない
     else:
-        msg = f"【#ロト6 予想更新🎯】\n次回({next_kai})のAI予想を公開中です！\n"
-        if carryover_text:
-            msg += f"{carryover_text}\n"
-        msg += f"\n過去1年分のデータから導き出した最新HOT・COLD数字とAI予想はこちら👇\n{site_url}"
+        send_flag = False
+
+    # 最後に送信処理をまとめる
+    if send_flag and msg:
+        post_to_x(msg)
+        post_to_line(msg)
+        print(f"✅ ロト6の配信条件に合致したため実行しました。")
+    else:
+        print(f"💤 ロト6：配信対象外（キャリーオーバー無し、または対象外の曜日・時間）のためスキップしました。")
+    # --------------------------------------------------------
     
     # 決定したメッセージを X(Twitter) と LINE の両方に送信する
     post_to_x(msg)
