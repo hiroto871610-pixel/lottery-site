@@ -10,6 +10,12 @@ on:
 jobs:
   update-data:
     runs-on: ubuntu-latest
+
+# ▼▼▼ 修正①：GitHubにファイルを保存(Push)する権限を与える ▼▼▼
+    permissions:
+      contents: write
+    # ▲▲▲ 👆ここまで追加👆 ▲▲▲
+
     steps:
       - name: リポジトリのコードを取得
         uses: actions/checkout@v3
@@ -27,6 +33,9 @@ jobs:
       - name: 宝くじ全データ＆トップページの自動更新スクリプトを実行
         # ▼▼▼ ここを追加！GitHubに登録した鍵(Secrets)をPythonに渡す ▼▼▼
         env: 
+          # ▼▼▼ 修正②：クラウドサーバーの時間を「日本時間」に設定する ▼▼▼
+          TZ: 'Asia/Tokyo'
+          # ▲▲▲ 👆ここまで追加👆 ▲▲▲
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
