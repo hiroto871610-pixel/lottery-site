@@ -9,6 +9,28 @@ from collections import Counter
 import tweepy  # ←追加：Xポスト用
 import urllib3 # ←追加：エラー回避用
 
+# =========================================================
+# JSONBin API設定 (Loto 7専用)
+# =========================================================
+JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID_LOTO7") # LOTO7用に変更
+JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
+JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
+
+def load_history_from_jsonbin():
+    if not JSONBIN_BIN_ID: return []
+    headers = {"X-Master-Key": JSONBIN_API_KEY}
+    try:
+        res = requests.get(JSONBIN_URL, headers=headers)
+        return res.json().get('record', []) if res.status_code == 200 else []
+    except Exception: return []
+
+def save_history_to_jsonbin(data):
+    if not JSONBIN_BIN_ID: return
+    headers = {"Content-Type": "application/json", "X-Master-Key": JSONBIN_API_KEY}
+    try:
+        requests.put(JSONBIN_URL, json=data, headers=headers)
+    except Exception as e: print(f"保存エラー: {e}")
+
 # ▼▼▼ 追加：.envファイルを読み込むためのライブラリ ▼▼▼
 from dotenv import load_dotenv
 
@@ -297,13 +319,10 @@ def generate_advanced_predictions(history_data):
 
 # --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, new_predictions):
-    history_record = []
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-                history_record = json.load(f)
-        except Exception:
-            history_record = []
+    # ▼▼▼ 変更①：ファイルの読み込みを削除し、JSONBinから取得 ▼▼▼
+    print("☁️ JSONBin(Loto7)から履歴を取得中...")
+    history_record = load_history_from_jsonbin()
+    # ▲▲▲ ここまで ▲▲▲
             
     latest_kai = latest_data['kai']
     latest_kai_num = int(re.search(r'\d+', latest_kai).group()) # 最新回の数字部分だけを抽出
@@ -367,10 +386,12 @@ def manage_history(latest_data, new_predictions):
                 cleaned_record.append(record)
                 seen_kais.add(k_num)
             
-    history_record = cleaned_record[:10]
+    history_record = cleaned_record[:100]
     
-    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(history_record, f, ensure_ascii=False, indent=2)
+    # ▼▼▼ 変更②：ファイルへの書き込みを削除し、JSONBinへ保存 ▼▼▼
+    print("☁️ JSONBin(Loto7)へ最新データを保存中...")
+    save_history_to_jsonbin(history_record)
+    # ▲▲▲ ここまで ▲▲▲
         
     return history_record
 

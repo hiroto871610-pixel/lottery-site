@@ -36,6 +36,12 @@ jobs:
           # ▼▼▼ 修正②：クラウドサーバーの時間を「日本時間」に設定する ▼▼▼
           TZ: 'Asia/Tokyo'
           # ▲▲▲ 👆ここまで追加👆 ▲▲▲
+          # ▼▼▼ 追加 ▼▼▼
+          JSONBIN_BIN_ID: ${{ secrets.JSONBIN_BIN_ID }}
+          JSONBIN_BIN_ID_LOTO7: ${{ secrets.JSONBIN_BIN_ID_LOTO7 }}
+          JSONBIN_BIN_ID_NUMBERS: ${{ secrets.JSONBIN_BIN_ID_NUMBERS }}
+          JSONBIN_API_KEY: ${{ secrets.JSONBIN_API_KEY }}
+          # ▲▲▲ 追加 ▲▲▲
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}

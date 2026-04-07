@@ -11,6 +11,49 @@ import urllib3 # ←追加：エラー回避用
 # ▼▼▼ 追加：.envファイルを読み込むためのライブラリ ▼▼▼
 from dotenv import load_dotenv
 
+# =========================================================
+# JSONBin API設定
+# =========================================================
+JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID")
+JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
+JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
+
+def load_history_from_jsonbin():
+    """JSONBinから履歴データをダウンロードする"""
+    if not JSONBIN_BIN_ID:
+        return []
+    
+    headers = {"X-Master-Key": JSONBIN_API_KEY}
+    try:
+        res = requests.get(JSONBIN_URL, headers=headers)
+        if res.status_code == 200:
+            # JSONBinはデータを 'record' というキーの中に包んで返してきます
+            return res.json().get('record', [])
+        else:
+            print(f"⚠️ JSONBin読込エラー: {res.status_code}")
+            return []
+    except Exception as e:
+        print(f"⚠️ JSONBin通信エラー: {e}")
+        return []
+
+def save_history_to_jsonbin(data):
+    """JSONBinへ履歴データをアップロードして上書きする"""
+    if not JSONBIN_BIN_ID:
+        return
+        
+    headers = {
+        "Content-Type": "application/json",
+        "X-Master-Key": JSONBIN_API_KEY
+    }
+    try:
+        res = requests.put(JSONBIN_URL, json=data, headers=headers)
+        if res.status_code == 200:
+            print("☁️ JSONBinへの履歴データ保存が成功しました！")
+        else:
+            print(f"❌ JSONBin保存エラー: {res.status_code}")
+    except Exception as e:
+        print(f"❌ JSONBin通信エラー: {e}")
+
 # .envファイルを読み込む
 load_dotenv()
 # ▲▲▲ ここまで追加 ▲▲▲
@@ -297,15 +340,11 @@ def generate_advanced_predictions(history_data):
 
     return predictions
 
-# --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, new_predictions):
-    history_record = []
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-                history_record = json.load(f)
-        except Exception:
-            history_record = []
+    # ▼▼▼ 変更点①：ローカルファイルの読み込み処理を削除し、JSONBinから取得 ▼▼▼
+    print("☁️ JSONBinから過去の履歴データを取得しています...")
+    history_record = load_history_from_jsonbin()
+    # ▲▲▲ ここまで ▲▲▲
             
     latest_kai = latest_data['kai']
     latest_kai_num = int(re.search(r'\d+', latest_kai).group()) # 最新回の数字部分だけを抽出
@@ -368,10 +407,12 @@ def manage_history(latest_data, new_predictions):
                 cleaned_record.append(record)
                 seen_kais.add(k_num)
             
-    history_record = cleaned_record[:10]
+    history_record = cleaned_record[:100]
     
-    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(history_record, f, ensure_ascii=False, indent=2)
+    # ▼▼▼ 変更点②：ローカルファイルへの書き込み処理を削除し、JSONBinへ保存 ▼▼▼
+    print("☁️ JSONBinに最新の履歴データを保存しています...")
+    save_history_to_jsonbin(history_record)
+    # ▲▲▲ ここまで ▲▲▲
         
     return history_record
 
@@ -586,6 +627,8 @@ def build_html():
                 </div>
             </div>
         </div>
+
+        
 
         <div class="section-card">
             <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>

@@ -11,6 +11,28 @@ import urllib3 # ←追加：エラー回避用
 # ▼▼▼ 追加：.envファイルを読み込むためのライブラリ ▼▼▼
 from dotenv import load_dotenv
 
+# =========================================================
+# JSONBin API設定 (Numbers専用)
+# =========================================================
+JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID_NUMBERS") # ナンバーズ用に変更
+JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
+JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
+
+def load_history_from_jsonbin():
+    if not JSONBIN_BIN_ID: return []
+    headers = {"X-Master-Key": JSONBIN_API_KEY}
+    try:
+        res = requests.get(JSONBIN_URL, headers=headers)
+        return res.json().get('record', []) if res.status_code == 200 else []
+    except Exception: return []
+
+def save_history_to_jsonbin(data):
+    if not JSONBIN_BIN_ID: return
+    headers = {"Content-Type": "application/json", "X-Master-Key": JSONBIN_API_KEY}
+    try:
+        requests.put(JSONBIN_URL, json=data, headers=headers)
+    except Exception as e: print(f"保存エラー: {e}")
+
 # .envファイルを読み込む
 load_dotenv()
 # ▲▲▲ ここまで追加 ▲▲▲
@@ -301,14 +323,10 @@ def generate_advanced_predictions(history_data, length, win_key):
 
 # --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, n4_preds, n3_preds):
-    history_record = []
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-                history_record = json.load(f)
-        except Exception:
-            print("⚠️ 履歴ファイルが破損しているため新しく作成します。")
-            history_record = []
+    # ▼▼▼ 変更①：ファイルの読み込みを削除し、JSONBinから取得 ▼▼▼
+    print("☁️ JSONBin(Numbers)から履歴を取得中...")
+    history_record = load_history_from_jsonbin()
+    # ▲▲▲ ここまで ▲▲▲
             
     latest_kai = latest_data['kai']
     latest_kai_num = int(re.search(r'\d+', latest_kai).group()) # 最新回の数字部分だけを抽出
@@ -357,9 +375,12 @@ def manage_history(latest_data, n4_preds, n3_preds):
             "result_n3": "抽選待ち..."
         })
     
-    history_record = history_record[:10]
-    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(history_record, f, ensure_ascii=False, indent=2)
+    history_record = history_record[:100]
+    
+    # ▼▼▼ 変更②：ファイルへの書き込みを削除し、JSONBinへ保存 ▼▼▼
+    print("☁️ JSONBin(Numbers)へ最新データを保存中...")
+    save_history_to_jsonbin(history_record)
+    # ▲▲▲ ここまで ▲▲▲
         
     return history_record
 
