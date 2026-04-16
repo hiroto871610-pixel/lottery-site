@@ -603,6 +603,7 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
+            <div class="scroll-table-container">
             <table>
                 <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
                 <tbody>
@@ -617,6 +618,7 @@ def build_html():
 
     html += """                </tbody>
             </table>
+            </div>
         </div>
 
         <div style="text-align: center; margin-bottom: 40px;">
