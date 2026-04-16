@@ -9,7 +9,10 @@ from collections import Counter
 import tweepy  # ←追加：Xポスト用
 import urllib3 # ←追加：エラー回避用
 # ▼▼▼ 追加：.envファイルを読み込むためのライブラリ ▼▼▼
+# ▼▼▼ 修正：必ず「環境変数を取得する前」に.envを読み込む！ ▼▼▼
 from dotenv import load_dotenv
+load_dotenv()
+# ▲▲▲ ここまで ▲▲▲
 
 # =========================================================
 # JSONBin API設定
