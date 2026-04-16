@@ -365,7 +365,8 @@ def manage_history(latest_data, new_predictions):
             
             # ★修正：「第671回」と「第0671回」の違いを無視し、数字ベースで判定して更新
             if record_kai_num == latest_kai_num:
-                best_match = 0
+                best_match = -1  # ★0個一致でも必ず更新されるように、初期値をマイナス1にする
+                best_has_bonus = False  # ★追加：ボーナスの一致状態を記憶
                 best_result = "ハズレ"
                 for p in record['predictions']:
                     p_set = set(p)
@@ -380,8 +381,9 @@ def manage_history(latest_data, new_predictions):
                     elif match_main == 3 and has_bonus: result = "6等"
                     else: result = f"ハズレ({match_main}個一致)"
                     
-                    if match_main > best_match:
+                    if match_main > best_match or (match_main == best_match and has_bonus and not best_has_bonus):
                         best_match = match_main
+                        best_has_bonus = has_bonus
                         best_result = result
                         
                 record['status'] = 'finished'
