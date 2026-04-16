@@ -8,8 +8,10 @@ import datetime
 from collections import Counter
 import tweepy  # ←追加：Xポスト用
 import urllib3 # ←追加：エラー回避用
-# ▼▼▼ 追加：.envファイルを読み込むためのライブラリ ▼▼▼
+# ▼▼▼ 修正：必ず「環境変数を取得する前」に.envを読み込む！ ▼▼▼
 from dotenv import load_dotenv
+load_dotenv()
+# ▲▲▲ ここまで ▲▲▲
 
 # =========================================================
 # JSONBin API設定 (Numbers専用)
@@ -658,8 +660,8 @@ def build_html():
         else:
             finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
             finished_kai = finished_record['target_kai']
-            n3_res = finished_record.get('n3_result', '')
-            n4_res = finished_record.get('n4_result', '')
+            n3_res = finished_record.get('result_n3', '')  # ⭕️ 正しい名前に修正
+            n4_res = finished_record.get('result_n4', '')  # ⭕️ 正しい名前に修正
             
             # 「的中」という言葉が含まれている場合のみフラグを立てる
             if "的中" in n3_res or "的中" in n4_res:
