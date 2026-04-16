@@ -50,6 +50,8 @@ X_API_KEY = os.environ.get("X_API_KEY")
 X_API_SECRET = os.environ.get("X_API_SECRET")
 X_ACCESS_TOKEN = os.environ.get("X_ACCESS_TOKEN")
 X_ACCESS_SECRET = os.environ.get("X_ACCESS_SECRET")
+THREADS_USER_ID = os.environ.get("THREADS_USER_ID")
+THREADS_ACCESS_TOKEN = os.environ.get("THREADS_ACCESS_TOKEN")
 
 # ▼▼▼ ここから追加：LINE公式アカウント API設定 ▼▼▼
 LINE_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
@@ -84,24 +86,47 @@ def post_to_line(message):
         print(f"❌ LINE通信エラー: {e}")
 # ▲▲▲ ここまで追加 ▲▲▲
 
-def post_to_x(message):
-    """X(Twitter)へ自動投稿する機能"""
-    # 環境変数（.env）からキーが取得できていない場合はスキップする安全設計
-    if not all([X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET]):
-        print("⚠️ XのAPIキーが.envファイルから取得できないため、自動ポストをスキップしました。")
+# =========================================================
+# Threads API設定
+# =========================================================
+
+def post_to_threads(message):
+    """Threadsへ自動投稿する機能（2ステップ方式）"""
+    if not all([THREADS_USER_ID, THREADS_ACCESS_TOKEN]):
+        print("⚠️ ThreadsのAPI情報が.envから取得できないため、自動ポストをスキップしました。")
         return
 
     try:
-        client = tweepy.Client(
-            consumer_key=X_API_KEY,
-            consumer_secret=X_API_SECRET,
-            access_token=X_ACCESS_TOKEN,
-            access_token_secret=X_ACCESS_SECRET
-        )
-        client.create_tweet(text=message)
-        print("✅ X(Twitter)への自動ポストが成功しました！")
+        # ステップ1：メディアコンテナ（下書き）を作成する
+        create_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads"
+        payload = {
+            "media_type": "TEXT",
+            "text": message,
+            "access_token": THREADS_ACCESS_TOKEN
+        }
+        res_create = requests.post(create_url, data=payload)
+        
+        if res_create.status_code != 200:
+            print(f"❌ Threads下書き作成エラー: {res_create.text}")
+            return
+            
+        creation_id = res_create.json().get("id")
+
+        # ステップ2：作成したコンテナを公開（パブリッシュ）する
+        publish_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads_publish"
+        publish_payload = {
+            "creation_id": creation_id,
+            "access_token": THREADS_ACCESS_TOKEN
+        }
+        res_publish = requests.post(publish_url, data=publish_payload)
+        
+        if res_publish.status_code == 200:
+            print("✅ Threadsへの自動ポストが成功しました！")
+        else:
+            print(f"❌ Threads公開エラー: {res_publish.text}")
+
     except Exception as e:
-        print(f"❌ Xポストエラー: {e}")
+        print(f"❌ Threads通信エラー: {e}")
 # =========================================================
 
 # --- 1. 過去データの取得（過去1年分・約50回） ---
