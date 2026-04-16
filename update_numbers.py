@@ -187,11 +187,11 @@ def fetch_both_history():
     print(f"📡 データ取得成功: 最新回 {merged[0]['kai']} (N4: {merged[0]['n4_win']}, N3: {merged[0]['n3_win']})")
     return merged
 
-# --- 2. ホット＆コールド算出 (HTML表示用維持) ---
-def analyze_digit_trends(history_data):
+# --- 2. ホット＆コールド算出 (N4とN3を分けて算出できるように修正) ---
+def analyze_digit_trends(history_data, win_key):
     all_digits = []
     for data in history_data:
-        all_digits.extend(list(data['n4_win']) + list(data['n3_win']))
+        all_digits.extend(list(data[win_key]))
     
     counts = Counter(all_digits)
     for i in range(10):
@@ -202,119 +202,94 @@ def analyze_digit_trends(history_data):
     cold = list(reversed(sorted_counts))[:3] # 下位3つ
     return hot, cold
 
-# --- 3. 複合アルゴリズム予想生成（★今回刷新した高度分析ロジック） ---
+# --- 3. 複合アルゴリズム予想生成（★ナンバーズ専用：ポジション分析型へ超強化） ---
 def generate_advanced_predictions(history_data, length, win_key):
     draws = [d[win_key] for d in history_data]
     if not draws:
         return []
 
-    # 【分析1】合計値分析
+    # 【分析1】合計値の範囲を取得
     sums = [sum(int(n) for n in draw) for draw in draws]
     min_sum, max_sum = min(sums), max(sums)
 
-    # 【分析2】奇数偶数バランス分析
-    odd_counts = [sum(1 for n in draw if int(n) % 2 != 0) for draw in draws]
-    avg_odd = round(sum(odd_counts) / len(odd_counts)) if odd_counts else (length // 2)
-    target_odds = [max(0, avg_odd - 1), avg_odd, min(length, avg_odd + 1)] # 平均値±1の範囲
+    # 【分析2】全体の出現傾向
+    overall_freq = {str(i): 0 for i in range(10)}
+    for draw in draws:
+        for n in draw: overall_freq[n] += 1
 
-    # 【分析3】連続数字分析 (12, 13などの連続的数字)
-    def has_seq(draw_str):
-        nums = sorted([int(n) for n in draw_str])
-        return any(nums[i]+1 == nums[i+1] for i in range(len(nums)-1))
-    
-    seq_count = sum(1 for draw in draws if has_seq(draw))
-    seq_prob = seq_count / len(draws)
-
-    # 【分析4】連続出現数字分析 (前回と同じ数字が引っ張られる確率)
-    repeat_count = sum(len(set(draws[i]) & set(draws[i+1])) for i in range(len(draws)-1))
-    total_nums = length * (len(draws) - 1) if len(draws) > 1 else 1
-    repeat_prob = repeat_count / total_nums
-
-    # 【分析5＆6】過去1年の傾向 (HOT/COLD) ＆ 最新最古数字分析
-    freq = {str(i): 0 for i in range(10)}
-    freq_10 = {str(i): 0 for i in range(10)}
-    last_seen = {str(i): 999 for i in range(10)}
+    # 【分析3】★桁(ポジション)ごとの出現傾向（ナンバーズにおいて最重要）
+    pos_freq = [{str(i): 0 for i in range(10)} for _ in range(length)]
+    pos_freq_10 = [{str(i): 0 for i in range(10)} for _ in range(length)] # 直近10回
 
     for idx, draw in enumerate(draws):
-        for n in draw:
-            freq[n] += 1
+        for pos, n in enumerate(draw):
+            pos_freq[pos][n] += 1
             if idx < 10:
-                freq_10[n] += 1
-            if last_seen[n] == 999:
-                last_seen[n] = idx
+                pos_freq_10[pos][n] += 1
 
-    # 【分析7】各数字の順位付け（確率スコアリング）
-    scores = {}
-    for i in range(10):
-        n = str(i)
-        score = 1.0
-        # 過去一年間の傾向 (ベースポイント)
-        score += freq[n] * 0.5 
-        # ★直近の傾向(過去10回)に重点をおく (高ウェイト)
-        score += freq_10[n] * 2.5 
+    # 【分析4】各桁ごとに数字のスコア（確率）を計算
+    pos_scores = []
+    for pos in range(length):
+        scores = {}
+        for i in range(10):
+            n = str(i)
+            # 全体の傾向 + その桁での過去1年の傾向
+            score = 1.0 + (overall_freq[n] * 0.1) + (pos_freq[pos][n] * 0.5)
+            # ★直近10回のその桁でのトレンドを最も強く評価
+            score += pos_freq_10[pos][n] * 2.5
+            scores[n] = score
+        pos_scores.append(scores)
 
-        # 最新・最古および連続出現の反映
-        if last_seen[n] == 0:
-            # 前回出た数字は、連続出現確率(repeat_prob)を元にスコア加算
-            score += (repeat_prob * 10)
-        elif last_seen[n] > 15:
-            # 最も出ていない古い数字は「そろそろ出る」として優先度(確率)を上げる
-            score += 3.0
-        else:
-            score += 1.0
-
-        scores[n] = max(0.1, score)
-
-    # --- 分析結果の掛け合わせによる選定・抽出 ---
+    # --- 分析結果を元に候補を生成 ---
     predictions = []
     digits = [str(i) for i in range(10)]
-    weights = [scores[n] for n in digits]
-
-    # 大量の候補セットを生成し、すべての分析条件をクリアしたものだけを抽出
+    
+    # 大量の候補セットを生成
     candidates = []
-    for _ in range(2000):
-        # 順位付け(スコア)に基づいた重み付きランダム抽出 (重複許可)
-        cand = random.choices(digits, weights=weights, k=length)
-        random.shuffle(cand) # 順番をランダムに
-        candidates.append("".join(cand))
+    for _ in range(3000):
+        cand_chars = []
+        # 各桁ごとに、その桁のスコア(重み)に基づいて数字を選ぶ
+        for pos in range(length):
+            weights = [pos_scores[pos][n] for n in digits]
+            chosen = random.choices(digits, weights=weights, k=1)[0]
+            cand_chars.append(chosen)
+        candidates.append("".join(cand_chars))
 
     valid_candidates = []
     for cand in candidates:
         cand_nums = [int(x) for x in cand]
         
-        # 条件適用①: 合計値分析 (最大値〜最小値の間に収める)
+        # 条件適用①: 合計値分析
         if not (min_sum <= sum(cand_nums) <= max_sum): 
             continue
 
-        # 条件適用②: 奇数偶数バランス
-        odds = sum(1 for n in cand_nums if n % 2 != 0)
-        if odds not in target_odds: 
+        # 条件適用②: トリプル(同じ数字が3つ)の除外フィルター
+        # ナンバーズにおいて同じ数字が3つ以上出る確率は極めて低いため除外して精度を上げる
+        counts = Counter(cand)
+        if any(v >= 3 for v in counts.values()):
             continue
 
-        # 条件適用③: 連続数字分析の確率を掛け合わせ (スコア補正)
-        cand_has_seq = has_seq(cand)
-        cand_score = sum(scores[n] for n in cand)
-        
-        if (cand_has_seq and seq_prob > 0.5) or (not cand_has_seq and seq_prob <= 0.5):
-            cand_score *= 1.2 # 確率の高い傾向に沿っている組み合わせのスコアを強化
-
+        # 候補全体の強さ(スコア)を計算
+        cand_score = sum(pos_scores[pos][cand[pos]] for pos in range(length))
         valid_candidates.append((cand_score, cand))
 
     # スコア順にランキングし、上位5つの予想を選定
     valid_candidates.sort(key=lambda x: x[0], reverse=True)
     seen = set()
+    seen_box = set() # ボックスでの重複も避ける（カバー範囲を広げるため）
+    
     for score, cand in valid_candidates:
-        # 重複するパターンを省きながら追加
-        if cand not in seen:
+        box_cand = "".join(sorted(cand))
+        if cand not in seen and box_cand not in seen_box:
             seen.add(cand)
+            seen_box.add(box_cand)
             predictions.append(cand)
-        # 予想A〜Eの5つを抽出
         if len(predictions) == 5:
             break
 
-    # 万が一、条件が厳しすぎて5個揃わなかった場合の安全処理
+    # 安全処理
     while len(predictions) < 5:
-        cand = "".join(random.choices(digits, k=length))
+        cand = "".join(str(random.randint(0,9)) for _ in range(length))
         if cand not in seen:
             seen.add(cand)
             predictions.append(cand)
@@ -406,8 +381,10 @@ def get_next_numbers_date():
 def build_html():
     history_data = fetch_both_history()
     latest_data = history_data[0]
-    hot, cold = analyze_digit_trends(history_data)
     
+    # ★N4とN3のトレンドを別々に取得
+    n4_hot, n4_cold = analyze_digit_trends(history_data, 'n4_win')
+    n3_hot, n3_cold = analyze_digit_trends(history_data, 'n3_win')
     # ★新設した高度な複合分析ロジックを使用 (N4とN3それぞれで生成)
     n4_preds = generate_advanced_predictions(history_data, 4, 'n4_win')
     n3_preds = generate_advanced_predictions(history_data, 3, 'n3_win')
@@ -573,12 +550,23 @@ def build_html():
         </div>
 
         <div class="section-card">
-            <h2 class="section-header">📊 直近の出現傾向 (0〜9の数字)</h2>
+            <h2 class="section-header">📊 直近の出現傾向 (HOT & COLD)</h2>
+            
+            <h3 style="color: #16a34a; font-size: 18px; margin-top: 10px; border-left: 4px solid #16a34a; padding-left: 10px;">■ ナンバーズ4 の傾向</h3>
+            <div class="hc-container" style="margin-bottom: 25px;">
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字</div>\n"""
+    for n, count in n4_hot: html += f'<span class="hc-number">{n} ({count}回)</span>'
+    html += """</div>\n                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字</div>\n"""
+    for n, count in n4_cold: html += f'<span class="hc-number">{n} ({count}回)</span>'
+    html += """</div>
+            </div>
+
+            <h3 style="color: #d97706; font-size: 18px; margin-top: 10px; border-left: 4px solid #d97706; padding-left: 10px;">■ ナンバーズ3 の傾向</h3>
             <div class="hc-container">
-                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div>\n"""
-    for n, count in hot: html += f'<span class="hc-number">{n} ({count}回)</span>'
-    html += """</div>\n                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div>\n"""
-    for n, count in cold: html += f'<span class="hc-number">{n} ({count}回)</span>'
+                <div class="hc-box hot-box" style="background-color: #fffbeb; border-color: #fde68a;"><div class="hc-title" style="color: #d97706;">🔥 よく出ている数字</div>\n"""
+    for n, count in n3_hot: html += f'<span class="hc-number" style="color: #d97706; border-color: #d97706;">{n} ({count}回)</span>'
+    html += """</div>\n                <div class="hc-box cold-box" style="background-color: #fafaf9; border-color: #e7e5e4;"><div class="hc-title" style="color: #57534e;">❄️ 出ていない数字</div>\n"""
+    for n, count in n3_cold: html += f'<span class="hc-number" style="color: #57534e; border-color: #57534e;">{n} ({count}回)</span>'
     html += """</div>
             </div>
         </div>
