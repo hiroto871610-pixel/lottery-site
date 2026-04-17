@@ -912,10 +912,23 @@ def build_html():
         # 画像のファイル名（パス）に書き換えてください。
         base_image = "base_image.png"     # ← ※あらかじめ用意しておく背景画像の名前
         image_path = "loto7_result.png"   # ← ※今回新しく作られる完成画像の名前
+        
+        # ▼▼▼ 画像に書き込む専用のテキストを作成 ▼▼▼
+        # ① 予想Aの数字リストを取り出して、見やすくカンマとスペースで繋ぐ
+        yosou_a_nums = ", ".join(history_record[0]['predictions'][0])
+        
+        # ② 画像用のテキストを組み立てる
+        image_text = f"【最新AI予想 A】\n{yosou_a_nums}\n"
+        
+        # ③ キャリーオーバーが発生していれば追記する
+        if carryover_text:
+            image_text += f"\n{carryover_text}"
+        # ▲▲▲ ここまで ▲▲▲
+
         caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① まず、背景画像に予想テキストを書き込んで「loto7_result.png」を作る！
-        is_created = create_result_image(msg, base_image, image_path)
+        # ① msg ではなく、新しく作った「image_text」を渡して画像を作る！
+        is_created = create_result_image(image_text, base_image, image_path)
         
         # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
         if is_created:

@@ -948,12 +948,27 @@ def build_html():
         # ----------------------------------------------------
         # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
         # 画像のファイル名（パス）に書き換えてください。
-        base_image = "base_image.png"     # ← ※あらかじめ用意しておく背景画像の名前
-        image_path = "loto6_result.png"   # ← ※今回新しく作られる完成画像の名前
+        base_image = "base_image.png"     # ← ※ロト6用の背景画像（共通でもOKです）
+        image_path = "loto6_result.png"   # ← ★ロト6の画像名に変更
+        
+        # ▼▼▼ 画像に書き込む専用のテキストを作成 ▼▼▼
+        # ① 予想Aの数字リストを取り出して、見やすくカンマとスペースで繋ぐ
+        # （※ロト6の場合は自動的に6個の数字が繋がります！）
+        yosou_a_nums = ", ".join(history_record[0]['predictions'][0])
+        
+        # ② 画像用のテキストを組み立てる
+        image_text = f"【最新AI予想 A】\n{yosou_a_nums}\n"
+        
+        # ③ キャリーオーバーが発生していれば追記する
+        if carryover_text:
+            image_text += f"\n{carryover_text}"
+        # ▲▲▲ ここまで ▲▲▲
+
+        # ★ キャプションのテキストとハッシュタグをロト6用に変更
         caption = f"🎯最新のロト6 AI予想です！\n\n{msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① まず、背景画像に予想テキストを書き込んで「loto6_result.png」を作る！
-        is_created = create_result_image(msg, base_image, image_path)
+        # ① msg ではなく、新しく作った「image_text」を渡して画像を作る！
+        is_created = create_result_image(image_text, base_image, image_path)
         
         # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
         if is_created:
