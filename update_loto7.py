@@ -12,6 +12,8 @@ import urllib3 # ←追加：エラー回避用
 from dotenv import load_dotenv
 load_dotenv()
 import base64
+import urllib.request
+from PIL import Image, ImageDraw, ImageFont
 # ▲▲▲ ここまで ▲▲▲
 
 # =========================================================
@@ -221,6 +223,38 @@ def upload_image_to_imgbb(image_path):
         print(f"❌ 画像ファイルが見つかりません: {image_path}")
         return None
     # =========================================================
+
+    def create_result_image(msg_text, base_image_path, output_image_path):
+    """背景画像にテキストを書き込んで新しい画像を作る職人関数"""
+    print("🎨 予想画像を生成中...")
+    try:
+        # 1. ベース（背景）となる画像を開く
+        img = Image.open(base_image_path)
+    except FileNotFoundError:
+        print(f"❌ 背景画像({base_image_path})が見つかりません！")
+        return False
+
+    draw = ImageDraw.Draw(img)
+
+    # 2. 日本語文字化け対策（Googleから無料の日本語フォントを自動ダウンロード）
+    font_path = "NotoSansJP-Bold.ttf"
+    if not os.path.exists(font_path):
+        print("☁️ 日本語フォントをダウンロードしています...")
+        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Bold.ttf"
+        urllib.request.urlretrieve(font_url, font_path)
+
+    # 3. フォントのサイズを設定（※背景画像の大きさに合わせて後で調整可能です）
+    font = ImageFont.truetype(font_path, 40)
+
+    # 4. テキストを描画する（x=50, y=50 の位置からスタート。色は黒）
+    text_color = (0, 0, 0)
+    draw.text((50, 50), msg_text, font=font, fill=text_color)
+
+    # 5. 完成した画像を保存する
+    img.save(output_image_path)
+    print(f"✅ 画像の生成が完了しました！: {output_image_path}")
+    return True
+# =========================================================
 
 # --- 1. 過去データの取得（過去1年分・約50回） ---
 def fetch_history_data():
@@ -876,19 +910,20 @@ def build_html():
         # ----------------------------------------------------
         # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
         # 画像のファイル名（パス）に書き換えてください。
-        image_path = "loto7_result.png" 
-        
-        # Instagram用の文章（msg は既存のテキストなどを活用）
+        base_image = "base_image.png"     # ← ※あらかじめ用意しておく背景画像の名前
+        image_path = "loto7_result.png"   # ← ※今回新しく作られる完成画像の名前
         caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① 画像をURL化する
-        public_image_url = upload_image_to_imgbb(image_path)
+        # ① まず、背景画像に予想テキストを書き込んで「loto7_result.png」を作る！
+        is_created = create_result_image(msg, base_image, image_path)
         
-        # ② URL化に成功したらInstagramへ投稿する
-        if public_image_url:
-            post_to_instagram(public_image_url, caption)
-        else:
-            print("⚠️ 画像のURL化に失敗したため、Instagram投稿をスキップしました。")
+        # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
+        if is_created:
+            public_image_url = upload_image_to_imgbb(image_path)
+            if public_image_url:
+                post_to_instagram(public_image_url, caption)
+            else:
+                print("⚠️ 画像のURL化に失敗しました。")
         # ----------------------------------------------------
     else:
         print(f"💤 ロト7：配信対象外（または時間外）のため、送信をスキップしました。")
