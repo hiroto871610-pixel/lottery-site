@@ -12,6 +12,7 @@ import urllib3 # ←追加：エラー回避用
 # ▼▼▼ 修正：必ず「環境変数を取得する前」に.envを読み込む！ ▼▼▼
 from dotenv import load_dotenv
 load_dotenv()
+import base64
 # ▲▲▲ ここまで ▲▲▲
 
 # =========================================================
@@ -149,6 +150,99 @@ def post_to_threads(message):
     except Exception as e:
         print(f"❌ Threads通信エラー: {e}")
 # =========================================================
+
+def upload_image_to_imgbb(image_path):
+    api_key = os.environ.get("IMGBB_API_KEY")
+    url = "https://api.imgbb.com/1/upload"
+    print("☁️ 画像をImgBBにアップロードしてURL化中...")
+    try:
+        with open(image_path, "rb") as file:
+            payload = {
+                "key": api_key,
+                "image": base64.b64encode(file.read()),
+            }
+        response = requests.post(url, data=payload)
+        result = response.json()
+        if result.get("success"):
+            image_url = result["data"]["url"]
+            print(f"✅ 画像のURL化成功: {image_url}")
+            return image_url
+        else:
+            print(f"❌ ImgBBエラー: {result}")
+            return None
+    except FileNotFoundError:
+        print(f"❌ 画像ファイルが見つかりません: {image_path}")
+        return None
+
+def post_to_instagram(image_url, caption_text):
+    ig_account_id = os.environ.get("IG_ACCOUNT_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    
+    # 【ステップ1】メディアコンテナの作成
+    container_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
+    container_payload = {
+        'image_url': image_url,
+        'caption': caption_text,
+        'access_token': access_token
+    }
+    print("☁️ Instagramへ画像をアップロード中...")
+    container_response = requests.post(container_url, data=container_payload)
+    container_data = container_response.json()
+    
+    if 'id' not in container_data:
+        print(f"❌ コンテナ作成エラー: {container_data}")
+        return
+        
+    creation_id = container_data['id']
+    
+    # 【ステップ2】メディアの公開
+    publish_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
+    publish_payload = {
+        'creation_id': creation_id,
+        'access_token': access_token
+    }
+    print("☁️ Instagramへ投稿を公開中...")
+    publish_response = requests.post(publish_url, data=publish_payload)
+    publish_data = publish_response.json()
+    
+    if 'id' in publish_data:
+        print("✅ Instagramへの自動投稿が完了しました！")
+    else:
+        print(f"❌ 公開エラー: {publish_data}")
+
+# ↑↑↑ ここまで ↑↑↑
+
+# =========================================================
+
+def upload_image_to_imgbb(image_path):
+    """ローカル画像をImgBBにアップロードし、公開URLを返す"""
+    api_key = os.environ.get("IMGBB_API_KEY")
+    url = "https://api.imgbb.com/1/upload"
+    
+    print("☁️ 画像をImgBBにアップロードしてURL化中...")
+    
+    try:
+        with open(image_path, "rb") as file:
+            payload = {
+                "key": api_key,
+                "image": base64.b64encode(file.read()),
+            }
+            
+        response = requests.post(url, data=payload)
+        result = response.json()
+        
+        if result.get("success"):
+            image_url = result["data"]["url"]
+            print(f"✅ 画像のURL化成功: {image_url}")
+            return image_url
+        else:
+            print(f"❌ ImgBBエラー: {result}")
+            return None
+            
+    except FileNotFoundError:
+        print(f"❌ 画像ファイルが見つかりません: {image_path}")
+        return None
+    # =========================================================
 
 # --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
@@ -813,6 +907,25 @@ def build_html():
     if send_flag and msg:
         # post_to_x(msg)
         post_to_line(msg)
+        # ----------------------------------------------------
+        # ★ ここからInstagramの自動投稿処理を追加！
+        # ----------------------------------------------------
+        # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
+        # 画像のファイル名（パス）に書き換えてください。
+        image_path = "loto7_result.png" 
+        
+        # Instagram用の文章（msg は既存のテキストなどを活用）
+        caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        
+        # ① 画像をURL化する
+        public_image_url = upload_image_to_imgbb(image_path)
+        
+        # ② URL化に成功したらInstagramへ投稿する
+        if public_image_url:
+            post_to_instagram(public_image_url, caption)
+        else:
+            print("⚠️ 画像のURL化に失敗したため、Instagram投稿をスキップしました。")
+        # ----------------------------------------------------
         print(f"✅ ロト6の配信条件に合致したため実行しました。")
     else:
         print(f"💤 ロト6：配信対象外（キャリーオーバー無し、または対象外の曜日・時間）のためスキップしました。")
