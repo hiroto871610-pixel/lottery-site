@@ -224,8 +224,7 @@ def upload_image_to_imgbb(image_path):
         print(f"❌ 画像ファイルが見つかりません: {image_path}")
         return None
     # =========================================================
-
-     def create_result_image(msg_text, base_image_path, output_image_path):
+def create_result_image(msg_text, base_image_path, output_image_path):
     """背景画像にテキストを書き込んで新しい画像を作る職人関数"""
     print("🎨 予想画像を生成中...")
     try:
