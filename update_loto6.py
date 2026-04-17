@@ -907,15 +907,17 @@ def build_html():
     if send_flag and msg:
         # post_to_x(msg)
         post_to_line(msg)
+        print(f"✅ ロト6の配信条件に合致したため実行しました。")
+
         # ----------------------------------------------------
         # ★ ここからInstagramの自動投稿処理を追加！
         # ----------------------------------------------------
         # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
         # 画像のファイル名（パス）に書き換えてください。
-        image_path = "loto7_result.png" 
+        image_path = "loto6_result.png" 
         
         # Instagram用の文章（msg は既存のテキストなどを活用）
-        caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        caption = f"🎯最新のロト6 AI予想です！\n\n{msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ① 画像をURL化する
         public_image_url = upload_image_to_imgbb(image_path)
@@ -926,9 +928,9 @@ def build_html():
         else:
             print("⚠️ 画像のURL化に失敗したため、Instagram投稿をスキップしました。")
         # ----------------------------------------------------
-        print(f"✅ ロト6の配信条件に合致したため実行しました。")
     else:
         print(f"💤 ロト6：配信対象外（キャリーオーバー無し、または対象外の曜日・時間）のためスキップしました。")
+
     # --------------------------------------------------------
     return html
 
