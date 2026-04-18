@@ -223,10 +223,12 @@ def upload_image_to_imgbb(image_path):
     # =========================================================
 
 def create_result_image(loto7_nums, carryover_info, base_image_path, output_image_path):
-    """ロト7専用：ボール風デザイン＆シャドウ付きで画像を描画する職人"""
-    print("🎨 ロト7専用の予想画像を生成中...")
+    """ロト7専用：1080x1350の大画面に合わせて、文字を大きく中央揃えで描画する職人"""
+    print("🎨 ロト7専用の予想画像を生成中（中央揃え・大画面版）...")
     try:
+        # 1. ベース（背景）となる画像を開く
         img = Image.open(base_image_path)
+        W, H = img.size # 画像の実際の幅と高さを取得 (1080x1350を想定)
     except FileNotFoundError:
         print(f"❌ 背景画像({base_image_path})が見つかりません！")
         return False
@@ -236,56 +238,87 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     # 日本語フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
     if not os.path.exists(font_path):
-        font_url = "https://raw.githubusercontent.com/infofintech/typography/main/NotoSansJP-Bold.ttf"
+        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
-    # フォントサイズの設定（タイトル、数字、キャリーオーバー用）
-    font_title = ImageFont.truetype(font_path, 34)
-    font_num = ImageFont.truetype(font_path, 34) # 7個入るように少し調整
-    font_carry = ImageFont.truetype(font_path, 30)
-
-    # --- デザイン設定 ---
-    start_x = 50        
-    current_y = 60      
+    # --- デザイン設定 (1080x1350用に最適化) ---
     shadow_color = (100, 100, 100)  # 影（グレー）
     white = (255, 255, 255)         # 文字（白）
-    
-    # ロト7のテーマカラー設定
-    title_color = (30, 58, 138)  # タイトルは濃いネイビー（HTMLサイト風）
+    title_color = (30, 58, 138)  # タイトルは濃いネイビー
     ball_color = (217, 119, 6)   # ボールはゴールド/オレンジ
     carry_color = (220, 38, 38)  # キャリーオーバーは目立つ赤！
+
+    # ボールの設定 (1080pxの幅に7個収まる最大サイズ)
+    ball_dia = 120  # ボールの直径
+    ball_space = 20 # ボール間のスペース
+    shadow_offset = 6 # 影のズレ量
+
+    # フォントサイズの設定
+    font_title = ImageFont.truetype(font_path, 90)
+    font_num = ImageFont.truetype(font_path, 75)
+    font_carry = ImageFont.truetype(font_path, 65)
+
+    # 全体の上下バランスを見て、描画開始Y位置を決める
+    current_y = 400 
 
     # ------------------------------------------------
     # 描画1：タイトル
     # ------------------------------------------------
     title = "【ロト7 最新AI予想 A】"
-    draw.text((start_x + 2, current_y + 2), title, font=font_title, fill=shadow_color)
-    draw.text((start_x, current_y), title, font=font_title, fill=title_color)
     
+    # タイトルの中央位置を計算
+    left, top, right, bottom = draw.textbbox((0, 0), title, font=font_title)
+    text_w = right - left
+    title_x = (W - text_w) / 2
+    
+    # タイトルの影と本体を描画
+    draw.text((title_x + shadow_offset, current_y + shadow_offset), title, font=font_title, fill=shadow_color)
+    draw.text((title_x, current_y), title, font=font_title, fill=title_color)
+    
+    current_y += (bottom - top) + 100 # ボール列との間隔
+
     # ------------------------------------------------
     # 描画2：予想番号のボール（7個）
     # ------------------------------------------------
-    current_y += 65 
-    ball_x = start_x
+    # ★ボール列全体の中央位置を計算
+    total_ball_w = (ball_dia * 7) + (ball_space * 6)
+    ball_x = (W - total_ball_w) / 2 # 列の開始X位置
+
     for digit in loto7_nums:
-        # ボールの影（55x55の円）
-        draw.ellipse([ball_x + 3, current_y + 3, ball_x + 55 + 3, current_y + 55 + 3], fill=shadow_color)
-        # ボール本体
-        draw.ellipse([ball_x, current_y, ball_x + 55, current_y + 55], fill=ball_color)
-        # 数字（ボールの真ん中に来るように微調整）
-        draw.text((ball_x + 10, current_y + 5), digit, font=font_num, fill=white)
-        ball_x += 65 # 次のボールへの間隔
+        # ボールの影を描画
+        draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
+        # ボール本体を描画
+        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=ball_color)
+        
+        # ★数字がボールのド真ん中に来るように計算
+        left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+        num_w = right - left
+        num_h = bottom - top
+        num_x = ball_x + (ball_dia - num_w) / 2
+        num_y = current_y + (ball_dia - num_h) / 2 - 10 # 縦位置の微調整
+
+        # 数字をボールの中心に描画
+        draw.text((num_x, num_y), digit, font=font_num, fill=white)
+        ball_x += ball_dia + ball_space
 
     # ------------------------------------------------
     # 描画3：キャリーオーバー（発生時のみ出現）
     # ------------------------------------------------
     if carryover_info:
-        current_y += 90 # ボールの下に移動
-        draw.text((start_x + 2, current_y + 2), carryover_info, font=font_carry, fill=shadow_color)
-        draw.text((start_x, current_y), carryover_info, font=font_carry, fill=carry_color)
+        current_y += ball_dia + 150 # ボールの下に移動
+        
+        # キャリーオーバー文字の中央位置を計算
+        left, top, right, bottom = draw.textbbox((0, 0), carryover_info, font=font_carry)
+        carry_w = right - left
+        carry_x = (W - carry_w) / 2
+        
+        # 影と本体を描画
+        draw.text((carry_x + shadow_offset, current_y + shadow_offset), carryover_info, font=font_carry, fill=shadow_color)
+        draw.text((carry_x, current_y), carryover_info, font=font_carry, fill=carry_color)
 
+    # --- 共通処理 ---
     # 完成した画像を保存（Instagram対応のためJPEGに変換して保存！）
-    img = img.convert("RGB") # 背景が透過PNGだった場合のエラーを防止
+    img = img.convert("RGB") 
     img.save(output_image_path, "JPEG", quality=95)
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
@@ -938,6 +971,7 @@ def build_html():
     if send_flag and msg:
         # post_to_x(msg)
         post_to_line(msg)
+        post_to_threads(msg)
         print(f"✅ ロト7の配信条件に合致したため実行しました。")
 
         # ----------------------------------------------------

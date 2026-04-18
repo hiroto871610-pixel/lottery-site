@@ -225,7 +225,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     shadow_offset = 6 # 影のズレ量
 
     # フォントサイズの設定（見やすく大きく！）
-    font_title = ImageFont.truetype(font_path, 72)
+    font_title = ImageFont.truetype(font_path, 90)
     font_num = ImageFont.truetype(font_path, 95)
 
     # 全体の上下バランスを見て、描画開始Y位置を決める
@@ -897,6 +897,7 @@ def build_html():
     if send_flag and msg:
         # post_to_x(msg)
         post_to_line(msg)
+        post_to_threads(msg)
         print(f"✅ 条件に合致したため配信を実行しました。")
         # ----------------------------------------------------
         # ★ ここからInstagramの自動投稿処理を追加！
