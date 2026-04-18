@@ -194,10 +194,12 @@ def post_to_instagram(image_url, caption_text):
 # =========================================================
 
 def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
-    """ナンバーズ専用：ボール風デザイン＆シャドウ付きで画像を描画する職人"""
-    print("🎨 ナンバーズ専用の予想画像を生成中...")
+    """ナンバーズ専用：1080x1350の大画面に合わせて、文字を大きく中央揃えで描画する職人"""
+    print("🎨 ナンバーズ専用の予想画像を生成中（中央揃え・大画面版）...")
     try:
+        # 1. ベース（背景）となる画像を開く
         img = Image.open(base_image_path)
+        W, H = img.size # 画像の実際の幅と高さを取得 (1080x1350を想定)
     except FileNotFoundError:
         print(f"❌ 背景画像({base_image_path})が見つかりません！")
         return False
@@ -207,62 +209,106 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     # 日本語フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
     if not os.path.exists(font_path):
-        font_url = "https://raw.githubusercontent.com/infofintech/typography/main/NotoSansJP-Bold.ttf"
+        # 以前修正した、 static が入ったURLを使用
+        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
-    # フォントサイズの設定（タイトル用とボールの数字用）
-    font_title = ImageFont.truetype(font_path, 32)
-    font_num = ImageFont.truetype(font_path, 42)
+    # --- デザイン設定 (1080x1350用に大幅に数値をアップ) ---
+    shadow_color = (100, 100, 100)  # 影の色
+    white = (255, 255, 255)         # 文字の色
+    n4_color = (22, 163, 74)   # ナンバーズ4は緑色
+    n3_color = (217, 119, 6)   # ナンバーズ3はオレンジ
 
-    # --- デザイン設定 ---
-    start_x = 50        # 左からの余白
-    current_y = 50      # 上からの余白
-    shadow_color = (100, 100, 100)  # 影の色（グレー）
-    white = (255, 255, 255)         # 文字の色（白）
-    
-    # ナンバーズごとに色を分ける（R, G, B）
-    n4_color = (22, 163, 74)   # ナンバーズ4は緑色（HTMLテーマと同じ）
-    n3_color = (217, 119, 6)   # ナンバーズ3はオレンジ（HTMLテーマと同じ）
+    # ボールの設定 (大画面用に大きく)
+    ball_dia = 160 # ボールの直径
+    ball_space = 25 # ボール間のスペース
+    shadow_offset = 6 # 影のズレ量
+
+    # フォントサイズの設定（見やすく大きく！）
+    font_title = ImageFont.truetype(font_path, 72)
+    font_num = ImageFont.truetype(font_path, 95)
+
+    # 全体の上下バランスを見て、描画開始Y位置を決める
+    current_y = 250 
 
     # ------------------------------------------------
     # 描画1：ナンバーズ4
     # ------------------------------------------------
     title4 = "【ナンバーズ4 予想A】"
-    # タイトルの影を描画（少しズラしてグレーで描く）
-    draw.text((start_x + 2, current_y + 2), title4, font=font_title, fill=shadow_color)
-    # タイトル本体を描画
-    draw.text((start_x, current_y), title4, font=font_title, fill=n4_color)
     
-    current_y += 60 # 下に移動
-    ball_x = start_x
+    # ★Pillowの機能でタイトルの描画サイズを取得し、中央位置(X)を計算
+    # (Pillow 9.2.0以降推奨の textbbox を使用)
+    left, top, right, bottom = draw.textbbox((0, 0), title4, font=font_title)
+    text_w = right - left
+    text_h = bottom - top
+    title_x = (W - text_w) / 2 # 画像中央から文字幅の半分を引く
+    
+    # タイトルの影を描画
+    draw.text((title_x + shadow_offset, current_y + shadow_offset), title4, font=font_title, fill=shadow_color)
+    # タイトル本体を描画
+    draw.text((title_x, current_y), title4, font=font_title, fill=n4_color)
+    
+    current_y += text_h + 80 # ボール列との間隔
+
+    # ★ボール列全体の中央位置を計算
+    total_ball_w_4 = (ball_dia * 4) + (ball_space * 3)
+    ball_x = (W - total_ball_w_4) / 2 # 列の開始X位置
+
     for digit in n4_text:
-        # ボールの影を描画（円）
-        draw.ellipse([ball_x + 3, current_y + 3, ball_x + 60 + 3, current_y + 60 + 3], fill=shadow_color)
-        # ボール本体を描画（円）
-        draw.ellipse([ball_x, current_y, ball_x + 60, current_y + 60], fill=n4_color)
-        # 数字をボールの中心付近に描画
-        draw.text((ball_x + 17, current_y + 2), digit, font=font_num, fill=white)
-        ball_x += 75 # 次のボールへの間隔
+        # ボールの影を描画
+        draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
+        # ボール本体を描画
+        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=n4_color)
+        
+        # ★数字もボール内の中央に来るように計算
+        left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+        num_w = right - left
+        num_h = bottom - top
+        num_x = ball_x + (ball_dia - num_w) / 2
+        # Y位置はフォントのベースラインによって微調整が必要な場合あり
+        num_y = current_y + (ball_dia - num_h) / 2 - 12 
+
+        # 数字をボールの中心に描画
+        draw.text((num_x, num_y), digit, font=font_num, fill=white)
+        ball_x += ball_dia + ball_space # 次のボールへの間隔
 
     # ------------------------------------------------
     # 描画2：ナンバーズ3
     # ------------------------------------------------
-    current_y += 100 # 下に大きく移動
+    current_y += ball_dia + 180 # N4とN3の間隔
     title3 = "【ナンバーズ3 予想A】"
     
-    draw.text((start_x + 2, current_y + 2), title3, font=font_title, fill=shadow_color)
-    draw.text((start_x, current_y), title3, font=font_title, fill=n3_color)
+    # タイトルの中央位置を計算
+    left, top, right, bottom = draw.textbbox((0, 0), title3, font=font_title)
+    text_w = right - left
+    title_x = (W - text_w) / 2
     
-    current_y += 60
-    ball_x = start_x
-    for digit in n3_text:
-        draw.ellipse([ball_x + 3, current_y + 3, ball_x + 60 + 3, current_y + 60 + 3], fill=shadow_color)
-        draw.ellipse([ball_x, current_y, ball_x + 60, current_y + 60], fill=n3_color)
-        draw.text((ball_x + 17, current_y + 2), digit, font=font_num, fill=white)
-        ball_x += 75
+    draw.text((title_x + shadow_offset, current_y + shadow_offset), title3, font=font_title, fill=shadow_color)
+    draw.text((title_x, current_y), title3, font=font_title, fill=n3_color)
+    
+    current_y += text_h + 80 
 
+    # ★ボール列全体の中央位置を計算 (3個用)
+    total_ball_w_3 = (ball_dia * 3) + (ball_space * 2)
+    ball_x = (W - total_ball_w_3) / 2
+
+    for digit in n3_text:
+        draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
+        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=n3_color)
+        
+        # 数字の中央位置を計算
+        left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+        num_w = right - left
+        num_h = bottom - top
+        num_x = ball_x + (ball_dia - num_w) / 2
+        num_y = current_y + (ball_dia - num_h) / 2 - 12
+
+        draw.text((num_x, num_y), digit, font=font_num, fill=white)
+        ball_x += ball_dia + ball_space
+
+    # --- 共通処理（以前の修正を維持） ---
     # 完成した画像を保存（Instagram対応のためJPEGに変換して保存！）
-    img = img.convert("RGB") # 背景が透過PNGだった場合のエラーを防止
+    img = img.convert("RGB") 
     img.save(output_image_path, "JPEG", quality=95)
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
