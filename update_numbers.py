@@ -195,40 +195,10 @@ def post_to_instagram(image_url, caption_text):
 
 # =========================================================
 
-def upload_image_to_imgbb(image_path):
-    """ローカル画像をImgBBにアップロードし、公開URLを返す"""
-    api_key = os.environ.get("IMGBB_API_KEY")
-    url = "https://api.imgbb.com/1/upload"
-    
-    print("☁️ 画像をImgBBにアップロードしてURL化中...")
-    
+def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
+    """ナンバーズ専用：ボール風デザイン＆シャドウ付きで画像を描画する職人"""
+    print("🎨 ナンバーズ専用の予想画像を生成中...")
     try:
-        with open(image_path, "rb") as file:
-            payload = {
-                "key": api_key,
-                "image": base64.b64encode(file.read()),
-            }
-            
-        response = requests.post(url, data=payload)
-        result = response.json()
-        
-        if result.get("success"):
-            image_url = result["data"]["url"]
-            print(f"✅ 画像のURL化成功: {image_url}")
-            return image_url
-        else:
-            print(f"❌ ImgBBエラー: {result}")
-            return None
-            
-    except FileNotFoundError:
-        print(f"❌ 画像ファイルが見つかりません: {image_path}")
-        return None
-    # =========================================================
-def create_result_image(msg_text, base_image_path, output_image_path):
-    """背景画像にテキストを書き込んで新しい画像を作る職人関数"""
-    print("🎨 予想画像を生成中...")
-    try:
-        # 1. ベース（背景）となる画像を開く
         img = Image.open(base_image_path)
     except FileNotFoundError:
         print(f"❌ 背景画像({base_image_path})が見つかりません！")
@@ -236,21 +206,64 @@ def create_result_image(msg_text, base_image_path, output_image_path):
 
     draw = ImageDraw.Draw(img)
 
-    # 2. 日本語文字化け対策（Googleから無料の日本語フォントを自動ダウンロード）
+    # 日本語フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
     if not os.path.exists(font_path):
-        print("☁️ 日本語フォントをダウンロードしています...")
         font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
-    # 3. フォントのサイズを設定（※背景画像の大きさに合わせて後で調整可能です）
-    font = ImageFont.truetype(font_path, 40)
+    # フォントサイズの設定（タイトル用とボールの数字用）
+    font_title = ImageFont.truetype(font_path, 32)
+    font_num = ImageFont.truetype(font_path, 42)
 
-    # 4. テキストを描画する（x=50, y=50 の位置からスタート。色は黒）
-    text_color = (0, 0, 0)
-    draw.text((50, 50), msg_text, font=font, fill=text_color)
+    # --- デザイン設定 ---
+    start_x = 50        # 左からの余白
+    current_y = 50      # 上からの余白
+    shadow_color = (100, 100, 100)  # 影の色（グレー）
+    white = (255, 255, 255)         # 文字の色（白）
+    
+    # ナンバーズごとに色を分ける（R, G, B）
+    n4_color = (22, 163, 74)   # ナンバーズ4は緑色（HTMLテーマと同じ）
+    n3_color = (217, 119, 6)   # ナンバーズ3はオレンジ（HTMLテーマと同じ）
 
-    # 5. 完成した画像を保存する
+    # ------------------------------------------------
+    # 描画1：ナンバーズ4
+    # ------------------------------------------------
+    title4 = "【ナンバーズ4 予想A】"
+    # タイトルの影を描画（少しズラしてグレーで描く）
+    draw.text((start_x + 2, current_y + 2), title4, font=font_title, fill=shadow_color)
+    # タイトル本体を描画
+    draw.text((start_x, current_y), title4, font=font_title, fill=n4_color)
+    
+    current_y += 60 # 下に移動
+    ball_x = start_x
+    for digit in n4_text:
+        # ボールの影を描画（円）
+        draw.ellipse([ball_x + 3, current_y + 3, ball_x + 60 + 3, current_y + 60 + 3], fill=shadow_color)
+        # ボール本体を描画（円）
+        draw.ellipse([ball_x, current_y, ball_x + 60, current_y + 60], fill=n4_color)
+        # 数字をボールの中心付近に描画
+        draw.text((ball_x + 17, current_y + 2), digit, font=font_num, fill=white)
+        ball_x += 75 # 次のボールへの間隔
+
+    # ------------------------------------------------
+    # 描画2：ナンバーズ3
+    # ------------------------------------------------
+    current_y += 100 # 下に大きく移動
+    title3 = "【ナンバーズ3 予想A】"
+    
+    draw.text((start_x + 2, current_y + 2), title3, font=font_title, fill=shadow_color)
+    draw.text((start_x, current_y), title3, font=font_title, fill=n3_color)
+    
+    current_y += 60
+    ball_x = start_x
+    for digit in n3_text:
+        draw.ellipse([ball_x + 3, current_y + 3, ball_x + 60 + 3, current_y + 60 + 3], fill=shadow_color)
+        draw.ellipse([ball_x, current_y, ball_x + 60, current_y + 60], fill=n3_color)
+        draw.text((ball_x + 17, current_y + 2), digit, font=font_num, fill=white)
+        ball_x += 75
+
+    # 完成した画像を保存
     img.save(output_image_path)
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
@@ -848,19 +861,14 @@ def build_html():
         base_image = "base_image.png"     # ← ※あらかじめ用意しておく背景画像の名前
         image_path = "numbers_result.png" # ← ※今回新しく作られる完成画像の名前
         
-        # ▼▼▼ 画像に書き込む専用のテキストを作成（N4とN3を分ける） ▼▼▼
-        # ① ナンバーズ4とナンバーズ3の「予想A」をそれぞれ取得
+        # ▼▼▼ 数字を職人に渡すために取り出す ▼▼▼
         n4_yosou_a = history_record[0]['n4_preds'][0]
         n3_yosou_a = history_record[0]['n3_preds'][0]
         
-        # ② 画像用のテキストを組み立てる（改行を入れて見やすく配置）
-        image_text = f"【ナンバーズ4 予想A】\n{n4_yosou_a}\n\n【ナンバーズ3 予想A】\n{n3_yosou_a}"
-        # ▲▲▲ ここまで ▲▲▲
-
         caption = f"🎯最新のナンバーズ AI予想です！\n\n{msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① msg ではなく、新しく作った「image_text」を渡して画像を作る！
-        is_created = create_result_image(image_text, base_image, image_path)
+        # ① 新しい職人に、N4とN3の数字を別々に渡してデザイン作成を依頼する！
+        is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path)
         
         # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
         if is_created:
