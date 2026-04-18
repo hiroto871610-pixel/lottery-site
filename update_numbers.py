@@ -937,7 +937,7 @@ def build_html():
     # 配信フラグが立っている場合のみ送信
     if send_flag and msg:
         # post_to_x(msg)
-        post_to_line(msg)
+        # post_to_line(msg)
         post_to_threads(msg)
         print(f"✅ 条件に合致したため配信を実行しました。")
         # ----------------------------------------------------
