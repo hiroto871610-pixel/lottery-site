@@ -132,24 +132,22 @@ def post_to_threads(message):
         print(f"❌ Threads通信エラー: {e}")
 # =========================================================
 
-def upload_image_to_imgbb(image_path):
-    api_key = os.environ.get("IMGBB_API_KEY")
-    url = "https://api.imgbb.com/1/upload"
-    print("☁️ 画像をImgBBにアップロードしてURL化中...")
+def upload_image_to_server(image_path):
+    """ImgBBがインスタにブロックされるため、制限のない別サーバー(Catbox)を使用（APIキー不要！）"""
+    url = "https://catbox.moe/user/api.php"
+    print("☁️ 画像をアップロードサーバー(Catbox)に送信中...")
     try:
         with open(image_path, "rb") as file:
-            payload = {
-                "key": api_key,
-                "image": base64.b64encode(file.read()),
-            }
-        response = requests.post(url, data=payload)
-        result = response.json()
-        if result.get("success"):
-            image_url = result["data"]["url"]
+            payload = {"reqtype": "fileupload"}
+            files = {"fileToUpload": file}
+            response = requests.post(url, data=payload, files=files)
+            
+        if response.status_code == 200:
+            image_url = response.text.strip()
             print(f"✅ 画像のURL化成功: {image_url}")
             return image_url
         else:
-            print(f"❌ ImgBBエラー: {result}")
+            print(f"❌ サーバーエラー: {response.text}")
             return None
     except FileNotFoundError:
         print(f"❌ 画像ファイルが見つかりません: {image_path}")
@@ -873,7 +871,7 @@ def build_html():
         
         # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
         if is_created:
-            public_image_url = upload_image_to_imgbb(image_path)
+            public_image_url = upload_image_to_server(image_path)
             if public_image_url:
                 post_to_instagram(public_image_url, caption)
             else:
