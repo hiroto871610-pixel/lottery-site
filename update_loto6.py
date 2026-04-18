@@ -308,8 +308,9 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
         draw.text((start_x + 2, current_y + 2), carryover_info, font=font_carry, fill=shadow_color)
         draw.text((start_x, current_y), carryover_info, font=font_carry, fill=carry_color)
 
-    # 完成した画像を保存
-    img.save(output_image_path)
+    # 完成した画像を保存（Instagram対応のためJPEGに変換して保存！）
+    img = img.convert("RGB") # 背景が透過PNGだった場合のエラーを防止
+    img.save(output_image_path, "JPEG", quality=95)
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
@@ -984,8 +985,8 @@ def build_html():
         # ----------------------------------------------------
         # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
         # 画像のファイル名（パス）に書き換えてください。
-        base_image = "base_image.png"     
-        image_path = "loto6_result.png"   
+        base_image = "base_image.png"     # ← ※ここはPNGのままでOKです（読み込む元画像なので）
+        image_path = "numbers_result.jpg" # ← ★ここを .png から .jpg に変更！
         
         # ▼▼▼ 数字リストとキャリーオーバー情報をそのまま取り出す ▼▼▼
         # ※カンマで繋がず、配列（リスト）のまま職人に渡します！

@@ -263,8 +263,9 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
         draw.text((ball_x + 17, current_y + 2), digit, font=font_num, fill=white)
         ball_x += 75
 
-    # 完成した画像を保存
-    img.save(output_image_path)
+    # 完成した画像を保存（Instagram対応のためJPEGに変換して保存！）
+    img = img.convert("RGB") # 背景が透過PNGだった場合のエラーを防止
+    img.save(output_image_path, "JPEG", quality=95)
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
@@ -858,8 +859,8 @@ def build_html():
         # ----------------------------------------------------
         # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
         # 画像のファイル名（パス）に書き換えてください。
-        base_image = "base_image.png"     # ← ※あらかじめ用意しておく背景画像の名前
-        image_path = "numbers_result.png" # ← ※今回新しく作られる完成画像の名前
+        base_image = "base_image.png"     # ← ※ここはPNGのままでOKです（読み込む元画像なので）
+        image_path = "numbers_result.jpg" # ← ★ここを .png から .jpg に変更！
         
         # ▼▼▼ 数字を職人に渡すために取り出す ▼▼▼
         n4_yosou_a = history_record[0]['n4_preds'][0]
