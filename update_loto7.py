@@ -93,8 +93,53 @@ def post_to_line(message):
 # Threads API設定
 # =========================================================
 
+def auto_refresh_threads_token():
+    """Threadsのトークン期限を自動で延長（60日）し、.envを自己書き換えする自己修復機能"""
+    global THREADS_ACCESS_TOKEN
+    if not THREADS_ACCESS_TOKEN:
+        return None
+
+    print("🔄 Threadsのアクセストークンを自動更新（延命）しています...")
+    url = f"https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token={THREADS_ACCESS_TOKEN}"
+    try:
+        res = requests.get(url)
+        data = res.json()
+        if "access_token" in data:
+            new_token = data["access_token"]
+            
+            # 自分のパソコンの .env ファイルを自動で上書きする処理
+            env_path = ".env"
+            if os.path.exists(env_path):
+                with open(env_path, "r", encoding="utf-8") as file:
+                    lines = file.readlines()
+                
+                with open(env_path, "w", encoding="utf-8") as file:
+                    for line in lines:
+                        if line.startswith("THREADS_ACCESS_TOKEN="):
+                            file.write(f"THREADS_ACCESS_TOKEN={new_token}\n")
+                        else:
+                            file.write(line)
+            
+            print("✅ Threadsのトークン自動更新に成功し、.envを書き換えました！")
+            THREADS_ACCESS_TOKEN = new_token # プログラム内の変数も最新に書き換え
+            return new_token
+        else:
+            # 短期間に連続で更新しようとした場合などはスキップされる
+            print("⚠️ トークンの更新は不要（または制限中）のためスキップしました。")
+            return THREADS_ACCESS_TOKEN
+    except Exception as e:
+        print(f"❌ Threadsトークン更新エラー: {e}")
+        return THREADS_ACCESS_TOKEN
+
+# =========================================================
+# Threads API設定
+# =========================================================
+
 def post_to_threads(message):
     """Threadsへ自動投稿する機能（2ステップ方式）"""
+    # ★投稿する前に、毎回必ずトークンの寿命を60日に回復させる！
+    auto_refresh_threads_token()
+
     if not all([THREADS_USER_ID, THREADS_ACCESS_TOKEN]):
         print("⚠️ ThreadsのAPI情報が.envから取得できないため、自動ポストをスキップしました。")
         return
