@@ -209,7 +209,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     # 日本語フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
     if not os.path.exists(font_path):
-        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
+        font_url = "https://raw.githubusercontent.com/infofintech/typography/main/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
     # フォントサイズの設定（タイトル用とボールの数字用）
