@@ -119,6 +119,13 @@ def auto_refresh_threads_token():
                             file.write(f"THREADS_ACCESS_TOKEN={new_token}\n")
                         else:
                             file.write(line)
+
+                            # ▼▼▼ ココを追加！ ▼▼▼
+            # クラウド(GitHub Actions)環境で動いている場合は、システムに新しいトークンを伝達する
+            if "GITHUB_ENV" in os.environ:
+                with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+                    f.write(f"NEW_THREADS_TOKEN={new_token}\n")
+            # ▲▲▲ ここまで ▲▲▲
             
             print("✅ Threadsのトークン自動更新に成功し、.envを書き換えました！")
             THREADS_ACCESS_TOKEN = new_token # プログラム内の変数も最新に書き換え

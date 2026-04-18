@@ -54,6 +54,7 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
         # ▲▲▲ ここまで追加 ▲▲▲
+        
         run: |
           python update_loto7.py
           python update_loto6.py
@@ -66,3 +67,13 @@ jobs:
           git config --global user.email "actions@github.com"
           git add .
           git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 自動更新: 最新の宝くじデータとAI予想を反映" && git push)
+
+          # ▼▼▼ 一番最後にこのブロックを丸ごと追加！ ▼▼▼
+      - name: Auto-Update Threads Token in Secrets
+        if: env.NEW_THREADS_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh secret set THREADS_ACCESS_TOKEN --body "${{ env.NEW_THREADS_TOKEN }}" --repo ${{ github.repository }}
+          echo "✅ GitHub SecretsのThreadsトークンを最新に自動アップデートしました！"
+      # ▲▲▲ ここまで ▲▲▲
