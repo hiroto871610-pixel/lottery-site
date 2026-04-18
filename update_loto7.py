@@ -224,11 +224,10 @@ def upload_image_to_imgbb(image_path):
         return None
     # =========================================================
 
-def create_result_image(msg_text, base_image_path, output_image_path):
-    """背景画像にテキストを書き込んで新しい画像を作る職人関数"""
-    print("🎨 予想画像を生成中...")
+def create_result_image(loto7_nums, carryover_info, base_image_path, output_image_path):
+    """ロト7専用：ボール風デザイン＆シャドウ付きで画像を描画する職人"""
+    print("🎨 ロト7専用の予想画像を生成中...")
     try:
-        # 1. ベース（背景）となる画像を開く
         img = Image.open(base_image_path)
     except FileNotFoundError:
         print(f"❌ 背景画像({base_image_path})が見つかりません！")
@@ -236,21 +235,58 @@ def create_result_image(msg_text, base_image_path, output_image_path):
 
     draw = ImageDraw.Draw(img)
 
-    # 2. 日本語文字化け対策（Googleから無料の日本語フォントを自動ダウンロード）
+    # 日本語フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
     if not os.path.exists(font_path):
-        print("☁️ 日本語フォントをダウンロードしています...")
         font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
-    # 3. フォントのサイズを設定（※背景画像の大きさに合わせて後で調整可能です）
-    font = ImageFont.truetype(font_path, 40)
+    # フォントサイズの設定（タイトル、数字、キャリーオーバー用）
+    font_title = ImageFont.truetype(font_path, 34)
+    font_num = ImageFont.truetype(font_path, 34) # 7個入るように少し調整
+    font_carry = ImageFont.truetype(font_path, 30)
 
-    # 4. テキストを描画する（x=50, y=50 の位置からスタート。色は黒）
-    text_color = (0, 0, 0)
-    draw.text((50, 50), msg_text, font=font, fill=text_color)
+    # --- デザイン設定 ---
+    start_x = 50        
+    current_y = 60      
+    shadow_color = (100, 100, 100)  # 影（グレー）
+    white = (255, 255, 255)         # 文字（白）
+    
+    # ロト7のテーマカラー設定
+    title_color = (30, 58, 138)  # タイトルは濃いネイビー（HTMLサイト風）
+    ball_color = (217, 119, 6)   # ボールはゴールド/オレンジ
+    carry_color = (220, 38, 38)  # キャリーオーバーは目立つ赤！
 
-    # 5. 完成した画像を保存する
+    # ------------------------------------------------
+    # 描画1：タイトル
+    # ------------------------------------------------
+    title = "【ロト7 最新AI予想 A】"
+    draw.text((start_x + 2, current_y + 2), title, font=font_title, fill=shadow_color)
+    draw.text((start_x, current_y), title, font=font_title, fill=title_color)
+    
+    # ------------------------------------------------
+    # 描画2：予想番号のボール（7個）
+    # ------------------------------------------------
+    current_y += 65 
+    ball_x = start_x
+    for digit in loto7_nums:
+        # ボールの影（55x55の円）
+        draw.ellipse([ball_x + 3, current_y + 3, ball_x + 55 + 3, current_y + 55 + 3], fill=shadow_color)
+        # ボール本体
+        draw.ellipse([ball_x, current_y, ball_x + 55, current_y + 55], fill=ball_color)
+        # 数字（ボールの真ん中に来るように微調整）
+        draw.text((ball_x + 10, current_y + 5), digit, font=font_num, fill=white)
+        ball_x += 65 # 次のボールへの間隔
+
+    # ------------------------------------------------
+    # 描画3：キャリーオーバー（発生時のみ出現）
+    # ------------------------------------------------
+    if carryover_info:
+        current_y += 90 # ボールの下に移動
+        draw.text((start_x + 2, current_y + 2), carryover_info, font=font_carry, fill=shadow_color)
+        draw.text((start_x, current_y), carryover_info, font=font_carry, fill=carry_color)
+
+    # 完成した画像を保存
     img.save(output_image_path)
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
@@ -910,25 +946,17 @@ def build_html():
         # ----------------------------------------------------
         # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
         # 画像のファイル名（パス）に書き換えてください。
-        base_image = "base_image.png"     # ← ※あらかじめ用意しておく背景画像の名前
-        image_path = "loto7_result.png"   # ← ※今回新しく作られる完成画像の名前
+        base_image = "base_image.png"     
+        image_path = "loto7_result.png"   
         
-        # ▼▼▼ 画像に書き込む専用のテキストを作成 ▼▼▼
-        # ① 予想Aの数字リストを取り出して、見やすくカンマとスペースで繋ぐ
-        yosou_a_nums = ", ".join(history_record[0]['predictions'][0])
+        # ▼▼▼ 数字リストとキャリーオーバー情報をそのまま取り出す ▼▼▼
+        # ※カンマで繋がず、配列（リスト）のまま職人に渡します！
+        yosou_a_list = history_record[0]['predictions'][0]
         
-        # ② 画像用のテキストを組み立てる
-        image_text = f"【最新AI予想 A】\n{yosou_a_nums}\n"
-        
-        # ③ キャリーオーバーが発生していれば追記する
-        if carryover_text:
-            image_text += f"\n{carryover_text}"
-        # ▲▲▲ ここまで ▲▲▲
-
         caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① msg ではなく、新しく作った「image_text」を渡して画像を作る！
-        is_created = create_result_image(image_text, base_image, image_path)
+        # ① 新しい職人に「予想数字のリスト」と「キャリーオーバーの文章」を別々に渡す！
+        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path)
         
         # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
         if is_created:
