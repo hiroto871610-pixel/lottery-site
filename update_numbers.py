@@ -934,7 +934,7 @@ def build_html():
     elif today_weekday == 5:
         if current_hour >= 19:
             send_flag = True
-            msg = f"【#ナンバーズ 週末の予想更新🎯】\n来週、第 {next_kai} 回からの最新AI予想を公開しました！\n"
+            msg = f"【#ナンバーズ 週末の予想更新🎯】\n来週、 {next_kai} 回からの最新AI予想を公開しました！\n"
             msg += f"\n週末の間に最新の出現傾向データをチェックして、次回の戦略を立てましょう👇\n{site_url}"
 
     # ■ 日曜日 (6) は何もしない (土曜に送っているため)
