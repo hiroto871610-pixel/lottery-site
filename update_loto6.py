@@ -260,7 +260,7 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     # 日本語フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
     if not os.path.exists(font_path):
-        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Bold.ttf"
+        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
     # フォントサイズの設定（ロト6は6個なので、ロト7より少し大きくできます）
