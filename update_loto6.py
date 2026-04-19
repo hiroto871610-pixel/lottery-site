@@ -426,6 +426,59 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     return True
 # =========================================================
 
+def get_loto6_latest_detail():
+    """楽天宝くじから直近の各等級の当せん金額・口数・キャリーオーバー額を取得する"""
+    url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    
+    # 保存用のデータ枠
+    detail_data = {
+        "prizes": [], # ここに1等〜5等のデータが入る
+        "carryover": "0円",
+        "has_carryover": False
+    }
+    
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            # 1等〜5等のデータを取得
+            for i in range(1, 6):
+                grade_str = f"{i}等"
+                grade_element = soup.find(['th', 'td'], string=re.compile(grade_str))
+                if grade_element:
+                    parent_row = grade_element.find_parent('tr')
+                    if parent_row:
+                        tds = parent_row.find_all('td')
+                        # 楽天のテーブルは通常 <td>口数</td> <td>金額</td> の順
+                        if len(tds) >= 2:
+                            winners = tds[0].get_text(strip=True)
+                            prize = tds[1].get_text(strip=True)
+                            detail_data["prizes"].append({
+                                "grade": grade_str,
+                                "winners": winners,
+                                "prize": prize
+                            })
+            
+            # キャリーオーバーの金額を取得
+            carry_element = soup.find(string=re.compile(r'キャリーオーバー'))
+            if carry_element:
+                parent_row = carry_element.find_parent('tr')
+                if parent_row:
+                    tds = parent_row.find_all('td')
+                    if tds:
+                        carry_val = tds[-1].get_text(strip=True)
+                        detail_data["carryover"] = carry_val
+                        if "0円" not in carry_val:
+                            detail_data["has_carryover"] = True
+                            
+        return detail_data
+    except Exception as e:
+        print(f"❌ ロト6詳細データ取得エラー: {e}")
+        return detail_data
+
 # --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
     base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
@@ -866,6 +919,13 @@ def build_html():
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
     </nav>
+
+<div className="mt-4 text-center">
+  <Link href="/loto6/result" className="inline-flex items-center justify-center w-full bg-white border-2 border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-50 transition-colors">
+    📊 直近の当せん金額・口数を見る
+  </Link>
+</div>
+
 <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
