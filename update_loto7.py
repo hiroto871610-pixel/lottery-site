@@ -989,16 +989,15 @@ def build_html():
         <a href="column.html">攻略ガイド🔰</a>
     </nav>
 
-# build_html() 内の最新結果表示のすぐ下に挿入
-<div class="mt-8 px-4 sm:px-0">
-    <a href="loto7_detail.html" class="flex items-center justify-center w-full sm:max-w-xs mx-auto bg-white border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-sm group">
-        <span class="text-xl mr-2">📊</span>
-        直近の当選金額・口数
-        <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-        </svg>
-    </a>
-</div>    
+<div class="max-w-md mx-auto px-4 mt-6 sm:mt-8">
+        <a href="loto7_detail.html" class="flex items-center justify-center w-full bg-white border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 shadow-sm group">
+            <span class="text-xl mr-2">📊</span>
+            直近の当せん金額・口数を見る
+            <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+        </a>
+    </div>
 
 <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
