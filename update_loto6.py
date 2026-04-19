@@ -526,100 +526,103 @@ def get_loto6_full_detail():
         return None
 
 def generate_loto6_detail_page(result_data):
-    """取得した詳細データから、美しいHTMLページ(loto6_detail.html)を自動生成する"""
-    print("🔄 ロト6 詳細ページ(HTML)を生成中...")
+    """取得した詳細データから、PC・スマホ両対応の美しい詳細ページを生成する"""
+    print("🔄 ロト6 詳細ページ(HTML)をレスポンシブ対応で生成中...")
     
-    # 仮のデータ（後で実際の取得データに差し替えます）
     if not result_data:
-        print("⚠️ リアルデータの取得に失敗したため、テスト用の仮データを使用します！")
+        print("⚠️ リアルデータの取得に失敗したため、テスト用の仮データを使用します！") 
         result_data = {
-            "round": "第2094回",
-            "date": "2026年4月16日(木)",
-            "numbers": ["01", "12", "23", "34", "45", "46"],
-            "bonus": "09",
-            "prizes": [
-                { "grade": "1等", "winners": "1口", "prize": "200,000,000円" },
-                { "grade": "2等", "winners": "14口", "prize": "15,234,500円" },
-                { "grade": "3等", "winners": "245口", "prize": "340,000円" },
-                { "grade": "4等", "winners": "10,230口", "prize": "6,800円" },
-                { "grade": "5等", "winners": "154,320口", "prize": "1,000円" },
-            ],
-            "carryover": "123,456,789円",
-            "has_carryover": True
+            "round": "第2094回", "date": "2026/04/16",
+            "numbers": ["01", "02", "03", "04", "05", "06"], "bonus": "07",
+            "prizes": [{"grade": "1等", "winners": "0口", "prize": "0円"}],
+            "carryover": "0円", "has_carryover": False
         }
 
-    # 本数字・ボーナス数字のHTML組み立て
+    # 本数字・ボーナス数字の組み立て（スマホでも崩れないよう flex-wrap を使用）
     numbers_html = ""
     for num in result_data.get("numbers", []):
-        numbers_html += f'<span class="w-11 h-11 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xl shadow-sm">{num}</span>\n'
+        numbers_html += f'<span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-md">{num}</span>\n'
     if result_data.get("bonus"):
-        numbers_html += f'<span class="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-xl shadow-sm ml-2">{result_data["bonus"]}</span>'
+        numbers_html += f'<div class="flex items-center ml-2 sm:ml-4"><span class="text-gray-400 mr-2 text-xl">/</span><span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-md">{result_data["bonus"]}</span></div>'
 
-    # 等級テーブルのHTML組み立て
+    # 等級テーブルの組み立て（PCで見やすいようパディングを調整）
     table_html = ""
     for idx, prize in enumerate(result_data.get("prizes", [])):
         bg_class = "bg-white" if idx % 2 == 0 else "bg-gray-50"
         table_html += f"""
         <tr class="{bg_class} hover:bg-blue-50 transition-colors">
-            <td class="px-4 py-4 font-bold text-gray-800 whitespace-nowrap">{prize.get('grade')}</td>
-            <td class="px-4 py-4 text-right text-blue-600 font-bold whitespace-nowrap">{prize.get('prize')}</td>
-            <td class="px-4 py-4 text-right text-gray-600 whitespace-nowrap">{prize.get('winners')}</td>
+            <td class="px-4 py-5 sm:px-6 font-bold text-gray-800">{prize.get('grade')}</td>
+            <td class="px-4 py-5 sm:px-6 text-right text-blue-700 font-bold text-lg">{prize.get('prize')}</td>
+            <td class="px-4 py-5 sm:px-6 text-right text-gray-600">{prize.get('winners')}</td>
         </tr>
         """
 
-    # キャリーオーバーのHTML組み立て
+    # キャリーオーバーの組み立て
     carryover_html = ""
     if result_data.get("has_carryover"):
         carryover_html = f"""
-        <div class="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-4 rounded-xl mb-8 text-center shadow-sm">
-            <p class="font-bold text-sm mb-1">💰 キャリーオーバー発生中！</p>
-            <p class="text-2xl font-black tracking-wider">{result_data.get('carryover')}</p>
+        <div class="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 text-red-700 px-6 py-6 rounded-2xl mb-10 text-center shadow-sm">
+            <p class="font-bold text-sm sm:text-base mb-1">💰 キャリーオーバー発生中！</p>
+            <p class="text-3xl sm:text-4xl font-black tracking-tighter">{result_data.get('carryover')}</p>
         </div>
         """
 
-    # HTML全体の枠組み
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ロト6 抽選結果詳細</title>
+    <title>ロト6 抽選結果詳細 | {result_data.get('round', '')}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>body {{ font-family: 'Noto Sans JP', sans-serif; }}</style>
 </head>
-<body class="bg-gray-50 pb-20">
-    <div class="max-w-md mx-auto bg-white shadow-md overflow-hidden min-h-screen sm:min-h-0 sm:mt-6 sm:rounded-2xl">
-        <div class="bg-blue-600 text-white text-center py-5 shadow-inner">
-            <h1 class="text-xl font-bold tracking-wider">ロト6 抽選結果詳細</h1>
-            <p class="text-sm opacity-90 mt-1">{result_data.get('round', '')} / {result_data.get('date', '')}</p>
+<body class="bg-slate-100 pb-20">
+    <div class="max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:mt-10 sm:rounded-3xl">
+        
+        <div class="bg-gradient-to-br from-blue-700 to-blue-500 text-white text-center py-8 px-4">
+            <h1 class="text-2xl sm:text-3xl font-black tracking-widest mb-2">ロト6 抽選結果詳細</h1>
+            <div class="inline-block bg-white/20 px-4 py-1 rounded-full text-sm sm:text-base backdrop-blur-sm">
+                {result_data.get('round', '')} ／ {result_data.get('date', '')} 抽選
+            </div>
         </div>
-        <div class="p-6">
-            <div class="mb-8">
-                <h2 class="text-sm font-bold text-gray-500 mb-3 border-b pb-1">本数字 / ボーナス</h2>
-                <div class="flex flex-wrap gap-2">
+
+        <div class="p-6 sm:p-10">
+            <div class="mb-10">
+                <h2 class="flex items-center text-gray-500 font-bold mb-4 text-sm sm:text-base">
+                    <span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>本数字 / ボーナス
+                </h2>
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                     {numbers_html}
                 </div>
             </div>
+
             {carryover_html}
-            <div class="mb-8">
-                <h2 class="text-sm font-bold text-gray-500 mb-3 border-b pb-1">当せん金額・口数</h2>
-                <div class="overflow-hidden border border-gray-200 rounded-xl shadow-sm">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-100">
+
+            <div class="mb-10">
+                <h2 class="flex items-center text-gray-500 font-bold mb-4 text-sm sm:text-base">
+                    <span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>当せん金額・口数
+                </h2>
+                <div class="overflow-hidden border border-gray-100 rounded-2xl shadow-inner">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-gray-600 font-bold whitespace-nowrap">等級</th>
-                                <th class="px-4 py-3 text-right text-gray-600 font-bold whitespace-nowrap">当せん金額</th>
-                                <th class="px-4 py-3 text-right text-gray-600 font-bold whitespace-nowrap">口数</th>
+                                <th class="px-4 py-4 sm:px-6 text-left text-gray-500 text-xs font-bold uppercase tracking-wider">等級</th>
+                                <th class="px-4 py-4 sm:px-6 text-right text-gray-500 text-xs font-bold uppercase tracking-wider">当せん金額</th>
+                                <th class="px-4 py-4 sm:px-6 text-right text-gray-500 text-xs font-bold uppercase tracking-wider">口数</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
+                        <tbody class="divide-y divide-gray-100">
                             {table_html}
                         </tbody>
                     </table>
                 </div>
             </div>
-            <div class="text-center pt-4">
-                <a href="index.html" class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 px-10 rounded-full transition-colors shadow-sm w-full sm:w-auto">
-                    ◀ トップに戻る
+
+            <div class="text-center pt-6">
+                <a href="loto6.html" class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 w-full sm:w-auto">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    ロト6 トップに戻る
                 </a>
             </div>
         </div>
@@ -629,7 +632,7 @@ def generate_loto6_detail_page(result_data):
 
     with open("loto6_detail.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✅ 詳細ページ (loto6_detail.html) の生成が完了しました！")
+    print("✅ レスポンシブ対応 詳細ページ (loto6_detail.html) の生成が完了しました！")
 
 # --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
