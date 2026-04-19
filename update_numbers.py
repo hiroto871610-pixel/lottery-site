@@ -375,7 +375,7 @@ import requests
 from bs4 import BeautifulSoup
 
 def get_numbers_full_detail():
-    """楽天宝くじからナンバーズ4＆3の最新詳細データを取得する（カット方式採用・最強版）"""
+    """楽天宝くじからナンバーズ4＆3の最新詳細データを取得（カット方式完全移植版）"""
     print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -394,63 +394,60 @@ def get_numbers_full_detail():
         if res4.status_code == 200:
             res4.encoding = 'euc-jp'
             soup4 = BeautifulSoup(res4.content, 'html.parser')
-            
-            # ★超重要：数字が画像(img)で表示されている対策（alt属性の数字をテキストに変換）
-            for img in soup4.find_all('img'):
-                alt = img.get('alt', '')
-                if alt: img.replace_with(alt)
-
             text4 = soup4.get_text(separator=' ')
-            
-            # ユーザー提案の「カット方式」ロジック！
+
+            # ★ユーザー提案のカット方式を完全適用！
             m_round4 = re.search(r'第\s*(\d+)\s*回', text4)
             if m_round4:
                 result_data["round"] = f"第{m_round4.group(1)}回"
                 
-                # 回号の直後から300文字切り出し、次の回号が混ざらないようカット
+                # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
                 chunk4 = text4[m_round4.end():m_round4.end() + 300]
+                
+                # 次の「第〇〇回」が現れたらそこでカット
                 next_kai4 = re.search(r'第\s*\d+\s*回', chunk4)
                 if next_kai4:
                     chunk4 = chunk4[:next_kai4.start()]
                 
-                # 日付の抽出（スペースが混ざっていても許容する）
-                m_date4 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
-                if m_date4 and not result_data["date"]:
-                    result_data["date"] = f"{m_date4.group(1)}/{m_date4.group(2).zfill(2)}/{m_date4.group(3).zfill(2)}"
-                
-                # ★最大の修正ポイント：数字を探す直前に、チャンク内の空白をすべて消し去る！（「4 4 8 6」→「4486」にする）
-                clean_chunk4 = re.sub(r'\s+', '', chunk4)
-                m_num4 = re.search(r'(抽せん数字|抽選数字|当せん数字|当せん番号|数字)\D*?(\d{4})', clean_chunk4)
-                if m_num4:
-                    result_data["n4_numbers"] = list(m_num4.group(2))
+                # 切り出した中から「日付」を見つける
+                date_m4 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
+                if date_m4:
+                    result_data["date"] = f"{date_m4.group(1)}/{date_m4.group(2).zfill(2)}/{date_m4.group(3).zfill(2)}"
+                    
+                    # 日付の直後から残りのテキストを切り出す
+                    num_chunk4 = chunk4[date_m4.end():]
+                    
+                    # ★空白をすべて消して確実に数字を取得！
+                    clean_num4 = re.sub(r'\s+', '', num_chunk4)
+                    win_m4 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字|数字)\D*?(\d{4})', clean_num4)
+                    if win_m4:
+                        result_data["n4_numbers"] = list(win_m4.group(2))
+                    else:
+                        # キーワードが見つからなくても強引に4桁を抽出
+                        fallback4 = re.search(r'(\d{4})', clean_num4)
+                        if fallback4: result_data["n4_numbers"] = list(fallback4.group(1))
 
-            # 賞金テーブルの取得
-            target_table4 = None
+            # 賞金テーブル取得
             for table in soup4.find_all('table'):
                 if 'ストレート' in table.get_text() and 'ボックス' in table.get_text():
-                    target_table4 = table
-                    break
-            
-            if target_table4:
-                for tr in target_table4.find_all('tr'):
-                    header_cell = tr.find(['th', 'td'])
-                    if not header_cell: continue
-                    clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
-                    
-                    grade = None
-                    if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
-                    elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
-                    elif 'ストレート' in clean_header: grade = 'ストレート'
-                    elif 'ボックス' in clean_header: grade = 'ボックス'
+                    for tr in table.find_all('tr'):
+                        header_cell = tr.find(['th', 'td'])
+                        if not header_cell: continue
+                        clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
+                        
+                        grade = None
+                        if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
+                        elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
+                        elif 'ストレート' in clean_header: grade = 'ストレート'
+                        elif 'ボックス' in clean_header: grade = 'ボックス'
 
-                    if grade:
-                        tds = tr.find_all('td')
-                        if len(tds) >= 2:
-                            result_data["n4_prizes"].append({
-                                "grade": grade,
-                                "winners": tds[-2].get_text(strip=True),
-                                "prize": tds[-1].get_text(strip=True)
-                            })
+                        if grade:
+                            tds = tr.find_all('td')
+                            if len(tds) >= 2:
+                                result_data["n4_prizes"].append({
+                                    "grade": grade, "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)
+                                })
+                    break # N4テーブル解析完了
 
         # ==========================================
         # 2. ナンバーズ3のデータ取得
@@ -460,62 +457,58 @@ def get_numbers_full_detail():
         if res3.status_code == 200:
             res3.encoding = 'euc-jp'
             soup3 = BeautifulSoup(res3.content, 'html.parser')
-
-            for img in soup3.find_all('img'):
-                alt = img.get('alt', '')
-                if alt: img.replace_with(alt)
-
             text3 = soup3.get_text(separator=' ')
-            
+
             m_round3 = re.search(r'第\s*(\d+)\s*回', text3)
             if m_round3:
                 if not result_data["round"]: result_data["round"] = f"第{m_round3.group(1)}回"
+                
                 chunk3 = text3[m_round3.end():m_round3.end() + 300]
                 next_kai3 = re.search(r'第\s*\d+\s*回', chunk3)
                 if next_kai3:
                     chunk3 = chunk3[:next_kai3.start()]
                 
-                if not result_data["date"]:
-                    m_date3 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
-                    if m_date3:
-                        result_data["date"] = f"{m_date3.group(1)}/{m_date3.group(2).zfill(2)}/{m_date3.group(3).zfill(2)}"
+                date_m3 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
+                if date_m3 and not result_data["date"]:
+                    result_data["date"] = f"{date_m3.group(1)}/{date_m3.group(2).zfill(2)}/{date_m3.group(3).zfill(2)}"
                 
-                # N3も同様に空白を消去してから3桁を引っこ抜く
-                clean_chunk3 = re.sub(r'\s+', '', chunk3)
-                m_num3 = re.search(r'(抽せん数字|抽選数字|当せん数字|当せん番号|数字)\D*?(\d{3})', clean_chunk3)
-                if m_num3:
-                    result_data["n3_numbers"] = list(m_num3.group(2))
+                if date_m3:
+                    num_chunk3 = chunk3[date_m3.end():]
+                else:
+                    num_chunk3 = chunk3
+                    
+                clean_num3 = re.sub(r'\s+', '', num_chunk3)
+                win_m3 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字|数字)\D*?(\d{3})', clean_num3)
+                if win_m3:
+                    result_data["n3_numbers"] = list(win_m3.group(2))
+                else:
+                    fallback3 = re.search(r'(\d{3})', clean_num3)
+                    if fallback3: result_data["n3_numbers"] = list(fallback3.group(1))
 
-            # 賞金テーブルの取得
-            target_table3 = None
+            # 賞金テーブル取得
             for table in soup3.find_all('table'):
                 if 'ストレート' in table.get_text() and 'ミニ' in table.get_text():
-                    target_table3 = table
-                    break
-            
-            if target_table3:
-                for tr in target_table3.find_all('tr'):
-                    header_cell = tr.find(['th', 'td'])
-                    if not header_cell: continue
-                    clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
-                    
-                    grade = None
-                    if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
-                    elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
-                    elif 'ストレート' in clean_header: grade = 'ストレート'
-                    elif 'ボックス' in clean_header: grade = 'ボックス'
-                    elif 'ミニ' in clean_header: grade = 'ミニ'
+                    for tr in table.find_all('tr'):
+                        header_cell = tr.find(['th', 'td'])
+                        if not header_cell: continue
+                        clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
+                        
+                        grade = None
+                        if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
+                        elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
+                        elif 'ストレート' in clean_header: grade = 'ストレート'
+                        elif 'ボックス' in clean_header: grade = 'ボックス'
+                        elif 'ミニ' in clean_header: grade = 'ミニ'
 
-                    if grade:
-                        tds = tr.find_all('td')
-                        if len(tds) >= 2:
-                            result_data["n3_prizes"].append({
-                                "grade": grade,
-                                "winners": tds[-2].get_text(strip=True),
-                                "prize": tds[-1].get_text(strip=True)
-                            })
+                        if grade:
+                            tds = tr.find_all('td')
+                            if len(tds) >= 2:
+                                result_data["n3_prizes"].append({
+                                    "grade": grade, "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)
+                                })
+                    break # N3テーブル解析完了
 
-        print(f"✅ ナンバーズ詳細データの取得に成功しました！ ({result_data['round']})")
+        print(f"✅ ナンバーズ詳細データの取得に成功しました！ ({result_data['round']}) N4:{result_data['n4_numbers']} N3:{result_data['n3_numbers']}")
         return result_data
         
     except Exception as e:
