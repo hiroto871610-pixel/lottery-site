@@ -526,113 +526,174 @@ def get_loto6_full_detail():
         return None
 
 def generate_loto6_detail_page(result_data):
-    """取得した詳細データから、PC・スマホ両対応の美しい詳細ページを生成する"""
-    print("🔄 ロト6 詳細ページ(HTML)をレスポンシブ対応で生成中...")
+    """既存のベースHTML/CSSにロト6の詳細データを流し込む"""
+    print("🔄 ロト6 詳細ページ(HTML)をベースデザインで生成中...")
     
     if not result_data:
         print("⚠️ リアルデータの取得に失敗したため、テスト用の仮データを使用します！") 
         result_data = {
-            "round": "第2094回", "date": "2026/04/16",
-            "numbers": ["01", "02", "03", "04", "05", "06"], "bonus": "07",
-            "prizes": [{"grade": "1等", "winners": "0口", "prize": "0円"}],
-            "carryover": "0円", "has_carryover": False
+            "round": "第----回", "date": "----/--/--",
+            "numbers": ["-","-","-","-","-","-"], "bonus": "-",
+            "prizes": [], "carryover": "0円", "has_carryover": False
         }
 
-    # 本数字・ボーナス数字の組み立て（スマホでも崩れないよう flex-wrap を使用）
-    numbers_html = ""
-    for num in result_data.get("numbers", []):
-        numbers_html += f'<span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-md">{num}</span>\n'
-    if result_data.get("bonus"):
-        numbers_html += f'<div class="flex items-center ml-2 sm:ml-4"><span class="text-gray-400 mr-2 text-xl">/</span><span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-md">{result_data["bonus"]}</span></div>'
+    # 本数字のボールを生成（青のグラデーション）
+    main_balls = "".join([f'<span class="ball">{n}</span>' for n in result_data.get("numbers", [])])
+    
+    # ボーナス数字のボールを生成（目立つように赤のグラデーションに上書き）
+    bonus_ball = f'<span class="ball" style="background: linear-gradient(135deg, #ef4444, #b91c1c);">{result_data.get("bonus", "")}</span>' if result_data.get("bonus") else ""
 
-    # 等級テーブルの組み立て（PCで見やすいようパディングを調整）
-    table_html = ""
-    for idx, prize in enumerate(result_data.get("prizes", [])):
-        bg_class = "bg-white" if idx % 2 == 0 else "bg-gray-50"
-        table_html += f"""
-        <tr class="{bg_class} hover:bg-blue-50 transition-colors">
-            <td class="px-4 py-5 sm:px-6 font-bold text-gray-800">{prize.get('grade')}</td>
-            <td class="px-4 py-5 sm:px-6 text-right text-blue-700 font-bold text-lg">{prize.get('prize')}</td>
-            <td class="px-4 py-5 sm:px-6 text-right text-gray-600">{prize.get('winners')}</td>
-        </tr>
-        """
+    # テーブルの行を生成
+    trs = ""
+    for p in result_data.get("prizes", []):
+        trs += f"<tr><td style='font-weight:bold; color:#1e3a8a;'>{p['grade']}</td><td style='color:#0284c7; font-weight:bold; font-size:16px;'>{p['prize']}</td><td style='color:#64748b;'>{p['winners']}</td></tr>"
 
-    # キャリーオーバーの組み立て
+    # キャリーオーバーの表示ブロックを生成
     carryover_html = ""
     if result_data.get("has_carryover"):
         carryover_html = f"""
-        <div class="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 text-red-700 px-6 py-6 rounded-2xl mb-10 text-center shadow-sm">
-            <p class="font-bold text-sm sm:text-base mb-1">💰 キャリーオーバー発生中！</p>
-            <p class="text-3xl sm:text-4xl font-black tracking-tighter">{result_data.get('carryover')}</p>
+        <div class="carryover-badge">
+            💰 キャリーオーバー発生中！<br>
+            <span style="font-size: 26px; display: inline-block; margin-top: 5px; letter-spacing: 1px;">{result_data.get('carryover', '0円')}</span>
         </div>
         """
 
+    # HTMLの組み立て（※CSSの波括弧は {{ }} と2つ重ねています）
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <title>【{result_data.get('round', '')}】ロト6 抽選結果詳細データ</title>
+    <meta name="description" content="{result_data.get('round', '')}のロト6当せん金額・口数、キャリーオーバーの最新詳細データを公開しています。">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ロト6 抽選結果詳細 | {result_data.get('round', '')}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>body {{ font-family: 'Noto Sans JP', sans-serif; }}</style>
-</head>
-<body class="bg-slate-100 pb-20">
-    <div class="max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:mt-10 sm:rounded-3xl">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
+        nav a.active {{ border-bottom: 3px solid #0284c7; color: #0284c7; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 900px; margin: 30px auto; padding: 0 20px; }}
+        .section-card {{ background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        .section-header {{ color: #0284c7; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }}
+        .prediction-box {{ background-color: #f0f9ff; border: 2px solid #bae6fd; border-radius: 12px; padding: 25px; margin-bottom: 20px;}}
+        .numbers-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; align-items: center; flex-wrap: wrap; }}
+        .row-label {{ font-size: 18px; font-weight: bold; color: #1e3a8a; background-color: #e0e7ff; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }}
+        .ball-container {{ display: flex; gap: 8px; flex-wrap: wrap; margin-right: auto;}}
+        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 42px; height: 42px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-size: 18px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }}
         
-        <div class="bg-gradient-to-br from-blue-700 to-blue-500 text-white text-center py-8 px-4">
-            <h1 class="text-2xl sm:text-3xl font-black tracking-widest mb-2">ロト6 抽選結果詳細</h1>
-            <div class="inline-block bg-white/20 px-4 py-1 rounded-full text-sm sm:text-base backdrop-blur-sm">
-                {result_data.get('round', '')} ／ {result_data.get('date', '')} 抽選
-            </div>
+        .carryover-badge {{ background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-size: 14px; font-weight: bold; padding: 15px 20px; border-radius: 12px; margin: 0 0 25px 0; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 4px 10px rgba(239,68,68,0.4); text-align: center; width: 100%; box-sizing: border-box; }}
+        @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.02); }} 100% {{ transform: scale(1); }} }}
+
+        @media (max-width: 600px) {{ 
+            .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px; gap: 10px;}} 
+            .row-label {{ margin-right: 0; margin-bottom: 5px; }} 
+            .ball-container {{ margin-right: 0; gap: 6px; }}
+            .ball {{ width: 36px; height: 36px; font-size: 16px;}}
+            .carryover-badge {{ font-size: 13px; padding: 12px; margin: 0 0 20px 0; }} 
+        }}
+        
+        table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; text-align: center; }}
+        th, td {{ padding: 15px; border-bottom: 1px solid #e2e8f0; }}
+        th {{ background-color: #f8fafc; color: #475569; font-weight: bold; }}
+        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
+    </style> 
+</head>
+<body>
+    <header>
+        <a href="index.html" style="text-decoration: none;">
+            <img src="Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ロト6詳細データ</div>
+        </a>
+    </header>
+    <nav>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html" class="active">ロト6</a>
+        <a href="numbers.html">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
+    </nav>
+
+    <div class="container">
+        <h1 style="color: #1e3a8a; font-size: 26px; text-align: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 30px;">
+            {result_data.get('round', '')} ({result_data.get('date', '')}) 抽選結果詳細
+        </h1>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
+                <img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1">
+            </a>
+            <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
         </div>
 
-        <div class="p-6 sm:p-10">
-            <div class="mb-10">
-                <h2 class="flex items-center text-gray-500 font-bold mb-4 text-sm sm:text-base">
-                    <span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>本数字 / ボーナス
-                </h2>
-                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                    {numbers_html}
-                </div>
-            </div>
-
+        <div class="section-card">
+            <h2 class="section-header">🎯 ロト6 抽選結果</h2>
+            
             {carryover_html}
 
-            <div class="mb-10">
-                <h2 class="flex items-center text-gray-500 font-bold mb-4 text-sm sm:text-base">
-                    <span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>当せん金額・口数
-                </h2>
-                <div class="overflow-hidden border border-gray-100 rounded-2xl shadow-inner">
-                    <table class="min-w-full divide-y divide-gray-100">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-4 py-4 sm:px-6 text-left text-gray-500 text-xs font-bold uppercase tracking-wider">等級</th>
-                                <th class="px-4 py-4 sm:px-6 text-right text-gray-500 text-xs font-bold uppercase tracking-wider">当せん金額</th>
-                                <th class="px-4 py-4 sm:px-6 text-right text-gray-500 text-xs font-bold uppercase tracking-wider">口数</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            {table_html}
-                        </tbody>
-                    </table>
+            <div class="prediction-box">
+                <div class="numbers-row">
+                    <div class="row-label">本数字</div>
+                    <div class="ball-container">
+                        {main_balls}
+                    </div>
+                </div>
+                <div class="numbers-row" style="margin-bottom: 0; background-color: #fff1f2; border-color: #fecdd3;">
+                    <div class="row-label" style="background-color: #ffe4e6; color: #be123c;">ボーナス</div>
+                    <div class="ball-container">
+                        {bonus_ball}
+                    </div>
                 </div>
             </div>
-
-            <div class="text-center pt-6">
-                <a href="loto6.html" class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 w-full sm:w-auto">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    ロト6 トップに戻る
-                </a>
-            </div>
+            <table>
+                <thead><tr><th>等級</th><th>当せん金額</th><th>口数</th></tr></thead>
+                <tbody>
+                    {trs}
+                </tbody>
+            </table>
         </div>
+
+        <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f0fdf4); border: 2px solid #22c55e; margin-bottom: 30px;">
+            <h3 style="color: #15803d; margin-top: 0; font-size: 20px;">📱 最新のAI予想をLINEでお届け！</h3>
+            <p style="font-size: 15px; color: #475569; margin-bottom: 20px;">
+                抽選日の朝に「今日の予想」を直接スマホにお知らせします。<br>
+                買い忘れ防止や、キャリーオーバーの速報受け取りにぜひ登録してください！
+            </p>
+            <a href="https://lin.ee/rKXCkr3" style="display: inline-block; background-color: #06C755; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3); transition: transform 0.2s;">
+                💬 LINEで無料通知を受け取る
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 40px;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
+                <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1">
+            </a>
+            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
+        </div>
+
     </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトのデータは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+    </footer>
 </body>
 </html>"""
 
     with open("loto6_detail.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✅ レスポンシブ対応 詳細ページ (loto6_detail.html) の生成が完了しました！")
+    print("✅ ロト6 詳細ページ(ベースデザイン版) の生成が完了しました！")
 
 # --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
