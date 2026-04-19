@@ -374,8 +374,12 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
+import re
+import requests
+from bs4 import BeautifulSoup
+
 def get_numbers_full_detail():
-    """楽天宝くじからナンバーズ4＆3の最新詳細データを一括取得する（テーブル分離対応の完全版）"""
+    """楽天宝くじからナンバーズ4＆3の最新詳細データを取得する（カット方式採用・最強版）"""
     print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -394,31 +398,46 @@ def get_numbers_full_detail():
         if res4.status_code == 200:
             res4.encoding = 'euc-jp'
             soup4 = BeautifulSoup(res4.content, 'html.parser')
+            
+            # ★超重要：数字が画像(img)で表示されている対策（alt属性の数字をテキストに変換する魔法）
+            for img in soup4.find_all('img'):
+                alt = img.get('alt', '')
+                if alt: img.replace_with(alt)
 
-            # ページ全体のすべての行(tr)を上から順に確認する
-            for tr in soup4.find_all('tr'):
-                row_text = tr.get_text(strip=True).replace(' ', '').replace('　', '')
+            text4 = soup4.get_text(separator=' ')
+            
+            # ご提示いただいた「カット方式」のロジック！
+            m_round4 = re.search(r'第\s*(\d+)\s*回', text4)
+            if m_round4:
+                result_data["round"] = f"第{m_round4.group(1)}回"
                 
-                # --- 回号と日付の取得（一番最初に見つかったものを最新とする） ---
-                if '第' in row_text and '回' in row_text and not result_data["round"]:
-                    m_round = re.search(r'第\s*\d+\s*回', tr.get_text(separator=' '))
-                    m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', tr.get_text(separator=' '))
-                    if m_round: result_data["round"] = m_round.group().replace(' ', '')
-                    if m_date: result_data["date"] = m_date.group()
+                # 回号の直後から300文字切り出し
+                chunk4 = text4[m_round4.end():m_round4.end() + 300]
+                # 次の回号が混ざらないようにそこでカット
+                next_kai4 = re.search(r'第\s*\d+\s*回', chunk4)
+                if next_kai4:
+                    chunk4 = chunk4[:next_kai4.start()]
+                
+                # 日付の抽出
+                m_date4 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
+                if m_date4 and not result_data["date"]:
+                    result_data["date"] = f"{m_date4.group(1)}/{m_date4.group(2).zfill(2)}/{m_date4.group(3).zfill(2)}"
+                
+                # 数字の抽出（表記揺れに対応するため、複数のキーワードを網羅）
+                m_num4 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字)\D*(\d{4})', chunk4)
+                if m_num4:
+                    result_data["n4_numbers"] = list(m_num4.group(2))
+                else:
+                    # 万が一キーワードが見つからなくても、日付（年）以外の4桁を強引に探すフォールバック
+                    digits4 = re.findall(r'(?<!\d)\d{4}(?!\d)', chunk4)
+                    digits4 = [d for d in digits4 if not (m_date4 and d == m_date4.group(1))]
+                    if digits4:
+                        result_data["n4_numbers"] = list(digits4[0])
 
-                # --- 抽せん数字の取得（テーブルが分かれていても確実に拾う） ---
-                if ('抽せん数字' in row_text or '抽選数字' in row_text or '当せん数字' in row_text) and not result_data["n4_numbers"]:
-                    alt_text = "".join([img.get('alt', '') for img in tr.find_all('img')])
-                    combined_text = tr.get_text(separator=' ') + " " + alt_text
-                    digits = re.findall(r'\d', combined_text)
-                    if len(digits) >= 4:
-                        result_data["n4_numbers"] = digits[-4:] # 確実に最後の4桁を抜く
-
-            # --- 賞金・口数の取得 ---
+            # 賞金テーブルの取得
             target_table4 = None
             for table in soup4.find_all('table'):
-                text = table.get_text()
-                if 'ストレート' in text and 'ボックス' in text and 'セット' in text:
+                if 'ストレート' in table.get_text() and 'ボックス' in table.get_text():
                     target_table4 = table
                     break
             
@@ -452,23 +471,41 @@ def get_numbers_full_detail():
             res3.encoding = 'euc-jp'
             soup3 = BeautifulSoup(res3.content, 'html.parser')
 
-            # ページ全体のすべての行(tr)を上から順に確認する
-            for tr in soup3.find_all('tr'):
-                row_text = tr.get_text(strip=True).replace(' ', '').replace('　', '')
-                
-                # --- 抽せん数字の取得 ---
-                if ('抽せん数字' in row_text or '抽選数字' in row_text or '当せん数字' in row_text) and not result_data["n3_numbers"]:
-                    alt_text = "".join([img.get('alt', '') for img in tr.find_all('img')])
-                    combined_text = tr.get_text(separator=' ') + " " + alt_text
-                    digits = re.findall(r'\d', combined_text)
-                    if len(digits) >= 3:
-                        result_data["n3_numbers"] = digits[-3:] # 確実に最後の3桁を抜く
+            # 画像のテキスト変換
+            for img in soup3.find_all('img'):
+                alt = img.get('alt', '')
+                if alt: img.replace_with(alt)
 
-            # --- 賞金・口数の取得 ---
+            text3 = soup3.get_text(separator=' ')
+            
+            # カット方式でN3の数字を取得
+            m_round3 = re.search(r'第\s*(\d+)\s*回', text3)
+            if m_round3:
+                if not result_data["round"]: # 万が一N4で失敗していた場合の保険
+                    result_data["round"] = f"第{m_round3.group(1)}回"
+                    
+                chunk3 = text3[m_round3.end():m_round3.end() + 300]
+                next_kai3 = re.search(r'第\s*\d+\s*回', chunk3)
+                if next_kai3:
+                    chunk3 = chunk3[:next_kai3.start()]
+                
+                if not result_data["date"]:
+                    m_date3 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
+                    if m_date3:
+                        result_data["date"] = f"{m_date3.group(1)}/{m_date3.group(2).zfill(2)}/{m_date3.group(3).zfill(2)}"
+                
+                m_num3 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字)\D*(\d{3})', chunk3)
+                if m_num3:
+                    result_data["n3_numbers"] = list(m_num3.group(2))
+                else:
+                    digits3 = re.findall(r'(?<!\d)\d{3}(?!\d)', chunk3)
+                    if digits3:
+                        result_data["n3_numbers"] = list(digits3[0])
+
+            # 賞金テーブルの取得
             target_table3 = None
             for table in soup3.find_all('table'):
-                text = table.get_text()
-                if 'ストレート' in text and 'ミニ' in text:
+                if 'ストレート' in table.get_text() and 'ミニ' in table.get_text():
                     target_table3 = table
                     break
             
