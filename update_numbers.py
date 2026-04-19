@@ -375,7 +375,7 @@ import requests
 from bs4 import BeautifulSoup
 
 def get_numbers_full_detail():
-    """楽天宝くじからナンバーズ4＆3の最新詳細データを一括取得する最強版"""
+    """楽天宝くじからナンバーズ4＆3の最新詳細データを一括取得する（画像・表記ブレ完全対応版）"""
     print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -398,25 +398,28 @@ def get_numbers_full_detail():
             target_table4 = None
             for table in soup4.find_all('table'):
                 text = table.get_text()
-                if 'ストレート' in text and 'ボックス' in text and 'セット' in text:
+                if 'ストレート' in text and 'ボックス' in text:
                     target_table4 = table
                     break
             
             if target_table4:
                 for tr in target_table4.find_all('tr'):
+                    # 1. 抽せん数字の取得（最強の画像＆テキスト両対応版）
+                    row_text = tr.get_text(strip=True)
+                    if '数字' in row_text and ('抽' in row_text or '当' in row_text):
+                        # imgタグのalt属性（画像で数字を出している場合）も文字として結合して抽出
+                        alt_text = "".join([img.get('alt', '') for img in tr.find_all('img')])
+                        combined_text = tr.get_text(separator=' ') + " " + alt_text
+                        digits = re.findall(r'\d', combined_text)
+                        if len(digits) >= 4:
+                            result_data["n4_numbers"] = digits[-4:] # 確実に後ろの4桁をとる
+                        continue
+
+                    # 2. 等級の判定
                     header_cell = tr.find(['th', 'td'])
                     if not header_cell: continue
                     clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
                     
-                    # 抽せん数字の取得（数字だけを抽出してリスト化）
-                    if '抽せん数字' in clean_header or '抽選数字' in clean_header:
-                        tds = tr.find_all('td')
-                        if tds:
-                            num_str = re.sub(r'\D', '', tds[-1].get_text())
-                            if num_str: result_data["n4_numbers"] = list(num_str)[:4]
-                        continue
-
-                    # 等級の判定（ストレートとセット(ストレート)の誤爆を防ぐ厳格な判定）
                     grade = None
                     if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
                     elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
@@ -457,17 +460,21 @@ def get_numbers_full_detail():
             
             if target_table3:
                 for tr in target_table3.find_all('tr'):
+                    # 1. 抽せん数字の取得（最強の画像＆テキスト両対応版）
+                    row_text = tr.get_text(strip=True)
+                    if '数字' in row_text and ('抽' in row_text or '当' in row_text):
+                        alt_text = "".join([img.get('alt', '') for img in tr.find_all('img')])
+                        combined_text = tr.get_text(separator=' ') + " " + alt_text
+                        digits = re.findall(r'\d', combined_text)
+                        if len(digits) >= 3:
+                            result_data["n3_numbers"] = digits[-3:] # 確実に後ろの3桁をとる
+                        continue
+
+                    # 2. 等級の判定
                     header_cell = tr.find(['th', 'td'])
                     if not header_cell: continue
                     clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
                     
-                    if '抽せん数字' in clean_header or '抽選数字' in clean_header:
-                        tds = tr.find_all('td')
-                        if tds:
-                            num_str = re.sub(r'\D', '', tds[-1].get_text())
-                            if num_str: result_data["n3_numbers"] = list(num_str)[:3]
-                        continue
-
                     grade = None
                     if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
                     elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
