@@ -284,8 +284,8 @@ def upload_image_to_imgbb(image_path):
     # =========================================================
 
 def create_result_image(loto7_nums, carryover_info, base_image_path, output_image_path):
-    """ロト7専用：1080x1350の大画面に合わせて、文字を大きく中央揃えで描画する職人"""
-    print("🎨 ロト7専用の予想画像を生成中（中央揃え・大画面版）...")
+    """ロト7専用：1080x1350に合わせて、特大2段組（上4・下3）＆白タイトルで描画する職人"""
+    print("🎨 ロト7専用の予想画像を生成中（特大2段・白タイトル版）...")
     try:
         # 1. ベース（背景）となる画像を開く
         img = Image.open(base_image_path)
@@ -302,25 +302,28 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
         font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
         urllib.request.urlretrieve(font_url, font_path)
 
-    # --- デザイン設定 (1080x1350用に最適化) ---
+    # --- デザイン設定 (特大2段レイアウト用に最適化) ---
     shadow_color = (100, 100, 100)  # 影（グレー）
     white = (255, 255, 255)         # 文字（白）
-    title_color = (30, 58, 138)  # タイトルは濃いネイビー
+    
+    # ★タイトルの色を白に変更！
+    title_color = white
     ball_color = (217, 119, 6)   # ボールはゴールド/オレンジ
     carry_color = (220, 38, 38)  # キャリーオーバーは目立つ赤！
 
-    # ボールの設定 (1080pxの幅に7個収まる最大サイズ)
-    ball_dia = 120  # ボールの直径
-    ball_space = 20 # ボール間のスペース
-    shadow_offset = 6 # 影のズレ量
+    # ボールの設定 (最大4個並ぶので、横幅1080pxに収まる最大サイズに拡大！)
+    ball_dia = 200  # ボールの直径（120pxから大幅アップ！）
+    ball_space_x = 40 # 横のボール間のスペース
+    ball_space_y = 60 # 縦（1段目と2段目）のスペース
+    shadow_offset = 8 # 影のズレ量
 
     # フォントサイズの設定
     font_title = ImageFont.truetype(font_path, 90)
-    font_num = ImageFont.truetype(font_path, 75)
+    font_num = ImageFont.truetype(font_path, 115) # 数字も超巨大化！
     font_carry = ImageFont.truetype(font_path, 65)
 
     # 全体の上下バランスを見て、描画開始Y位置を決める
-    current_y = 400 
+    current_y = 300 
 
     # ------------------------------------------------
     # 描画1：タイトル
@@ -332,41 +335,53 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     text_w = right - left
     title_x = (W - text_w) / 2
     
-    # タイトルの影と本体を描画
+    # タイトルの影と本体を描画（白文字）
     draw.text((title_x + shadow_offset, current_y + shadow_offset), title, font=font_title, fill=shadow_color)
     draw.text((title_x, current_y), title, font=font_title, fill=title_color)
     
-    current_y += (bottom - top) + 100 # ボール列との間隔
+    current_y += (bottom - top) + 80 # ボール列（1段目）との間隔
 
     # ------------------------------------------------
-    # 描画2：予想番号のボール（7個）
+    # 描画2：予想番号のボール（上段4個、下段3個）
     # ------------------------------------------------
-    # ★ボール列全体の中央位置を計算
-    total_ball_w = (ball_dia * 7) + (ball_space * 6)
-    ball_x = (W - total_ball_w) / 2 # 列の開始X位置
+    # 7つの数字を「上段(4個)」と「下段(3個)」の配列に分割する
+    rows = [
+        loto7_nums[:4],  # 最初の4個
+        loto7_nums[4:7]  # 残りの3個
+    ]
 
-    for digit in loto7_nums:
-        # ボールの影を描画
-        draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
-        # ボール本体を描画
-        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=ball_color)
-        
-        # ★数字がボールのド真ん中に来るように計算
-        left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
-        num_w = right - left
-        num_h = bottom - top
-        num_x = ball_x + (ball_dia - num_w) / 2
-        num_y = current_y + (ball_dia - num_h) / 2 - 10 # 縦位置の微調整
+    for row_nums in rows:
+        # ★その段のボールの数に合わせて全体幅を計算し、中央寄せにする
+        total_ball_w = (ball_dia * len(row_nums)) + (ball_space_x * (len(row_nums) - 1))
+        ball_x = (W - total_ball_w) / 2 
 
-        # 数字をボールの中心に描画
-        draw.text((num_x, num_y), digit, font=font_num, fill=white)
-        ball_x += ball_dia + ball_space
+        for digit in row_nums:
+            # ボールの影を描画
+            draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
+            # ボール本体を描画
+            draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=ball_color)
+            
+            # ★数字がボールのド真ん中に来るように計算
+            left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+            num_w = right - left
+            num_h = bottom - top
+            num_x = ball_x + (ball_dia - num_w) / 2
+            num_y = current_y + (ball_dia - num_h) / 2 - 15 # 縦位置の微調整
+
+            # 数字をボールの中心に描画
+            draw.text((num_x, num_y), digit, font=font_num, fill=white)
+            
+            # 次のボール（右）へ移動
+            ball_x += ball_dia + ball_space_x
+
+        # 1段終わったら、次の段（下）へ移動
+        current_y += ball_dia + ball_space_y
 
     # ------------------------------------------------
     # 描画3：キャリーオーバー（発生時のみ出現）
     # ------------------------------------------------
     if carryover_info:
-        current_y += ball_dia + 150 # ボールの下に移動
+        current_y += 20 # 2段目のボールとの間隔（すでにball_space_yが足されているので微調整）
         
         # キャリーオーバー文字の中央位置を計算
         left, top, right, bottom = draw.textbbox((0, 0), carryover_info, font=font_carry)
