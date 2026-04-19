@@ -424,6 +424,78 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
+def get_loto6_full_detail():
+    """楽天宝くじから直近の回号・日付・番号・金額・口数・キャリーオーバーをすべて取得する"""
+    print("☁️ 楽天宝くじから詳細データ（賞金・口数）を取得中...")
+    url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    result_data = {
+        "round": "", "date": "", "numbers": [], "bonus": "",
+        "prizes": [], "carryover": "0円", "has_carryover": False
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+
+            # 1. 回号と日付を取得
+            for th in soup.find_all('th'):
+                text = th.get_text(strip=True)
+                if "第" in text and "回" in text and "ロト6" in text:
+                    match = re.search(r'(第\d+回).*?\((.*?)\)', text)
+                    if match:
+                        result_data["round"] = match.group(1)
+                        result_data["date"] = match.group(2)
+                        break
+
+            # 2. 本数字とボーナス数字を取得
+            hon_elem = soup.find(['th', 'td'], string=re.compile(r'本数字'))
+            if hon_elem and hon_elem.find_parent('tr'):
+                nums = re.findall(r'\b\d{2}\b', hon_elem.find_parent('tr').get_text())
+                result_data["numbers"] = nums[:6]
+
+            bonus_elem = soup.find(['th', 'td'], string=re.compile(r'ボーナス数字'))
+            if bonus_elem and bonus_elem.find_parent('tr'):
+                nums = re.findall(r'\b\d{2}\b', bonus_elem.find_parent('tr').get_text())
+                if nums:
+                    result_data["bonus"] = nums[0]
+
+            # 3. 1等〜5等の当せん金額と口数を取得
+            for i in range(1, 6):
+                grade_str = f"{i}等"
+                grade_elem = soup.find(['th', 'td'], string=re.compile(grade_str))
+                if grade_elem and grade_elem.find_parent('tr'):
+                    tds = grade_elem.find_parent('tr').find_all('td')
+                    if len(tds) >= 2:
+                        result_data["prizes"].append({
+                            "grade": grade_str,
+                            "winners": tds[0].get_text(strip=True),
+                            "prize": tds[1].get_text(strip=True)
+                        })
+
+            # 4. キャリーオーバーを取得
+            carry_elem = soup.find(string=re.compile(r'キャリーオーバー'))
+            if carry_elem and carry_elem.find_parent('tr'):
+                tds = carry_elem.find_parent('tr').find_all('td')
+                if tds:
+                    carry_val = tds[-1].get_text(strip=True)
+                    result_data["carryover"] = carry_val
+                    if "0円" not in carry_val:
+                        result_data["has_carryover"] = True
+                        
+            # もし回号が取得できていなければ失敗とみなす
+            if not result_data["round"]:
+                return None
+                
+            print("✅ 詳細データの取得に成功しました！")
+            return result_data
+            
+    except Exception as e:
+        print(f"❌ 楽天データ取得エラー: {e}")
+        return None
 
 def generate_loto6_detail_page(result_data):
     """取得した詳細データから、美しいHTMLページ(loto6_detail.html)を自動生成する"""
@@ -971,12 +1043,6 @@ def build_html():
         <a href="column.html">攻略ガイド🔰</a>
     </nav>
 
-<div className="mt-4 text-center">
-  <Link href="/loto6/result" className="inline-flex items-center justify-center w-full bg-white border-2 border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-50 transition-colors">
-    📊 直近の当せん金額・口数を見る
-  </Link>
-</div>    
-
 <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
@@ -1199,7 +1265,7 @@ def build_html():
     # 最後に送信処理をまとめる
     if send_flag and msg:
         # post_to_x(msg)
-        # post_to_line(msg)
+        post_to_line(msg)
         # --- InstagramとThreadsの配信曜日判定 ---
         # 日本時間の現在時刻を取得
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
@@ -1252,5 +1318,6 @@ if __name__ == "__main__":
     final_html = build_html()
     with open('loto6.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
-        generate_loto6_detail_page(None)
+        real_data = get_loto6_full_detail()
+    generate_loto6_detail_page(real_data)
     print("✨ [自動取得・完全決着版] ロト6 の自動更新とXへのポストが完了しました！")
