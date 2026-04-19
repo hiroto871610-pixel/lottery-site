@@ -374,10 +374,6 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-import re
-import requests
-from bs4 import BeautifulSoup
-
 def get_numbers_full_detail():
     """楽天宝くじからナンバーズ4＆3の最新詳細データを取得する（カット方式採用・最強版）"""
     print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
@@ -399,40 +395,34 @@ def get_numbers_full_detail():
             res4.encoding = 'euc-jp'
             soup4 = BeautifulSoup(res4.content, 'html.parser')
             
-            # ★超重要：数字が画像(img)で表示されている対策（alt属性の数字をテキストに変換する魔法）
+            # ★超重要：数字が画像(img)で表示されている対策（alt属性の数字をテキストに変換）
             for img in soup4.find_all('img'):
                 alt = img.get('alt', '')
                 if alt: img.replace_with(alt)
 
             text4 = soup4.get_text(separator=' ')
             
-            # ご提示いただいた「カット方式」のロジック！
+            # ユーザー提案の「カット方式」ロジック！
             m_round4 = re.search(r'第\s*(\d+)\s*回', text4)
             if m_round4:
                 result_data["round"] = f"第{m_round4.group(1)}回"
                 
-                # 回号の直後から300文字切り出し
+                # 回号の直後から300文字切り出し、次の回号が混ざらないようカット
                 chunk4 = text4[m_round4.end():m_round4.end() + 300]
-                # 次の回号が混ざらないようにそこでカット
                 next_kai4 = re.search(r'第\s*\d+\s*回', chunk4)
                 if next_kai4:
                     chunk4 = chunk4[:next_kai4.start()]
                 
-                # 日付の抽出
-                m_date4 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
+                # 日付の抽出（スペースが混ざっていても許容する）
+                m_date4 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
                 if m_date4 and not result_data["date"]:
                     result_data["date"] = f"{m_date4.group(1)}/{m_date4.group(2).zfill(2)}/{m_date4.group(3).zfill(2)}"
                 
-                # 数字の抽出（表記揺れに対応するため、複数のキーワードを網羅）
-                m_num4 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字)\D*(\d{4})', chunk4)
+                # ★最大の修正ポイント：数字を探す直前に、チャンク内の空白をすべて消し去る！（「4 4 8 6」→「4486」にする）
+                clean_chunk4 = re.sub(r'\s+', '', chunk4)
+                m_num4 = re.search(r'(抽せん数字|抽選数字|当せん数字|当せん番号|数字)\D*?(\d{4})', clean_chunk4)
                 if m_num4:
                     result_data["n4_numbers"] = list(m_num4.group(2))
-                else:
-                    # 万が一キーワードが見つからなくても、日付（年）以外の4桁を強引に探すフォールバック
-                    digits4 = re.findall(r'(?<!\d)\d{4}(?!\d)', chunk4)
-                    digits4 = [d for d in digits4 if not (m_date4 and d == m_date4.group(1))]
-                    if digits4:
-                        result_data["n4_numbers"] = list(digits4[0])
 
             # 賞金テーブルの取得
             target_table4 = None
@@ -471,36 +461,30 @@ def get_numbers_full_detail():
             res3.encoding = 'euc-jp'
             soup3 = BeautifulSoup(res3.content, 'html.parser')
 
-            # 画像のテキスト変換
             for img in soup3.find_all('img'):
                 alt = img.get('alt', '')
                 if alt: img.replace_with(alt)
 
             text3 = soup3.get_text(separator=' ')
             
-            # カット方式でN3の数字を取得
             m_round3 = re.search(r'第\s*(\d+)\s*回', text3)
             if m_round3:
-                if not result_data["round"]: # 万が一N4で失敗していた場合の保険
-                    result_data["round"] = f"第{m_round3.group(1)}回"
-                    
+                if not result_data["round"]: result_data["round"] = f"第{m_round3.group(1)}回"
                 chunk3 = text3[m_round3.end():m_round3.end() + 300]
                 next_kai3 = re.search(r'第\s*\d+\s*回', chunk3)
                 if next_kai3:
                     chunk3 = chunk3[:next_kai3.start()]
                 
                 if not result_data["date"]:
-                    m_date3 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
+                    m_date3 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
                     if m_date3:
                         result_data["date"] = f"{m_date3.group(1)}/{m_date3.group(2).zfill(2)}/{m_date3.group(3).zfill(2)}"
                 
-                m_num3 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字)\D*(\d{3})', chunk3)
+                # N3も同様に空白を消去してから3桁を引っこ抜く
+                clean_chunk3 = re.sub(r'\s+', '', chunk3)
+                m_num3 = re.search(r'(抽せん数字|抽選数字|当せん数字|当せん番号|数字)\D*?(\d{3})', clean_chunk3)
                 if m_num3:
                     result_data["n3_numbers"] = list(m_num3.group(2))
-                else:
-                    digits3 = re.findall(r'(?<!\d)\d{3}(?!\d)', chunk3)
-                    if digits3:
-                        result_data["n3_numbers"] = list(digits3[0])
 
             # 賞金テーブルの取得
             target_table3 = None
