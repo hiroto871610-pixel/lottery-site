@@ -375,9 +375,8 @@ import requests
 from bs4 import BeautifulSoup
 
 def get_numbers_full_detail():
-    """楽天宝くじからナンバーズ4＆3の最新詳細データを取得（ベースページの成功ロジック完全同期版）"""
-    print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    """ベースページで大成功しているロジックを呼び出し、確実に番号を同期する完全決着版"""
+    print("☁️ 詳細ページ用のデータを同期中...")
     
     result_data = {
         "round": "", "date": "",
@@ -385,38 +384,33 @@ def get_numbers_full_detail():
         "n3_numbers": [], "n3_prizes": []
     }
 
+    # ==========================================
+    # ★大革命★ ベースページで100%成功している関数を呼び出して、回号・日付・番号を確実にセットする！
+    # ==========================================
     try:
-        # ==========================================
-        # 1. ナンバーズ4のデータ取得
-        # ==========================================
+        # fetch_both_history() はすでに同じファイル内で定義されているため呼び出せます
+        base_data = fetch_both_history()[0] 
+        result_data["round"] = base_data["kai"]
+        result_data["date"] = base_data["date"]
+        result_data["n4_numbers"] = list(base_data["n4_win"])
+        result_data["n3_numbers"] = list(base_data["n3_win"])
+        print(f"✅ ベースデータからの番号同期に成功！(N4: {base_data['n4_win']}, N3: {base_data['n3_win']})")
+    except Exception as e:
+        print(f"❌ ベースデータの同期に失敗しました: {e}")
+        return None
+
+    # ==========================================
+    # あとは「賞金のテーブル（金額・口数）」だけを楽天から頂く！
+    # ==========================================
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    try:
+        # --- ナンバーズ4の賞金取得 ---
         url4 = "https://takarakuji.rakuten.co.jp/backnumber/numbers4/"
         res4 = requests.get(url4, headers=headers, timeout=10)
         if res4.status_code == 200:
             res4.encoding = 'euc-jp'
             soup4 = BeautifulSoup(res4.content, 'html.parser')
-            text4 = soup4.get_text(separator=' ')
-
-            # ▼▼▼ ベースページで完璧に動いている抽出ロジックをそのまま使用 ▼▼▼
-            m_round4 = re.search(r'第\s*(\d+)\s*回', text4)
-            if m_round4:
-                result_data["round"] = f"第{m_round4.group(1)}回"
-                chunk4 = text4[m_round4.end():m_round4.end() + 300]
-                next_kai_match4 = re.search(r'第\s*\d+\s*回', chunk4)
-                if next_kai_match4:
-                    chunk4 = chunk4[:next_kai_match4.start()]
-                
-                date_m4 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
-                if date_m4:
-                    result_data["date"] = f"{date_m4.group(1)}/{date_m4.group(2).zfill(2)}/{date_m4.group(3).zfill(2)}"
-                    num_chunk4 = chunk4[date_m4.end():]
-                    
-                    # 余計な加工はせず、\D*の力で強引に数字を引っこ抜く！
-                    win_m4 = re.search(r'当せん番号\D*(\d{4})', num_chunk4)
-                    if win_m4:
-                        result_data["n4_numbers"] = list(win_m4.group(1))
-            # ▲▲▲ ここまで ▲▲▲
-
-            # 賞金テーブルの取得（ここはBeautifulSoupで表を解析）
             for table in soup4.find_all('table'):
                 if 'ストレート' in table.get_text() and 'ボックス' in table.get_text():
                     for tr in table.find_all('tr'):
@@ -438,37 +432,12 @@ def get_numbers_full_detail():
                                 })
                     break
 
-        # ==========================================
-        # 2. ナンバーズ3のデータ取得
-        # ==========================================
+        # --- ナンバーズ3の賞金取得 ---
         url3 = "https://takarakuji.rakuten.co.jp/backnumber/numbers3/"
         res3 = requests.get(url3, headers=headers, timeout=10)
         if res3.status_code == 200:
             res3.encoding = 'euc-jp'
             soup3 = BeautifulSoup(res3.content, 'html.parser')
-            text3 = soup3.get_text(separator=' ')
-
-            # ▼▼▼ ベースページ成功ロジック（ナンバーズ3版） ▼▼▼
-            m_round3 = re.search(r'第\s*(\d+)\s*回', text3)
-            if m_round3:
-                if not result_data["round"]: result_data["round"] = f"第{m_round3.group(1)}回"
-                chunk3 = text3[m_round3.end():m_round3.end() + 300]
-                next_kai_match3 = re.search(r'第\s*\d+\s*回', chunk3)
-                if next_kai_match3:
-                    chunk3 = chunk3[:next_kai_match3.start()]
-                
-                date_m3 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
-                if date_m3:
-                    if not result_data["date"]:
-                        result_data["date"] = f"{date_m3.group(1)}/{date_m3.group(2).zfill(2)}/{date_m3.group(3).zfill(2)}"
-                    num_chunk3 = chunk3[date_m3.end():]
-                    
-                    win_m3 = re.search(r'当せん番号\D*(\d{3})', num_chunk3)
-                    if win_m3:
-                        result_data["n3_numbers"] = list(win_m3.group(1))
-            # ▲▲▲ ここまで ▲▲▲
-
-            # 賞金テーブルの取得
             for table in soup3.find_all('table'):
                 if 'ストレート' in table.get_text() and 'ミニ' in table.get_text():
                     for tr in table.find_all('tr'):
@@ -491,12 +460,12 @@ def get_numbers_full_detail():
                                 })
                     break
 
-        print(f"✅ ナンバーズ詳細データの取得に成功しました！ ({result_data['round']}) N4:{result_data['n4_numbers']} N3:{result_data['n3_numbers']}")
+        print("✅ 詳細ページ用データの完全合成に成功しました！")
         return result_data
         
     except Exception as e:
-        print(f"❌ ナンバーズデータ解析エラー: {e}")
-        return None
+        print(f"❌ 賞金データ解析エラー: {e} (ただし番号の同期は完了しているため生成を続行します)")
+        return result_data # 万が一賞金テーブルが見つからなくても、回号・日付・番号は無事なのでそのまま返す！
 
 def generate_numbers_detail_page(result_data):
     """既存のベースHTML/CSSにナンバーズの詳細データを流し込む"""
