@@ -1077,10 +1077,6 @@ def build_html():
 
 <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #eff6ff); border: 2px solid #3b82f6; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">
         <h3 style="color: #1d4ed8; margin-top: 0; font-size: 20px; font-weight: bold;">📊 最新の当せん詳細データ</h3>
-        <p style="font-size: 15px; color: #475569; margin-bottom: 20px; line-height: 1.6;">
-            各等級の当せん金額や口数、キャリーオーバーの発生状況など<br>
-            最新回の詳細データを1円・1口単位で確認できます！
-        </p>
         <a href="loto6_detail.html" style="display: inline-block; background-color: #2563eb; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); transition: transform 0.2s;">
             🔍 詳細ページを確認する
         </a>
