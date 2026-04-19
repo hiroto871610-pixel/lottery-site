@@ -956,13 +956,14 @@ def build_html():
         <a href="column.html">攻略ガイド🔰</a>
     </nav>
 
-<div class="max-w-md mx-auto px-4 mt-6 sm:mt-8">
-        <a href="numbers_detail.html" class="flex items-center justify-center w-full bg-slate-800 text-white hover:bg-slate-700 font-bold py-3.5 px-6 rounded-xl transition-all duration-300 shadow-md group">
-            <span class="text-xl mr-2">📊</span>
-            直近の当せん金額・口数を見る
-            <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-            </svg>
+<div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f8fafc); border: 2px solid #64748b; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">
+        <h3 style="color: #334155; margin-top: 0; font-size: 20px; font-weight: bold;">📊 最新の当せん詳細データ</h3>
+        <p style="font-size: 15px; color: #475569; margin-bottom: 20px; line-height: 1.6;">
+            ナンバーズ3＆4の各等級の当せん金額や口数など<br>
+            最新回の詳細データを1円・1口単位で確認できます！
+        </p>
+        <a href="numbers_detail.html" style="display: inline-block; background-color: #1e293b; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(30, 41, 59, 0.3); transition: transform 0.2s;">
+            🔍 詳細ページを確認する
         </a>
     </div>
     
