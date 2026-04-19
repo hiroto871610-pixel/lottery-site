@@ -174,7 +174,7 @@ def post_to_threads(message):
 
     try:
         # ステップ1：メディアコンテナ（下書き）を作成する
-        create_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads"
+        create_url = f"https://graph.threads.net/v1.0/me/threads"
         payload = {
             "media_type": "TEXT",
             "text": message,
@@ -189,7 +189,7 @@ def post_to_threads(message):
         creation_id = res_create.json().get("id")
 
         # ステップ2：作成したコンテナを公開（パブリッシュ）する
-        publish_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads_publish"
+        publish_url = f"https://graph.threads.net/v1.0/me/threads_publish"
         publish_payload = {
             "creation_id": creation_id,
             "access_token": THREADS_ACCESS_TOKEN
@@ -206,24 +206,29 @@ def post_to_threads(message):
 # =========================================================
 
 def upload_image_to_server(image_path):
-    """ImgBBがインスタにブロックされるため、制限のない別サーバー(Catbox)を使用（APIキー不要！）"""
+    """ImgBBがインスタにブロックされるため、制限のない別サーバー(Catbox)を使用"""
     url = "https://catbox.moe/user/api.php"
     print("☁️ 画像をアップロードサーバー(Catbox)に送信中...")
+    
+    # ★ここを追加：一般のパソコンからのアクセスに見せかける「偽装」設定
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
     try:
         with open(image_path, "rb") as file:
             payload = {"reqtype": "fileupload"}
             files = {"fileToUpload": file}
-            response = requests.post(url, data=payload, files=files)
+            # headers を通信に組み込む
+            response = requests.post(url, data=payload, files=files, headers=headers)
             
-        if response.status_code == 200:
+        if response.status_code == 200 and response.text.strip() != "":
             image_url = response.text.strip()
             print(f"✅ 画像のURL化成功: {image_url}")
             return image_url
         else:
-            print(f"❌ サーバーエラー: {response.text}")
+            print(f"❌ サーバーエラーまたは空の応答: {response.text}")
             return None
-    except FileNotFoundError:
-        print(f"❌ 画像ファイルが見つかりません: {image_path}")
+    except Exception as e:
+        print(f"❌ 画像アップロードエラー: {e}")
         return None
 
 def post_to_instagram(image_url, caption_text):
