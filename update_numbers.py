@@ -375,7 +375,7 @@ import requests
 from bs4 import BeautifulSoup
 
 def get_numbers_full_detail():
-    """楽天宝くじからナンバーズ4＆3の最新詳細データを取得（カット方式完全移植版）"""
+    """楽天宝くじからナンバーズ4＆3の最新詳細データを取得（ベースページの成功ロジック完全同期版）"""
     print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -396,38 +396,27 @@ def get_numbers_full_detail():
             soup4 = BeautifulSoup(res4.content, 'html.parser')
             text4 = soup4.get_text(separator=' ')
 
-            # ★ユーザー提案のカット方式を完全適用！
+            # ▼▼▼ ベースページで完璧に動いている抽出ロジックをそのまま使用 ▼▼▼
             m_round4 = re.search(r'第\s*(\d+)\s*回', text4)
             if m_round4:
                 result_data["round"] = f"第{m_round4.group(1)}回"
-                
-                # 回号のすぐ後ろのテキスト（300文字分）を切り出して解析
                 chunk4 = text4[m_round4.end():m_round4.end() + 300]
+                next_kai_match4 = re.search(r'第\s*\d+\s*回', chunk4)
+                if next_kai_match4:
+                    chunk4 = chunk4[:next_kai_match4.start()]
                 
-                # 次の「第〇〇回」が現れたらそこでカット
-                next_kai4 = re.search(r'第\s*\d+\s*回', chunk4)
-                if next_kai4:
-                    chunk4 = chunk4[:next_kai4.start()]
-                
-                # 切り出した中から「日付」を見つける
-                date_m4 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
+                date_m4 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk4)
                 if date_m4:
                     result_data["date"] = f"{date_m4.group(1)}/{date_m4.group(2).zfill(2)}/{date_m4.group(3).zfill(2)}"
-                    
-                    # 日付の直後から残りのテキストを切り出す
                     num_chunk4 = chunk4[date_m4.end():]
                     
-                    # ★空白をすべて消して確実に数字を取得！
-                    clean_num4 = re.sub(r'\s+', '', num_chunk4)
-                    win_m4 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字|数字)\D*?(\d{4})', clean_num4)
+                    # 余計な加工はせず、\D*の力で強引に数字を引っこ抜く！
+                    win_m4 = re.search(r'当せん番号\D*(\d{4})', num_chunk4)
                     if win_m4:
-                        result_data["n4_numbers"] = list(win_m4.group(2))
-                    else:
-                        # キーワードが見つからなくても強引に4桁を抽出
-                        fallback4 = re.search(r'(\d{4})', clean_num4)
-                        if fallback4: result_data["n4_numbers"] = list(fallback4.group(1))
+                        result_data["n4_numbers"] = list(win_m4.group(1))
+            # ▲▲▲ ここまで ▲▲▲
 
-            # 賞金テーブル取得
+            # 賞金テーブルの取得（ここはBeautifulSoupで表を解析）
             for table in soup4.find_all('table'):
                 if 'ストレート' in table.get_text() and 'ボックス' in table.get_text():
                     for tr in table.find_all('tr'):
@@ -447,7 +436,7 @@ def get_numbers_full_detail():
                                 result_data["n4_prizes"].append({
                                     "grade": grade, "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)
                                 })
-                    break # N4テーブル解析完了
+                    break
 
         # ==========================================
         # 2. ナンバーズ3のデータ取得
@@ -459,33 +448,27 @@ def get_numbers_full_detail():
             soup3 = BeautifulSoup(res3.content, 'html.parser')
             text3 = soup3.get_text(separator=' ')
 
+            # ▼▼▼ ベースページ成功ロジック（ナンバーズ3版） ▼▼▼
             m_round3 = re.search(r'第\s*(\d+)\s*回', text3)
             if m_round3:
                 if not result_data["round"]: result_data["round"] = f"第{m_round3.group(1)}回"
-                
                 chunk3 = text3[m_round3.end():m_round3.end() + 300]
-                next_kai3 = re.search(r'第\s*\d+\s*回', chunk3)
-                if next_kai3:
-                    chunk3 = chunk3[:next_kai3.start()]
+                next_kai_match3 = re.search(r'第\s*\d+\s*回', chunk3)
+                if next_kai_match3:
+                    chunk3 = chunk3[:next_kai_match3.start()]
                 
-                date_m3 = re.search(r'(\d{4})\s*[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
-                if date_m3 and not result_data["date"]:
-                    result_data["date"] = f"{date_m3.group(1)}/{date_m3.group(2).zfill(2)}/{date_m3.group(3).zfill(2)}"
-                
+                date_m3 = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk3)
                 if date_m3:
+                    if not result_data["date"]:
+                        result_data["date"] = f"{date_m3.group(1)}/{date_m3.group(2).zfill(2)}/{date_m3.group(3).zfill(2)}"
                     num_chunk3 = chunk3[date_m3.end():]
-                else:
-                    num_chunk3 = chunk3
                     
-                clean_num3 = re.sub(r'\s+', '', num_chunk3)
-                win_m3 = re.search(r'(当せん番号|抽せん数字|抽選数字|当せん数字|数字)\D*?(\d{3})', clean_num3)
-                if win_m3:
-                    result_data["n3_numbers"] = list(win_m3.group(2))
-                else:
-                    fallback3 = re.search(r'(\d{3})', clean_num3)
-                    if fallback3: result_data["n3_numbers"] = list(fallback3.group(1))
+                    win_m3 = re.search(r'当せん番号\D*(\d{3})', num_chunk3)
+                    if win_m3:
+                        result_data["n3_numbers"] = list(win_m3.group(1))
+            # ▲▲▲ ここまで ▲▲▲
 
-            # 賞金テーブル取得
+            # 賞金テーブルの取得
             for table in soup3.find_all('table'):
                 if 'ストレート' in table.get_text() and 'ミニ' in table.get_text():
                     for tr in table.find_all('tr'):
@@ -506,7 +489,7 @@ def get_numbers_full_detail():
                                 result_data["n3_prizes"].append({
                                     "grade": grade, "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)
                                 })
-                    break # N3テーブル解析完了
+                    break
 
         print(f"✅ ナンバーズ詳細データの取得に成功しました！ ({result_data['round']}) N4:{result_data['n4_numbers']} N3:{result_data['n3_numbers']}")
         return result_data
