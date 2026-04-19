@@ -492,95 +492,169 @@ def get_numbers_full_detail():
         return None
 
 def generate_numbers_detail_page(result_data):
-    """ナンバーズ専用：PC・スマホ対応の詳細ページを生成する"""
-    print("🔄 ナンバーズ 詳細ページ(HTML)を生成中...")
+    """既存のベースHTML/CSSにナンバーズの詳細データを流し込む"""
+    print("🔄 ナンバーズ 詳細ページ(HTML)をベースデザインで生成中...")
     
     if not result_data:
-        print("⚠️ 仮データを使用します")
         result_data = {
-            "round": "第0000回", "date": "2026/00/00",
-            "n4_numbers": ["0","0","0","0"], "n4_prizes": [],
-            "n3_numbers": ["0","0","0"], "n3_prizes": []
+            "round": "第----回", "date": "----/--/--",
+            "n4_numbers": ["-","-","-","-"], "n4_prizes": [],
+            "n3_numbers": ["-","-","-"], "n3_prizes": []
         }
 
-    # N4 数字組み立て
-    n4_nums_html = "".join([f'<span class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-teal-500 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md border-b-4 border-teal-700">{n}</span>' for n in result_data.get("n4_numbers", [])])
-    
-    # N3 数字組み立て
-    n3_nums_html = "".join([f'<span class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-pink-500 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md border-b-4 border-pink-700">{n}</span>' for n in result_data.get("n3_numbers", [])])
+    # N4のボールとテーブル行を生成
+    n4_balls = "".join([f'<span class="ball">{n}</span>' for n in result_data.get("n4_numbers", [])])
+    n4_trs = ""
+    for p in result_data.get("n4_prizes", []):
+        n4_trs += f"<tr><td style='font-weight:bold; color:#334155;'>{p['grade']}</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>{p['prize']}</td><td style='color:#64748b;'>{p['winners']}</td></tr>"
 
-    # N4 テーブル組み立て
-    n4_table_html = ""
-    for idx, prize in enumerate(result_data.get("n4_prizes", [])):
-        bg_class = "bg-white" if idx % 2 == 0 else "bg-slate-50"
-        n4_table_html += f"""<tr class="{bg_class} hover:bg-teal-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">{prize['grade']}</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-teal-700 font-bold text-lg">{prize['prize']}</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">{prize['winners']}</td>
-        </tr>"""
+    # N3のボール（少し色を変えてピンク系に）とテーブル行を生成
+    n3_balls = "".join([f'<span class="ball" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">{n}</span>' for n in result_data.get("n3_numbers", [])])
+    n3_trs = ""
+    for p in result_data.get("n3_prizes", []):
+        n3_trs += f"<tr><td style='font-weight:bold; color:#334155;'>{p['grade']}</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>{p['prize']}</td><td style='color:#64748b;'>{p['winners']}</td></tr>"
 
-    # N3 テーブル組み立て
-    n3_table_html = ""
-    for idx, prize in enumerate(result_data.get("n3_prizes", [])):
-        bg_class = "bg-white" if idx % 2 == 0 else "bg-slate-50"
-        n3_table_html += f"""<tr class="{bg_class} hover:bg-pink-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">{prize['grade']}</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">{prize['prize']}</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">{prize['winners']}</td>
-        </tr>"""
-
+    # HTMLの組み立て（※CSSの波括弧は {{ }} と2つ重ねてエラーを回避しています）
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ナンバーズ 抽選結果詳細 | {result_data.get('round', '')}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>body {{ font-family: 'Noto Sans JP', sans-serif; }}</style>
+    <meta charset="UTF-8">
+    <title>【{result_data.get('round', '')}】ナンバーズ3＆4 抽選結果詳細データ</title>
+    <meta name="description" content="{result_data.get('round', '')}のナンバーズ3・ナンバーズ4の当せん金額・口数などの詳細データを公開しています。">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
+        nav a.active {{ border-bottom: 3px solid #16a34a; color: #16a34a; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 900px; margin: 30px auto; padding: 0 20px; }}
+        .section-card {{ background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        .section-header {{ color: #16a34a; border-bottom: 2px solid #dcfce7; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }}
+        .prediction-box {{ background-color: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 25px; margin-bottom: 20px;}}
+        .numbers-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; align-items: center; flex-wrap: wrap; }}
+        .row-label {{ font-size: 18px; font-weight: bold; color: #1e3a8a; background-color: #e0e7ff; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }}
+        .ball-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-right: auto;}}
+        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 45px; height: 45px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 8px; font-size: 24px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }}
+        
+        @media (max-width: 600px) {{ 
+            .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px; gap: 10px; }} 
+            .row-label {{ margin-right: 0; margin-bottom: 5px; }} 
+            .ball-container {{ margin-right: 0; gap: 8px; }}
+            .ball {{ width: 36px; height: 36px; font-size: 18px; border-radius: 6px; }} 
+        }}
+        
+        table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; text-align: center; }}
+        th, td {{ padding: 15px; border-bottom: 1px solid #e2e8f0; }}
+        th {{ background-color: #f8fafc; color: #475569; font-weight: bold; }}
+        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
+    </style> 
 </head>
-<body class="bg-slate-100 pb-20">
-    <div class="max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:mt-10 sm:rounded-3xl">
-        <div class="bg-gradient-to-br from-slate-800 to-slate-600 text-white text-center py-8 px-4">
-            <h1 class="text-2xl sm:text-3xl font-black tracking-widest mb-2">ナンバーズ 抽選結果詳細</h1>
-            <div class="inline-block bg-white/20 px-4 py-1 rounded-full text-sm backdrop-blur-sm">{result_data.get('round', '')} ／ {result_data.get('date', '')} 抽選</div>
+<body>
+    <header>
+        <a href="index.html" style="text-decoration: none;">
+            <img src="Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ナンバーズ詳細データ</div>
+        </a>
+    </header>
+    <nav>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html">ロト6</a>
+        <a href="numbers.html" class="active">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
+    </nav>
+
+    <div class="container">
+        <h1 style="color: #1e3a8a; font-size: 26px; text-align: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 30px;">
+            {result_data.get('round', '')} ({result_data.get('date', '')}) 抽選結果詳細
+        </h1>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
+                <img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1">
+            </a>
+            <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
         </div>
-        <div class="p-4 sm:p-10 space-y-12">
-            
-            <div class="bg-teal-50/50 rounded-2xl p-4 sm:p-6 border border-teal-100">
-                <h2 class="text-teal-700 font-black text-xl mb-6 flex items-center"><span class="w-2 h-6 bg-teal-500 rounded-full mr-3"></span>ナンバーズ 4</h2>
-                <div class="mb-8 flex justify-center sm:justify-start gap-2 sm:gap-4">{n4_nums_html}</div>
-                <div class="overflow-hidden border border-teal-200 rounded-2xl shadow-sm bg-white">
-                    <table class="min-w-full divide-y divide-teal-100">
-                        <thead class="bg-teal-600 text-white"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase">等級</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">口数</th></tr></thead>
-                        <tbody class="divide-y divide-teal-50">{n4_table_html}</tbody>
-                    </table>
+
+        <div class="section-card">
+            <h2 class="section-header">🎯 ナンバーズ4 抽選結果</h2>
+            <div class="prediction-box">
+                <div class="numbers-row">
+                    <div class="row-label">当せん数字</div>
+                    <div class="ball-container">
+                        {n4_balls}
+                    </div>
                 </div>
             </div>
+            <table>
+                <thead><tr><th>等級</th><th>当せん金額</th><th>口数</th></tr></thead>
+                <tbody>
+                    {n4_trs}
+                </tbody>
+            </table>
+        </div>
 
-            <div class="bg-pink-50/50 rounded-2xl p-4 sm:p-6 border border-pink-100">
-                <h2 class="text-pink-700 font-black text-xl mb-6 flex items-center"><span class="w-2 h-6 bg-pink-500 rounded-full mr-3"></span>ナンバーズ 3</h2>
-                <div class="mb-8 flex justify-center sm:justify-start gap-2 sm:gap-4">{n3_nums_html}</div>
-                <div class="overflow-hidden border border-pink-200 rounded-2xl shadow-sm bg-white">
-                    <table class="min-w-full divide-y divide-pink-100">
-                        <thead class="bg-pink-600 text-white"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase">等級</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">口数</th></tr></thead>
-                        <tbody class="divide-y divide-pink-50">{n3_table_html}</tbody>
-                    </table>
+        <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f0fdf4); border: 2px solid #22c55e; margin-bottom: 30px;">
+            <h3 style="color: #15803d; margin-top: 0; font-size: 20px;">📱 最新のAI予想をLINEでお届け！</h3>
+            <p style="font-size: 15px; color: #475569; margin-bottom: 20px;">
+                抽選日の朝に「今日の予想」を直接スマホにお知らせします。<br>
+                買い忘れ防止や、キャリーオーバーの速報受け取りにぜひ登録してください！
+            </p>
+            <a href="https://lin.ee/rKXCkr3" style="display: inline-block; background-color: #06C755; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3); transition: transform 0.2s;">
+                💬 LINEで無料通知を受け取る
+            </a>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header" style="color: #e11d48; border-color: #ffe4e6;">🎯 ナンバーズ3 抽選結果</h2>
+            <div class="prediction-box" style="background-color: #fff1f2; border-color: #fecdd3;">
+                <div class="numbers-row">
+                    <div class="row-label" style="color: #be123c; background-color: #ffe4e6;">当せん数字</div>
+                    <div class="ball-container">
+                        {n3_balls}
+                    </div>
                 </div>
             </div>
-
-            <div class="text-center pt-2">
-                <a href="numbers.html" class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-lg w-full sm:w-auto">
-                    ナンバーズ トップに戻る
-                </a>
-            </div>
+            <table>
+                <thead><tr><th>等級</th><th>当せん金額</th><th>口数</th></tr></thead>
+                <tbody>
+                    {n3_trs}
+                </tbody>
+            </table>
         </div>
+
+        <div style="text-align: center; margin-bottom: 40px;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
+                <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1">
+            </a>
+            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
+        </div>
+
     </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトのデータは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+    </footer>
 </body>
 </html>"""
 
     with open("numbers_detail.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✅ ナンバーズ 詳細ページの生成が完了しました！")
+    print("✅ ナンバーズ 詳細ページ(ベースデザイン版) の生成が完了しました！")
 
 # --- 1. 過去データの取得（★ロトと同様のカット方式に修正） ---
 def fetch_single_history(base_url, length):

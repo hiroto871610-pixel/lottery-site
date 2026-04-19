@@ -1,84 +1,136 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ナンバーズ 抽選結果詳細 | 第6964回</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Noto Sans JP', sans-serif; }</style>
+    <meta charset="UTF-8">
+    <title>【第6964回】ナンバーズ3＆4 抽選結果詳細データ</title>
+    <meta name="description" content="第6964回のナンバーズ3・ナンバーズ4の当せん金額・口数などの詳細データを公開しています。">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }
+        header { background-color: #1e3a8a; padding: 10px 0; text-align: center; }
+        nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }
+        nav a { color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }
+        nav a.active { border-bottom: 3px solid #16a34a; color: #16a34a; }
+        nav a:hover { background-color: #f0f4f8; }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .section-header { color: #16a34a; border-bottom: 2px solid #dcfce7; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }
+        .prediction-box { background-color: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 25px; margin-bottom: 20px;}
+        .numbers-row { background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; align-items: center; flex-wrap: wrap; }
+        .row-label { font-size: 18px; font-weight: bold; color: #1e3a8a; background-color: #e0e7ff; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }
+        .ball-container { display: flex; gap: 12px; flex-wrap: wrap; margin-right: auto;}
+        .ball { display: inline-flex; justify-content: center; align-items: center; width: 45px; height: 45px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 8px; font-size: 24px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }
+        
+        @media (max-width: 600px) { 
+            .numbers-row { flex-direction: column; align-items: flex-start; padding: 15px; gap: 10px; } 
+            .row-label { margin-right: 0; margin-bottom: 5px; } 
+            .ball-container { margin-right: 0; gap: 8px; }
+            .ball { width: 36px; height: 36px; font-size: 18px; border-radius: 6px; } 
+        }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; text-align: center; }
+        th, td { padding: 15px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; color: #475569; font-weight: bold; }
+        footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }
+        .footer-links { margin-bottom: 15px; }
+        .footer-links a { color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }
+        .footer-links a:hover { color: white; text-decoration: underline; }
+    </style> 
 </head>
-<body class="bg-slate-100 pb-20">
-    <div class="max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:mt-10 sm:rounded-3xl">
-        <div class="bg-gradient-to-br from-slate-800 to-slate-600 text-white text-center py-8 px-4">
-            <h1 class="text-2xl sm:text-3xl font-black tracking-widest mb-2">ナンバーズ 抽選結果詳細</h1>
-            <div class="inline-block bg-white/20 px-4 py-1 rounded-full text-sm backdrop-blur-sm">第6964回 ／ 2026/04/17 抽選</div>
+<body>
+    <header>
+        <a href="index.html" style="text-decoration: none;">
+            <img src="Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ナンバーズ詳細データ</div>
+        </a>
+    </header>
+    <nav>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html">ロト6</a>
+        <a href="numbers.html" class="active">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
+    </nav>
+
+    <div class="container">
+        <h1 style="color: #1e3a8a; font-size: 26px; text-align: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 30px;">
+            第6964回 (2026/04/17) 抽選結果詳細
+        </h1>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
+                <img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1">
+            </a>
+            <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
         </div>
-        <div class="p-4 sm:p-10 space-y-12">
-            
-            <div class="bg-teal-50/50 rounded-2xl p-4 sm:p-6 border border-teal-100">
-                <h2 class="text-teal-700 font-black text-xl mb-6 flex items-center"><span class="w-2 h-6 bg-teal-500 rounded-full mr-3"></span>ナンバーズ 4</h2>
-                <div class="mb-8 flex justify-center sm:justify-start gap-2 sm:gap-4"></div>
-                <div class="overflow-hidden border border-teal-200 rounded-2xl shadow-sm bg-white">
-                    <table class="min-w-full divide-y divide-teal-100">
-                        <thead class="bg-teal-600 text-white"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase">等級</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">口数</th></tr></thead>
-                        <tbody class="divide-y divide-teal-50"><tr class="bg-white hover:bg-teal-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">ストレート</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-teal-700 font-bold text-lg">900,300円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">22口</td>
-        </tr><tr class="bg-slate-50 hover:bg-teal-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">ボックス</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-teal-700 font-bold text-lg">75,000円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">150口</td>
-        </tr><tr class="bg-white hover:bg-teal-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">セット(ストレート)</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-teal-700 font-bold text-lg">487,600円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">85口</td>
-        </tr><tr class="bg-slate-50 hover:bg-teal-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">セット(ボックス)</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-teal-700 font-bold text-lg">37,500円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">559口</td>
-        </tr></tbody>
-                    </table>
+
+        <div class="section-card">
+            <h2 class="section-header">🎯 ナンバーズ4 抽選結果</h2>
+            <div class="prediction-box">
+                <div class="numbers-row">
+                    <div class="row-label">当せん数字</div>
+                    <div class="ball-container">
+                        
+                    </div>
                 </div>
             </div>
+            <table>
+                <thead><tr><th>等級</th><th>当せん金額</th><th>口数</th></tr></thead>
+                <tbody>
+                    <tr><td style='font-weight:bold; color:#334155;'>ストレート</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>900,300円</td><td style='color:#64748b;'>22口</td></tr><tr><td style='font-weight:bold; color:#334155;'>ボックス</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>75,000円</td><td style='color:#64748b;'>150口</td></tr><tr><td style='font-weight:bold; color:#334155;'>セット(ストレート)</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>487,600円</td><td style='color:#64748b;'>85口</td></tr><tr><td style='font-weight:bold; color:#334155;'>セット(ボックス)</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>37,500円</td><td style='color:#64748b;'>559口</td></tr>
+                </tbody>
+            </table>
+        </div>
 
-            <div class="bg-pink-50/50 rounded-2xl p-4 sm:p-6 border border-pink-100">
-                <h2 class="text-pink-700 font-black text-xl mb-6 flex items-center"><span class="w-2 h-6 bg-pink-500 rounded-full mr-3"></span>ナンバーズ 3</h2>
-                <div class="mb-8 flex justify-center sm:justify-start gap-2 sm:gap-4"></div>
-                <div class="overflow-hidden border border-pink-200 rounded-2xl shadow-sm bg-white">
-                    <table class="min-w-full divide-y divide-pink-100">
-                        <thead class="bg-pink-600 text-white"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase">等級</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">口数</th></tr></thead>
-                        <tbody class="divide-y divide-pink-50"><tr class="bg-white hover:bg-pink-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">ストレート</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">76,500円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">101口</td>
-        </tr><tr class="bg-slate-50 hover:bg-pink-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">ボックス</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">25,500円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">282口</td>
-        </tr><tr class="bg-white hover:bg-pink-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">セット(ストレート)</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">51,000円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">164口</td>
-        </tr><tr class="bg-slate-50 hover:bg-pink-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">セット(ボックス)</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">12,700円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">506口</td>
-        </tr><tr class="bg-white hover:bg-pink-50 transition-colors">
-            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">ミニ</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">7,600円</td>
-            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">996口</td>
-        </tr></tbody>
-                    </table>
+        <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f0fdf4); border: 2px solid #22c55e; margin-bottom: 30px;">
+            <h3 style="color: #15803d; margin-top: 0; font-size: 20px;">📱 最新のAI予想をLINEでお届け！</h3>
+            <p style="font-size: 15px; color: #475569; margin-bottom: 20px;">
+                抽選日の朝に「今日の予想」を直接スマホにお知らせします。<br>
+                買い忘れ防止や、キャリーオーバーの速報受け取りにぜひ登録してください！
+            </p>
+            <a href="https://lin.ee/rKXCkr3" style="display: inline-block; background-color: #06C755; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3); transition: transform 0.2s;">
+                💬 LINEで無料通知を受け取る
+            </a>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header" style="color: #e11d48; border-color: #ffe4e6;">🎯 ナンバーズ3 抽選結果</h2>
+            <div class="prediction-box" style="background-color: #fff1f2; border-color: #fecdd3;">
+                <div class="numbers-row">
+                    <div class="row-label" style="color: #be123c; background-color: #ffe4e6;">当せん数字</div>
+                    <div class="ball-container">
+                        
+                    </div>
                 </div>
             </div>
-
-            <div class="text-center pt-2">
-                <a href="numbers.html" class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-lg w-full sm:w-auto">
-                    ナンバーズ トップに戻る
-                </a>
-            </div>
+            <table>
+                <thead><tr><th>等級</th><th>当せん金額</th><th>口数</th></tr></thead>
+                <tbody>
+                    <tr><td style='font-weight:bold; color:#334155;'>ストレート</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>76,500円</td><td style='color:#64748b;'>101口</td></tr><tr><td style='font-weight:bold; color:#334155;'>ボックス</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>25,500円</td><td style='color:#64748b;'>282口</td></tr><tr><td style='font-weight:bold; color:#334155;'>セット(ストレート)</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>51,000円</td><td style='color:#64748b;'>164口</td></tr><tr><td style='font-weight:bold; color:#334155;'>セット(ボックス)</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>12,700円</td><td style='color:#64748b;'>506口</td></tr><tr><td style='font-weight:bold; color:#334155;'>ミニ</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>7,600円</td><td style='color:#64748b;'>996口</td></tr>
+                </tbody>
+            </table>
         </div>
+
+        <div style="text-align: center; margin-bottom: 40px;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
+                <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1">
+            </a>
+            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
+        </div>
+
     </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトのデータは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+    </footer>
 </body>
 </html>
