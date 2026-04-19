@@ -370,6 +370,217 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
+import re
+import requests
+from bs4 import BeautifulSoup
+
+def get_numbers_full_detail():
+    """楽天宝くじからナンバーズ4＆3の最新詳細データを一括取得する最強版"""
+    print("☁️ 楽天宝くじからナンバーズの詳細データを抽出中...")
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    result_data = {
+        "round": "", "date": "",
+        "n4_numbers": [], "n4_prizes": [],
+        "n3_numbers": [], "n3_prizes": []
+    }
+
+    try:
+        # ==========================================
+        # 1. ナンバーズ4のデータ取得
+        # ==========================================
+        url4 = "https://takarakuji.rakuten.co.jp/backnumber/numbers4/"
+        res4 = requests.get(url4, headers=headers, timeout=10)
+        if res4.status_code == 200:
+            res4.encoding = 'euc-jp'
+            soup4 = BeautifulSoup(res4.content, 'html.parser')
+
+            target_table4 = None
+            for table in soup4.find_all('table'):
+                text = table.get_text()
+                if 'ストレート' in text and 'ボックス' in text and 'セット' in text:
+                    target_table4 = table
+                    break
+            
+            if target_table4:
+                for tr in target_table4.find_all('tr'):
+                    header_cell = tr.find(['th', 'td'])
+                    if not header_cell: continue
+                    clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
+                    
+                    # 抽せん数字の取得（数字だけを抽出してリスト化）
+                    if '抽せん数字' in clean_header or '抽選数字' in clean_header:
+                        tds = tr.find_all('td')
+                        if tds:
+                            num_str = re.sub(r'\D', '', tds[-1].get_text())
+                            if num_str: result_data["n4_numbers"] = list(num_str)[:4]
+                        continue
+
+                    # 等級の判定（ストレートとセット(ストレート)の誤爆を防ぐ厳格な判定）
+                    grade = None
+                    if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
+                    elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
+                    elif 'ストレート' in clean_header: grade = 'ストレート'
+                    elif 'ボックス' in clean_header: grade = 'ボックス'
+
+                    if grade:
+                        tds = tr.find_all('td')
+                        if len(tds) >= 2:
+                            result_data["n4_prizes"].append({
+                                "grade": grade,
+                                "winners": tds[-2].get_text(strip=True),
+                                "prize": tds[-1].get_text(strip=True)
+                            })
+
+                # 回号と日付
+                table_text = target_table4.get_text(separator=' ', strip=True)
+                m_round = re.search(r'第\s*\d+\s*回', table_text)
+                m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
+                if m_round: result_data["round"] = m_round.group().replace(' ', '')
+                if m_date: result_data["date"] = m_date.group()
+
+        # ==========================================
+        # 2. ナンバーズ3のデータ取得
+        # ==========================================
+        url3 = "https://takarakuji.rakuten.co.jp/backnumber/numbers3/"
+        res3 = requests.get(url3, headers=headers, timeout=10)
+        if res3.status_code == 200:
+            res3.encoding = 'euc-jp'
+            soup3 = BeautifulSoup(res3.content, 'html.parser')
+
+            target_table3 = None
+            for table in soup3.find_all('table'):
+                text = table.get_text()
+                if 'ストレート' in text and 'ミニ' in text:
+                    target_table3 = table
+                    break
+            
+            if target_table3:
+                for tr in target_table3.find_all('tr'):
+                    header_cell = tr.find(['th', 'td'])
+                    if not header_cell: continue
+                    clean_header = header_cell.get_text(strip=True).replace(' ', '').replace('　', '')
+                    
+                    if '抽せん数字' in clean_header or '抽選数字' in clean_header:
+                        tds = tr.find_all('td')
+                        if tds:
+                            num_str = re.sub(r'\D', '', tds[-1].get_text())
+                            if num_str: result_data["n3_numbers"] = list(num_str)[:3]
+                        continue
+
+                    grade = None
+                    if 'セット' in clean_header and 'ストレート' in clean_header: grade = 'セット(ストレート)'
+                    elif 'セット' in clean_header and 'ボックス' in clean_header: grade = 'セット(ボックス)'
+                    elif 'ストレート' in clean_header: grade = 'ストレート'
+                    elif 'ボックス' in clean_header: grade = 'ボックス'
+                    elif 'ミニ' in clean_header: grade = 'ミニ'
+
+                    if grade:
+                        tds = tr.find_all('td')
+                        if len(tds) >= 2:
+                            result_data["n3_prizes"].append({
+                                "grade": grade,
+                                "winners": tds[-2].get_text(strip=True),
+                                "prize": tds[-1].get_text(strip=True)
+                            })
+
+        print(f"✅ ナンバーズ詳細データの取得に成功しました！ ({result_data['round']})")
+        return result_data
+        
+    except Exception as e:
+        print(f"❌ ナンバーズデータ解析エラー: {e}")
+        return None
+
+def generate_numbers_detail_page(result_data):
+    """ナンバーズ専用：PC・スマホ対応の詳細ページを生成する"""
+    print("🔄 ナンバーズ 詳細ページ(HTML)を生成中...")
+    
+    if not result_data:
+        print("⚠️ 仮データを使用します")
+        result_data = {
+            "round": "第0000回", "date": "2026/00/00",
+            "n4_numbers": ["0","0","0","0"], "n4_prizes": [],
+            "n3_numbers": ["0","0","0"], "n3_prizes": []
+        }
+
+    # N4 数字組み立て
+    n4_nums_html = "".join([f'<span class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-teal-500 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md border-b-4 border-teal-700">{n}</span>' for n in result_data.get("n4_numbers", [])])
+    
+    # N3 数字組み立て
+    n3_nums_html = "".join([f'<span class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-pink-500 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md border-b-4 border-pink-700">{n}</span>' for n in result_data.get("n3_numbers", [])])
+
+    # N4 テーブル組み立て
+    n4_table_html = ""
+    for idx, prize in enumerate(result_data.get("n4_prizes", [])):
+        bg_class = "bg-white" if idx % 2 == 0 else "bg-slate-50"
+        n4_table_html += f"""<tr class="{bg_class} hover:bg-teal-50 transition-colors">
+            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">{prize['grade']}</td>
+            <td class="px-4 py-4 sm:px-6 text-right text-teal-700 font-bold text-lg">{prize['prize']}</td>
+            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">{prize['winners']}</td>
+        </tr>"""
+
+    # N3 テーブル組み立て
+    n3_table_html = ""
+    for idx, prize in enumerate(result_data.get("n3_prizes", [])):
+        bg_class = "bg-white" if idx % 2 == 0 else "bg-slate-50"
+        n3_table_html += f"""<tr class="{bg_class} hover:bg-pink-50 transition-colors">
+            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">{prize['grade']}</td>
+            <td class="px-4 py-4 sm:px-6 text-right text-pink-600 font-bold text-lg">{prize['prize']}</td>
+            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">{prize['winners']}</td>
+        </tr>"""
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ナンバーズ 抽選結果詳細 | {result_data.get('round', '')}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>body {{ font-family: 'Noto Sans JP', sans-serif; }}</style>
+</head>
+<body class="bg-slate-100 pb-20">
+    <div class="max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:mt-10 sm:rounded-3xl">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-600 text-white text-center py-8 px-4">
+            <h1 class="text-2xl sm:text-3xl font-black tracking-widest mb-2">ナンバーズ 抽選結果詳細</h1>
+            <div class="inline-block bg-white/20 px-4 py-1 rounded-full text-sm backdrop-blur-sm">{result_data.get('round', '')} ／ {result_data.get('date', '')} 抽選</div>
+        </div>
+        <div class="p-4 sm:p-10 space-y-12">
+            
+            <div class="bg-teal-50/50 rounded-2xl p-4 sm:p-6 border border-teal-100">
+                <h2 class="text-teal-700 font-black text-xl mb-6 flex items-center"><span class="w-2 h-6 bg-teal-500 rounded-full mr-3"></span>ナンバーズ 4</h2>
+                <div class="mb-8 flex justify-center sm:justify-start gap-2 sm:gap-4">{n4_nums_html}</div>
+                <div class="overflow-hidden border border-teal-200 rounded-2xl shadow-sm bg-white">
+                    <table class="min-w-full divide-y divide-teal-100">
+                        <thead class="bg-teal-600 text-white"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase">等級</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">口数</th></tr></thead>
+                        <tbody class="divide-y divide-teal-50">{n4_table_html}</tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-pink-50/50 rounded-2xl p-4 sm:p-6 border border-pink-100">
+                <h2 class="text-pink-700 font-black text-xl mb-6 flex items-center"><span class="w-2 h-6 bg-pink-500 rounded-full mr-3"></span>ナンバーズ 3</h2>
+                <div class="mb-8 flex justify-center sm:justify-start gap-2 sm:gap-4">{n3_nums_html}</div>
+                <div class="overflow-hidden border border-pink-200 rounded-2xl shadow-sm bg-white">
+                    <table class="min-w-full divide-y divide-pink-100">
+                        <thead class="bg-pink-600 text-white"><tr><th class="px-4 py-3 text-left text-xs font-bold uppercase">等級</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-3 text-right text-xs font-bold uppercase">口数</th></tr></thead>
+                        <tbody class="divide-y divide-pink-50">{n3_table_html}</tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="text-center pt-2">
+                <a href="numbers.html" class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-lg w-full sm:w-auto">
+                    ナンバーズ トップに戻る
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    with open("numbers_detail.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("✅ ナンバーズ 詳細ページの生成が完了しました！")
 
 # --- 1. 過去データの取得（★ロトと同様のカット方式に修正） ---
 def fetch_single_history(base_url, length):
@@ -1001,4 +1212,6 @@ if __name__ == "__main__":
     final_html = build_html()
     with open('numbers.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
+        real_data = get_numbers_full_detail()
+    generate_numbers_detail_page(real_data)
     print("✨ [自動取得・完全決着版] ナンバーズ3＆4 の自動更新とXへのポストが完了しました！")
