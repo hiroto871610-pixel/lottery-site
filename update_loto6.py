@@ -424,6 +424,10 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
+import re
+import requests
+from bs4 import BeautifulSoup
+
 def get_loto6_full_detail():
     """楽天宝くじから直近の回号・日付・番号・金額・口数・キャリーオーバーをすべて取得する最強版"""
     print("☁️ 楽天宝くじから最新の詳細データを抽出中...")
@@ -445,7 +449,6 @@ def get_loto6_full_detail():
             target_table = None
             for table in soup.find_all('table'):
                 text = table.get_text()
-                # この3つの言葉が全部入っている表なら、絶対に最新結果のテーブル！
                 if '本数字' in text and '1等' in text and 'ボーナス' in text:
                     target_table = table
                     break
@@ -456,23 +459,23 @@ def get_loto6_full_detail():
 
             # 2. 特定したテーブルの各行(tr)を解析
             for tr in target_table.find_all('tr'):
-                # その行の見出し(th または td)を取得
                 header_cell = tr.find(['th', 'td'])
                 if not header_cell:
                     continue
                 
                 header_text = header_cell.get_text(strip=True)
                 
-                # --- 本数字 ---
+                # --- ★修正：本数字（マスが分かれていても行全体から数字をすべて回収！） ---
                 if '本数字' in header_text:
-                    td = tr.find_all('td')[-1] # 一番右のセル
-                    nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
+                    row_text = tr.get_text(separator=' ')
+                    # 1桁または2桁の数字だけをすべて抜き出す
+                    nums = re.findall(r'(?<!\d)\d{1,2}(?!\d)', row_text)
                     result_data["numbers"] = [str(n).zfill(2) for n in nums[:6]]
                 
-                # --- ボーナス数字 ---
+                # --- ★修正：ボーナス数字 ---
                 elif 'ボーナス' in header_text:
-                    td = tr.find_all('td')[-1]
-                    nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
+                    row_text = tr.get_text(separator=' ')
+                    nums = re.findall(r'(?<!\d)\d{1,2}(?!\d)', row_text)
                     if nums:
                         result_data["bonus"] = str(nums[0]).zfill(2)
                 
@@ -481,7 +484,6 @@ def get_loto6_full_detail():
                     if f'{i}等' in header_text:
                         tds = tr.find_all('td')
                         if len(tds) >= 2:
-                            # 常に後ろから2つを取ることで、HTMLの構造ブレを完全に吸収
                             result_data["prizes"].append({
                                 "grade": f"{i}等",
                                 "winners": tds[-2].get_text(strip=True),
@@ -491,13 +493,13 @@ def get_loto6_full_detail():
                 # --- キャリーオーバー ---
                 if 'キャリーオーバー' in header_text:
                     tds = tr.find_all('td')
-                    if tds:
+                    if len(tds) >= 1:
                         carry_val = tds[-1].get_text(strip=True)
                         result_data["carryover"] = carry_val
                         if "0円" not in carry_val and carry_val != "":
                             result_data["has_carryover"] = True
 
-            # 3. 回号と日付の取得（もしテーブル内に無ければ、周辺の見出しから探す）
+            # 3. 回号と日付の取得
             table_text = target_table.get_text(separator=' ', strip=True)
             m_round = re.search(r'第\s*\d+\s*回', table_text)
             m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
@@ -505,7 +507,7 @@ def get_loto6_full_detail():
             if m_round: result_data["round"] = m_round.group().replace(' ', '')
             if m_date: result_data["date"] = m_date.group()
 
-            # テーブルの外にある場合（タイトル等）
+            # もしテーブル内に回号が無ければ、周辺の見出しから探す
             if not result_data["round"]:
                 for heading in soup.find_all(['h1', 'h2', 'h3', 'div', 'p']):
                     h_text = heading.get_text(strip=True)
