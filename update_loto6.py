@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -1088,8 +1089,21 @@ def build_html():
     if send_flag and msg:
         # post_to_x(msg)
         post_to_line(msg)
-        post_to_threads(msg)
-        print(f"✅ ロト6の配信条件に合致したため実行しました。")
+        # --- InstagramとThreadsの配信曜日判定 ---
+        # 日本時間の現在時刻を取得
+        now = datetime.now(timezone(timedelta(hours=9)))
+        current_weekday = now.weekday() # 1:火曜, 4:金曜
+
+        if current_weekday in [1, 4]:
+            print(f"📅 本日は火曜または金曜（{current_weekday}）のため、SNSへ投稿します。")
+            post_to_threads(msg)
+            
+            # 画像をアップロードしてInstagramに投稿
+            image_url = upload_image_to_server(output_image_path)
+            if image_url:
+                post_to_instagram(image_url, msg)
+        else:
+            print(f"💤 本日はSNS投稿日ではないため、LINE配信のみで終了します。")
 
         # ----------------------------------------------------
         # ★ ここからInstagramの自動投稿処理を追加！
