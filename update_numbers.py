@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta, timezone
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -955,7 +954,7 @@ def build_html():
     if send_flag and msg:
         # post_to_x(msg)
         post_to_line(msg)
-        now = datetime.now(timezone(timedelta(hours=9)))
+        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
         current_weekday = now.weekday() # 6:日曜, 2:水曜
 
         if current_weekday in [6, 2]:

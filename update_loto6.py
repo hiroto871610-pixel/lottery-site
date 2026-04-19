@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta, timezone
 import random
 import requests
 from bs4 import BeautifulSoup
 import re
 import json
-import os
 import datetime
+import os
 from collections import Counter
 import tweepy  # ←追加：Xポスト用
 import urllib3 # ←追加：エラー回避用
@@ -924,7 +923,7 @@ def build_html():
   <Link href="/loto6/result" className="inline-flex items-center justify-center w-full bg-white border-2 border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-50 transition-colors">
     📊 直近の当せん金額・口数を見る
   </Link>
-</div>
+</div>    
 
 <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
@@ -1148,10 +1147,10 @@ def build_html():
     # 最後に送信処理をまとめる
     if send_flag and msg:
         # post_to_x(msg)
-        post_to_line(msg)
+        # post_to_line(msg)
         # --- InstagramとThreadsの配信曜日判定 ---
         # 日本時間の現在時刻を取得
-        now = datetime.now(timezone(timedelta(hours=9)))
+        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
         current_weekday = now.weekday() # 1:火曜, 4:金曜
 
         if current_weekday in [1, 4]:
