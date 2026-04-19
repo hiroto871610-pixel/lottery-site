@@ -425,58 +425,110 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     return True
 # =========================================================
 
-def get_loto6_latest_detail():
-    """楽天宝くじから直近の各等級の当せん金額・口数・キャリーオーバー額を取得する"""
-    url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+def generate_loto6_detail_page(result_data):
+    """取得した詳細データから、美しいHTMLページ(loto6_detail.html)を自動生成する"""
+    print("🔄 ロト6 詳細ページ(HTML)を生成中...")
     
-    # 保存用のデータ枠
-    detail_data = {
-        "prizes": [], # ここに1等〜5等のデータが入る
-        "carryover": "0円",
-        "has_carryover": False
-    }
-    
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200:
-            res.encoding = 'euc-jp'
-            soup = BeautifulSoup(res.content, 'html.parser')
-            
-            # 1等〜5等のデータを取得
-            for i in range(1, 6):
-                grade_str = f"{i}等"
-                grade_element = soup.find(['th', 'td'], string=re.compile(grade_str))
-                if grade_element:
-                    parent_row = grade_element.find_parent('tr')
-                    if parent_row:
-                        tds = parent_row.find_all('td')
-                        # 楽天のテーブルは通常 <td>口数</td> <td>金額</td> の順
-                        if len(tds) >= 2:
-                            winners = tds[0].get_text(strip=True)
-                            prize = tds[1].get_text(strip=True)
-                            detail_data["prizes"].append({
-                                "grade": grade_str,
-                                "winners": winners,
-                                "prize": prize
-                            })
-            
-            # キャリーオーバーの金額を取得
-            carry_element = soup.find(string=re.compile(r'キャリーオーバー'))
-            if carry_element:
-                parent_row = carry_element.find_parent('tr')
-                if parent_row:
-                    tds = parent_row.find_all('td')
-                    if tds:
-                        carry_val = tds[-1].get_text(strip=True)
-                        detail_data["carryover"] = carry_val
-                        if "0円" not in carry_val:
-                            detail_data["has_carryover"] = True
-                            
-        return detail_data
-    except Exception as e:
-        print(f"❌ ロト6詳細データ取得エラー: {e}")
-        return detail_data
+    # 仮のデータ（後で実際の取得データに差し替えます）
+    if not result_data:
+        result_data = {
+            "round": "第2094回",
+            "date": "2026年4月16日(木)",
+            "numbers": ["01", "12", "23", "34", "45", "46"],
+            "bonus": "09",
+            "prizes": [
+                { "grade": "1等", "winners": "1口", "prize": "200,000,000円" },
+                { "grade": "2等", "winners": "14口", "prize": "15,234,500円" },
+                { "grade": "3等", "winners": "245口", "prize": "340,000円" },
+                { "grade": "4等", "winners": "10,230口", "prize": "6,800円" },
+                { "grade": "5等", "winners": "154,320口", "prize": "1,000円" },
+            ],
+            "carryover": "123,456,789円",
+            "has_carryover": True
+        }
+
+    # 本数字・ボーナス数字のHTML組み立て
+    numbers_html = ""
+    for num in result_data.get("numbers", []):
+        numbers_html += f'<span class="w-11 h-11 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xl shadow-sm">{num}</span>\n'
+    if result_data.get("bonus"):
+        numbers_html += f'<span class="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-xl shadow-sm ml-2">{result_data["bonus"]}</span>'
+
+    # 等級テーブルのHTML組み立て
+    table_html = ""
+    for idx, prize in enumerate(result_data.get("prizes", [])):
+        bg_class = "bg-white" if idx % 2 == 0 else "bg-gray-50"
+        table_html += f"""
+        <tr class="{bg_class} hover:bg-blue-50 transition-colors">
+            <td class="px-4 py-4 font-bold text-gray-800 whitespace-nowrap">{prize.get('grade')}</td>
+            <td class="px-4 py-4 text-right text-blue-600 font-bold whitespace-nowrap">{prize.get('prize')}</td>
+            <td class="px-4 py-4 text-right text-gray-600 whitespace-nowrap">{prize.get('winners')}</td>
+        </tr>
+        """
+
+    # キャリーオーバーのHTML組み立て
+    carryover_html = ""
+    if result_data.get("has_carryover"):
+        carryover_html = f"""
+        <div class="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-4 rounded-xl mb-8 text-center shadow-sm">
+            <p class="font-bold text-sm mb-1">💰 キャリーオーバー発生中！</p>
+            <p class="text-2xl font-black tracking-wider">{result_data.get('carryover')}</p>
+        </div>
+        """
+
+    # HTML全体の枠組み
+    html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ロト6 抽選結果詳細</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 pb-20">
+    <div class="max-w-md mx-auto bg-white shadow-md overflow-hidden min-h-screen sm:min-h-0 sm:mt-6 sm:rounded-2xl">
+        <div class="bg-blue-600 text-white text-center py-5 shadow-inner">
+            <h1 class="text-xl font-bold tracking-wider">ロト6 抽選結果詳細</h1>
+            <p class="text-sm opacity-90 mt-1">{result_data.get('round', '')} / {result_data.get('date', '')}</p>
+        </div>
+        <div class="p-6">
+            <div class="mb-8">
+                <h2 class="text-sm font-bold text-gray-500 mb-3 border-b pb-1">本数字 / ボーナス</h2>
+                <div class="flex flex-wrap gap-2">
+                    {numbers_html}
+                </div>
+            </div>
+            {carryover_html}
+            <div class="mb-8">
+                <h2 class="text-sm font-bold text-gray-500 mb-3 border-b pb-1">当せん金額・口数</h2>
+                <div class="overflow-hidden border border-gray-200 rounded-xl shadow-sm">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-gray-600 font-bold whitespace-nowrap">等級</th>
+                                <th class="px-4 py-3 text-right text-gray-600 font-bold whitespace-nowrap">当せん金額</th>
+                                <th class="px-4 py-3 text-right text-gray-600 font-bold whitespace-nowrap">口数</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {table_html}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="text-center pt-4">
+                <a href="index.html" class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 px-10 rounded-full transition-colors shadow-sm w-full sm:w-auto">
+                    ◀ トップに戻る
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    with open("loto6_detail.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("✅ 詳細ページ (loto6_detail.html) の生成が完了しました！")
 
 # --- 1. 過去データの取得（過去1年分） ---
 def fetch_history_data():
