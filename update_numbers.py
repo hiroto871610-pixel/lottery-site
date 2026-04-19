@@ -181,26 +181,30 @@ def post_to_threads(message):
 # =========================================================
 
 def upload_image_to_server(image_path):
-    """ImgBBがインスタにブロックされるため、制限のない別サーバー(Catbox)を使用"""
-    url = "https://catbox.moe/user/api.php"
-    print("☁️ 画像をアップロードサーバー(Catbox)に送信中...")
-    
-    # ★ここを追加：一般のパソコンからのアクセスに見せかける「偽装」設定
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-    
+    """Catboxがインスタにブロックされるため、SNSに強いFreeimage.hostを使用"""
+    url = "https://freeimage.host/api/1/upload"
+    print("☁️ 画像をアップロードサーバー(Freeimage.host)に送信中...")
     try:
+        import base64
+        # 画像をテキストデータ（Base64）に変換して安全に送る
         with open(image_path, "rb") as file:
-            payload = {"reqtype": "fileupload"}
-            files = {"fileToUpload": file}
-            # headers を通信に組み込む
-            response = requests.post(url, data=payload, files=files, headers=headers)
+            b64_image = base64.b64encode(file.read()).decode('utf-8')
             
-        if response.status_code == 200 and response.text.strip() != "":
-            image_url = response.text.strip()
+        payload = {
+            "key": "6d207e02198a847aa98d0a2a901485a5", # 公式が一般公開している無料APIキー
+            "action": "upload",
+            "source": b64_image,
+            "format": "json"
+        }
+        response = requests.post(url, data=payload)
+        result = response.json()
+        
+        if result.get("status_code") == 200:
+            image_url = result["image"]["url"]
             print(f"✅ 画像のURL化成功: {image_url}")
             return image_url
         else:
-            print(f"❌ サーバーエラーまたは空の応答: {response.text}")
+            print(f"❌ サーバーエラー: {response.text}")
             return None
     except Exception as e:
         print(f"❌ 画像アップロードエラー: {e}")
