@@ -399,6 +399,171 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
+import re
+import requests
+from bs4 import BeautifulSoup
+
+def get_loto7_full_detail():
+    """楽天宝くじからロト7の最新詳細データを取得する最強版"""
+    print("☁️ 楽天宝くじからロト7の最新詳細データを抽出中...")
+    url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    result_data = {
+        "round": "", "date": "", "numbers": [], "bonuses": [],
+        "prizes": [], "carryover": "0円", "has_carryover": False
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+
+            # 1. ロト7の最新結果テーブルを特定
+            target_table = None
+            for table in soup.find_all('table'):
+                text = table.get_text()
+                if '本数字' in text and '1等' in text and 'ボーナス' in text:
+                    target_table = table
+                    break
+            
+            if not target_table:
+                return None
+
+            # 2. テーブル解析
+            for tr in target_table.find_all('tr'):
+                header_cell = tr.find(['th', 'td'])
+                if not header_cell: continue
+                header_text = header_cell.get_text(strip=True)
+                
+                # --- 本数字 (7個) ---
+                if '本数字' in header_text:
+                    row_text = tr.get_text(separator=' ')
+                    nums = re.findall(r'(?<!\d)\d{1,2}(?!\d)', row_text)
+                    result_data["numbers"] = [str(n).zfill(2) for n in nums[:7]]
+                
+                # --- ボーナス数字 (2個) ---
+                elif 'ボーナス' in header_text:
+                    row_text = tr.get_text(separator=' ')
+                    nums = re.findall(r'(?<!\d)\d{1,2}(?!\d)', row_text)
+                    result_data["bonuses"] = [str(n).zfill(2) for n in nums[:2]]
+                
+                # --- 1等〜6等 ---
+                for i in range(1, 7):
+                    if f'{i}等' in header_text:
+                        tds = tr.find_all('td')
+                        if len(tds) >= 2:
+                            result_data["prizes"].append({
+                                "grade": f"{i}等",
+                                "winners": tds[-2].get_text(strip=True),
+                                "prize": tds[-1].get_text(strip=True)
+                            })
+                            
+                # --- キャリーオーバー ---
+                if 'キャリーオーバー' in header_text:
+                    tds = tr.find_all('td')
+                    if tds:
+                        carry_val = tds[-1].get_text(strip=True)
+                        result_data["carryover"] = carry_val
+                        if "0円" not in carry_val and carry_val != "":
+                            result_data["has_carryover"] = True
+
+            # 3. 回号と日付
+            table_text = target_table.get_text(separator=' ', strip=True)
+            m_round = re.search(r'第\s*\d+\s*回', table_text)
+            m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
+            if m_round: result_data["round"] = m_round.group().replace(' ', '')
+            if m_date: result_data["date"] = m_date.group()
+
+            print(f"✅ ロト7詳細データの取得に成功しました！ ({result_data['round']})")
+            return result_data
+    except Exception as e:
+        print(f"❌ ロト7データ解析エラー: {e}")
+        return None
+    
+def generate_loto7_detail_page(result_data):
+    """ロト7専用：PC・スマホ対応の詳細ページを生成する"""
+    print("🔄 ロト7 詳細ページ(HTML)を生成中...")
+    
+    if not result_data:
+        print("⚠️ 仮データを使用します")
+        result_data = {
+            "round": "第0673回", "date": "2026/04/17",
+            "numbers": ["01","02","03","04","05","06","07"], "bonuses": ["08","09"],
+            "prizes": [{"grade": "1等", "winners": "0口", "prize": "0円"}],
+            "carryover": "0円", "has_carryover": False
+        }
+
+    # 本数字の組み立て
+    numbers_html = "".join([f'<span class="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-lg sm:text-2xl shadow-md">{n}</span>' for n in result_data["numbers"]])
+    
+    # ボーナス数字の組み立て
+    bonuses_html = "".join([f'<span class="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-lg sm:text-2xl shadow-md">{n}</span>' for n in result_data["bonuses"]])
+
+    table_html = ""
+    for idx, prize in enumerate(result_data["prizes"]):
+        bg_class = "bg-white" if idx % 2 == 0 else "bg-gray-50"
+        table_html += f"""
+        <tr class="{bg_class} hover:bg-orange-50 transition-colors">
+            <td class="px-4 py-4 sm:px-6 font-bold text-gray-800">{prize['grade']}</td>
+            <td class="px-4 py-4 sm:px-6 text-right text-orange-700 font-bold text-lg">{prize['prize']}</td>
+            <td class="px-4 py-4 sm:px-6 text-right text-gray-600">{prize['winners']}</td>
+        </tr>"""
+
+    carryover_html = ""
+    if result_data["has_carryover"]:
+        carryover_html = f"""
+        <div class="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 text-red-700 px-6 py-6 rounded-2xl mb-10 text-center shadow-sm">
+            <p class="font-bold text-sm mb-1">💰 キャリーオーバー発生中！</p>
+            <p class="text-3xl sm:text-4xl font-black tracking-tighter">{result_data['carryover']}</p>
+        </div>"""
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ロト7 抽選結果詳細 | {result_data['round']}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>body {{ font-family: 'Noto Sans JP', sans-serif; }}</style>
+</head>
+<body class="bg-slate-100 pb-20">
+    <div class="max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:mt-10 sm:rounded-3xl">
+        <div class="bg-gradient-to-br from-orange-600 to-red-500 text-white text-center py-8 px-4">
+            <h1 class="text-2xl sm:text-3xl font-black tracking-widest mb-2">ロト7 抽選結果詳細</h1>
+            <div class="inline-block bg-white/20 px-4 py-1 rounded-full text-sm backdrop-blur-sm">{result_data['round']} ／ {result_data['date']}</div>
+        </div>
+        <div class="p-6 sm:p-10">
+            <div class="mb-10">
+                <h2 class="text-gray-500 font-bold mb-4 text-sm flex items-center"><span class="w-1.5 h-1.5 bg-orange-500 rounded-full mr-2"></span>本数字</h2>
+                <div class="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">{numbers_html}</div>
+                <h2 class="text-gray-500 font-bold mt-6 mb-4 text-sm flex items-center"><span class="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>ボーナス数字</h2>
+                <div class="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">{bonuses_html}</div>
+            </div>
+            {carryover_html}
+            <div class="mb-10">
+                <h2 class="text-gray-500 font-bold mb-4 text-sm flex items-center"><span class="w-1.5 h-1.5 bg-orange-500 rounded-full mr-2"></span>当せん金額・口数</h2>
+                <div class="overflow-hidden border border-gray-100 rounded-2xl shadow-inner">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-slate-50"><tr><th class="px-4 py-4 text-left text-gray-500 text-xs font-bold uppercase">等級</th><th class="px-4 py-4 text-right text-gray-500 text-xs font-bold uppercase">当せん金額</th><th class="px-4 py-4 text-right text-gray-500 text-xs font-bold uppercase">口数</th></tr></thead>
+                        <tbody class="divide-y divide-gray-100">{table_html}</tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="text-center pt-6">
+                <a href="loto7.html" class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-lg w-full sm:w-auto">
+                    ロト7 トップに戻る
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    with open("loto7_detail.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("✅ ロト7 詳細ページの生成が完了しました！")
 
 # --- 1. 過去データの取得（過去1年分・約50回） ---
 def fetch_history_data():
@@ -1095,4 +1260,6 @@ if __name__ == "__main__":
     final_html = build_html()
     with open('loto7.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
+        real_data = get_loto7_full_detail()
+    generate_loto7_detail_page(real_data)
     print("✨ ロト7の全データ取得と自動ポストが完了しました！")
