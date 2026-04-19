@@ -425,7 +425,7 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     return True
 # =========================================================
 def get_loto6_full_detail():
-    """楽天宝くじから直近の回号・日付・番号・金額・口数・キャリーオーバーをすべて取得する"""
+    """楽天宝くじから直近の回号・日付・番号・金額・口数・キャリーオーバーをすべて取得する最強版"""
     print("☁️ 楽天宝くじから最新の詳細データを抽出中...")
     url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -441,65 +441,80 @@ def get_loto6_full_detail():
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
 
-            # ★修正ポイント：ページ内で「一番最初」に出てくる抽選結果のテーブルだけを特定する
-            hon_elem = soup.find(string=re.compile(r'本数字'))
-            if not hon_elem:
-                print("❌ 本数字の項目が見つかりません。")
-                return None
-                
-            # 最初に見つかった「本数字」を囲んでいるテーブル（＝最新第2094回のテーブル）を取得
-            target_table = hon_elem.find_parent('table')
+            # 1. ページ全体から「本数字」と「1等」の両方を含む【最新結果のテーブル】を特定する
+            target_table = None
+            for table in soup.find_all('table'):
+                text = table.get_text()
+                # この3つの言葉が全部入っている表なら、絶対に最新結果のテーブル！
+                if '本数字' in text and '1等' in text and 'ボーナス' in text:
+                    target_table = table
+                    break
             
-            # その最新テーブルの中の行(tr)だけを1行ずつ解析する
+            if not target_table:
+                print("❌ 最新結果のテーブルが見つかりません。")
+                return None
+
+            # 2. 特定したテーブルの各行(tr)を解析
             for tr in target_table.find_all('tr'):
-                text = tr.get_text(separator=' ', strip=True)
+                # その行の見出し(th または td)を取得
+                header_cell = tr.find(['th', 'td'])
+                if not header_cell:
+                    continue
                 
-                # 1. 回号と日付
-                if '第' in text and '回' in text:
-                    match_round = re.search(r'第\s*\d+\s*回', text)
-                    if match_round and not result_data["round"]:
-                        result_data["round"] = match_round.group().replace(' ', '')
-                        
-                    match_date = re.search(r'\d{4}年\d{1,2}月\d{1,2}日', text)
-                    if match_date and not result_data["date"]:
-                        result_data["date"] = match_date.group()
-
-                # 2. 本数字
-                if '本数字' in text:
-                    td = tr.find('td')
-                    if td:
-                        # 1桁・2桁の数字をすべて抽出し、0を付けて2桁に揃える（1→01）
-                        nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
-                        result_data["numbers"] = [str(n).zfill(2) for n in nums[:6]]
-
-                # 3. ボーナス数字
-                if 'ボーナス' in text:
-                    td = tr.find('td')
-                    if td:
-                        nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
-                        if nums:
-                            result_data["bonus"] = str(nums[0]).zfill(2)
-
-                # 4. 当せん金と口数
+                header_text = header_cell.get_text(strip=True)
+                
+                # --- 本数字 ---
+                if '本数字' in header_text:
+                    td = tr.find_all('td')[-1] # 一番右のセル
+                    nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
+                    result_data["numbers"] = [str(n).zfill(2) for n in nums[:6]]
+                
+                # --- ボーナス数字 ---
+                elif 'ボーナス' in header_text:
+                    td = tr.find_all('td')[-1]
+                    nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
+                    if nums:
+                        result_data["bonus"] = str(nums[0]).zfill(2)
+                
+                # --- 1等〜5等の当せん金と口数 ---
                 for i in range(1, 6):
-                    if f'{i}等' in text:
+                    if f'{i}等' in header_text:
                         tds = tr.find_all('td')
-                        # 楽天は <td>口数</td> <td>金額</td> の順番
                         if len(tds) >= 2:
+                            # 常に後ろから2つを取ることで、HTMLの構造ブレを完全に吸収
                             result_data["prizes"].append({
                                 "grade": f"{i}等",
-                                "winners": tds[0].get_text(strip=True),
-                                "prize": tds[1].get_text(strip=True)
+                                "winners": tds[-2].get_text(strip=True),
+                                "prize": tds[-1].get_text(strip=True)
                             })
                             
-                # 5. キャリーオーバー
-                if 'キャリーオーバー' in text:
+                # --- キャリーオーバー ---
+                if 'キャリーオーバー' in header_text:
                     tds = tr.find_all('td')
                     if tds:
                         carry_val = tds[-1].get_text(strip=True)
                         result_data["carryover"] = carry_val
-                        if "0円" not in carry_val:
+                        if "0円" not in carry_val and carry_val != "":
                             result_data["has_carryover"] = True
+
+            # 3. 回号と日付の取得（もしテーブル内に無ければ、周辺の見出しから探す）
+            table_text = target_table.get_text(separator=' ', strip=True)
+            m_round = re.search(r'第\s*\d+\s*回', table_text)
+            m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
+            
+            if m_round: result_data["round"] = m_round.group().replace(' ', '')
+            if m_date: result_data["date"] = m_date.group()
+
+            # テーブルの外にある場合（タイトル等）
+            if not result_data["round"]:
+                for heading in soup.find_all(['h1', 'h2', 'h3', 'div', 'p']):
+                    h_text = heading.get_text(strip=True)
+                    if '第' in h_text and '回' in h_text and 'ロト6' in h_text:
+                        m_r = re.search(r'第\s*\d+\s*回', h_text)
+                        m_d = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', h_text)
+                        if m_r: result_data["round"] = m_r.group().replace(' ', '')
+                        if m_d: result_data["date"] = m_d.group()
+                        if result_data["round"]: break
 
             print(f"✅ 最新詳細データの取得に成功しました！ ({result_data['round']})")
             return result_data
