@@ -441,15 +441,14 @@ def get_loto6_full_detail():
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
 
-            # 1. 回号と日付を取得
-            for th in soup.find_all('th'):
-                text = th.get_text(strip=True)
-                if "第" in text and "回" in text and "ロト6" in text:
-                    match = re.search(r'(第\d+回).*?\((.*?)\)', text)
-                    if match:
-                        result_data["round"] = match.group(1)
-                        result_data["date"] = match.group(2)
-                        break
+            # 1. 回号と日付を取得（※「ロト6」という文字が無くても、第〇回という文字があれば取得するように柔軟化！）
+            for tag in soup.find_all(['th', 'h1', 'h2', 'div', 'td']):
+                text = tag.get_text(strip=True)
+                match = re.search(r'(第\d+回).*?\((.*?)\)', text)
+                if match:
+                    result_data["round"] = match.group(1)
+                    result_data["date"] = match.group(2)
+                    break
 
             # 2. 本数字とボーナス数字を取得
             hon_elem = soup.find(['th', 'td'], string=re.compile(r'本数字'))
@@ -503,6 +502,7 @@ def generate_loto6_detail_page(result_data):
     
     # 仮のデータ（後で実際の取得データに差し替えます）
     if not result_data:
+        print("⚠️ リアルデータの取得に失敗したため、テスト用の仮データを使用します！")
         result_data = {
             "round": "第2094回",
             "date": "2026年4月16日(木)",
