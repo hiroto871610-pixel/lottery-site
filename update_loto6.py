@@ -426,7 +426,7 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
 # =========================================================
 def get_loto6_full_detail():
     """楽天宝くじから直近の回号・日付・番号・金額・口数・キャリーオーバーをすべて取得する"""
-    print("☁️ 楽天宝くじから詳細データ（賞金・口数）を取得中...")
+    print("☁️ 楽天宝くじから最新の詳細データを抽出中...")
     url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -441,59 +441,71 @@ def get_loto6_full_detail():
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
 
-            # 1. 回号と日付を取得（※「ロト6」という文字が無くても、第〇回という文字があれば取得するように柔軟化！）
-            for tag in soup.find_all(['th', 'h1', 'h2', 'div', 'td']):
-                text = tag.get_text(strip=True)
-                match = re.search(r'(第\d+回).*?\((.*?)\)', text)
-                if match:
-                    result_data["round"] = match.group(1)
-                    result_data["date"] = match.group(2)
-                    break
-
-            # 2. 本数字とボーナス数字を取得
-            hon_elem = soup.find(['th', 'td'], string=re.compile(r'本数字'))
-            if hon_elem and hon_elem.find_parent('tr'):
-                nums = re.findall(r'\b\d{2}\b', hon_elem.find_parent('tr').get_text())
-                result_data["numbers"] = nums[:6]
-
-            bonus_elem = soup.find(['th', 'td'], string=re.compile(r'ボーナス数字'))
-            if bonus_elem and bonus_elem.find_parent('tr'):
-                nums = re.findall(r'\b\d{2}\b', bonus_elem.find_parent('tr').get_text())
-                if nums:
-                    result_data["bonus"] = nums[0]
-
-            # 3. 1等〜5等の当せん金額と口数を取得
-            for i in range(1, 6):
-                grade_str = f"{i}等"
-                grade_elem = soup.find(['th', 'td'], string=re.compile(grade_str))
-                if grade_elem and grade_elem.find_parent('tr'):
-                    tds = grade_elem.find_parent('tr').find_all('td')
-                    if len(tds) >= 2:
-                        result_data["prizes"].append({
-                            "grade": grade_str,
-                            "winners": tds[0].get_text(strip=True),
-                            "prize": tds[1].get_text(strip=True)
-                        })
-
-            # 4. キャリーオーバーを取得
-            carry_elem = soup.find(string=re.compile(r'キャリーオーバー'))
-            if carry_elem and carry_elem.find_parent('tr'):
-                tds = carry_elem.find_parent('tr').find_all('td')
-                if tds:
-                    carry_val = tds[-1].get_text(strip=True)
-                    result_data["carryover"] = carry_val
-                    if "0円" not in carry_val:
-                        result_data["has_carryover"] = True
-                        
-            # もし回号が取得できていなければ失敗とみなす
-            if not result_data["round"]:
+            # ★修正ポイント：ページ内で「一番最初」に出てくる抽選結果のテーブルだけを特定する
+            hon_elem = soup.find(string=re.compile(r'本数字'))
+            if not hon_elem:
+                print("❌ 本数字の項目が見つかりません。")
                 return None
                 
-            print("✅ 詳細データの取得に成功しました！")
+            # 最初に見つかった「本数字」を囲んでいるテーブル（＝最新第2094回のテーブル）を取得
+            target_table = hon_elem.find_parent('table')
+            
+            # その最新テーブルの中の行(tr)だけを1行ずつ解析する
+            for tr in target_table.find_all('tr'):
+                text = tr.get_text(separator=' ', strip=True)
+                
+                # 1. 回号と日付
+                if '第' in text and '回' in text:
+                    match_round = re.search(r'第\s*\d+\s*回', text)
+                    if match_round and not result_data["round"]:
+                        result_data["round"] = match_round.group().replace(' ', '')
+                        
+                    match_date = re.search(r'\d{4}年\d{1,2}月\d{1,2}日', text)
+                    if match_date and not result_data["date"]:
+                        result_data["date"] = match_date.group()
+
+                # 2. 本数字
+                if '本数字' in text:
+                    td = tr.find('td')
+                    if td:
+                        # 1桁・2桁の数字をすべて抽出し、0を付けて2桁に揃える（1→01）
+                        nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
+                        result_data["numbers"] = [str(n).zfill(2) for n in nums[:6]]
+
+                # 3. ボーナス数字
+                if 'ボーナス' in text:
+                    td = tr.find('td')
+                    if td:
+                        nums = re.findall(r'\b\d{1,2}\b', td.get_text(separator=' '))
+                        if nums:
+                            result_data["bonus"] = str(nums[0]).zfill(2)
+
+                # 4. 当せん金と口数
+                for i in range(1, 6):
+                    if f'{i}等' in text:
+                        tds = tr.find_all('td')
+                        # 楽天は <td>口数</td> <td>金額</td> の順番
+                        if len(tds) >= 2:
+                            result_data["prizes"].append({
+                                "grade": f"{i}等",
+                                "winners": tds[0].get_text(strip=True),
+                                "prize": tds[1].get_text(strip=True)
+                            })
+                            
+                # 5. キャリーオーバー
+                if 'キャリーオーバー' in text:
+                    tds = tr.find_all('td')
+                    if tds:
+                        carry_val = tds[-1].get_text(strip=True)
+                        result_data["carryover"] = carry_val
+                        if "0円" not in carry_val:
+                            result_data["has_carryover"] = True
+
+            print(f"✅ 最新詳細データの取得に成功しました！ ({result_data['round']})")
             return result_data
             
     except Exception as e:
-        print(f"❌ 楽天データ取得エラー: {e}")
+        print(f"❌ 楽天データ解析エラー: {e}")
         return None
 
 def generate_loto6_detail_page(result_data):
