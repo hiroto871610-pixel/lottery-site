@@ -480,14 +480,21 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     if carryover_info:
         current_y += 60 # 2段目のボールの下からの間隔
         
-        # キャリーオーバー文字の中央位置を計算
-        left, top, right, bottom = draw.textbbox((0, 0), carryover_info, font=font_carry)
+        # ▼▼▼ 追加：長すぎる場合は「：」や「スペース」で強制的に改行（2行に）する ▼▼▼
+        if "：" in carryover_info:
+            carryover_info = carryover_info.replace("：", "：\n")
+        elif " " in carryover_info:
+            carryover_info = carryover_info.replace(" ", "\n")
+        # ▲▲▲ ここまで ▲▲▲
+        
+        # ▼ 改行対応のため textbbox → multiline_textbbox に変更
+        left, top, right, bottom = draw.multiline_textbbox((0, 0), carryover_info, font=font_carry, align="center")
         carry_w = right - left
         carry_x = (W - carry_w) / 2
         
-        # 影と本体を描画
-        draw.text((carry_x + shadow_offset, current_y + shadow_offset), carryover_info, font=font_carry, fill=shadow_color)
-        draw.text((carry_x, current_y), carryover_info, font=font_carry, fill=carry_color)
+        # ▼ 改行対応のため text → multiline_text に変更し、align="center" を追加
+        draw.multiline_text((carry_x + shadow_offset, current_y + shadow_offset), carryover_info, font=font_carry, fill=shadow_color, align="center")
+        draw.multiline_text((carry_x, current_y), carryover_info, font=font_carry, fill=carry_color, align="center")
 
     # --- 共通処理 ---
     # 完成した画像を保存（Instagram対応のためJPEGに変換して保存！）
