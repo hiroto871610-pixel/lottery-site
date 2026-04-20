@@ -308,6 +308,13 @@ def build_index_html():
 
     {badge_html}
 
+<div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+    <h2 style="font-size: 1.2rem; color: #1e293b; margin-bottom: 10px;">🤖 AIが導く、次世代の宝くじ予想</h2>
+    <p style="font-size: 0.9rem; color: #475569; line-height: 1.6;">
+        当サイトは、過去の膨大な抽選データを最新のAIアルゴリズムで解析し、ロト7、ロト6、ナンバーズの次回予想を完全無料で公開しています。毎日自動更新される「AI予想」を活用して、あなたの宝くじライフをスマートにサポートします。
+    </p>
+</div>
+    
 <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
