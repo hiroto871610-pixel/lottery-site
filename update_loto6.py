@@ -15,6 +15,8 @@ load_dotenv()
 import base64
 import urllib.request
 from PIL import Image, ImageDraw, ImageFont
+import cloudinary
+import cloudinary.uploader
 # ▲▲▲ ここまで ▲▲▲
 
 # =========================================================
@@ -272,6 +274,75 @@ def post_to_instagram(image_url, caption_text):
         print(f"❌ 公開エラー: {publish_data}")
 
 # ↑↑↑ ここまで ↑↑↑
+
+# =========================================================
+# 🎬 リール動画用：Cloudinaryアップロード＆Instagram投稿機能
+# =========================================================
+def upload_video_to_cloudinary(video_path):
+    """Cloudinaryに動画を自動アップロードしてURLを取得する"""
+    print("☁️ Cloudinaryへ動画をアップロード中... (15秒の動画なので少し時間がかかります)")
+    
+    # .envからキーを取得してCloudinaryにログイン
+    cloudinary.config( 
+        cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"), 
+        api_key = os.environ.get("CLOUDINARY_API_KEY"), 
+        api_secret = os.environ.get("CLOUDINARY_API_SECRET"),
+        secure = True
+    )
+    
+    try:
+        # ★ resource_type="video" を指定するのが動画アップロードの鉄則！
+        response = cloudinary.uploader.upload(video_path, resource_type="video")
+        video_url = response.get("secure_url")
+        print(f"✅ 動画のURL化成功: {video_url}")
+        return video_url
+    except Exception as e:
+        print(f"❌ Cloudinaryアップロードエラー: {e}")
+        return None
+
+def post_reel_to_instagram(video_url, caption_text):
+    """Instagram Graph APIを使ってリール動画を自動投稿する"""
+    ig_account_id = os.environ.get("IG_ACCOUNT_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    
+    # 【ステップ1】メディアコンテナの作成（REELS指定）
+    container_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
+    container_payload = {
+        'media_type': 'REELS',    # ★ ここを REELS にするだけでリール投稿になります！
+        'video_url': video_url,   # ★ image_url ではなく video_url
+        'caption': caption_text,
+        'access_token': access_token
+    }
+    print("☁️ Instagramへリールのアップロードをリクエスト中...")
+    container_response = requests.post(container_url, data=container_payload)
+    container_data = container_response.json()
+    
+    if 'id' not in container_data:
+        print(f"❌ リールコンテナ作成エラー: {container_data}")
+        return
+        
+    creation_id = container_data['id']
+    print(f"✅ コンテナ作成成功 (ID: {creation_id})。Instagram側の処理完了を1分間待ちます⏳...")
+    
+    # 🚨【超重要】リール動画は、Instagram側のサーバーでエンコード(変換処理)が行われます。
+    # この処理が終わる前に公開しようとするとエラーになるため、ここで強制的に「60秒待機」させます。
+    time.sleep(60) 
+    
+    # 【ステップ2】メディアの公開
+    publish_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
+    publish_payload = {
+        'creation_id': creation_id,
+        'access_token': access_token
+    }
+    print("☁️ リール動画を公開（パブリッシュ）中...")
+    publish_response = requests.post(publish_url, data=publish_payload)
+    publish_data = publish_response.json()
+    
+    if 'id' in publish_data:
+        print("🎉🎉🎉 Instagramへのリール自動投稿が完了しました！！！ 🎉🎉🎉")
+    else:
+        print(f"❌ 公開エラー: {publish_data}")
+# =========================================================
 
 # =========================================================
 
@@ -1401,18 +1472,20 @@ def build_html():
         # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！
         # ====================================================
         try:
-            # create_reel.py から ロト6専用の動画作成エンジンを呼び出す
             from create_reel import generate_loto6_reel
             
-            # キャリーオーバーの有無を判定（「0円」や「なし」が含まれていなければ発生中とみなす）
             is_carryover = "0円" not in carryover_text and "なし" not in carryover_text
-            
-            # 動画作成エンジンに本物の数字とキャリーオーバー情報を渡す！
             generate_loto6_reel(numbers=yosou_a_list, carryover=carryover_text, has_carryover=is_carryover)
             print("✅ 最新の予想データでリール動画(reel_loto6.mp4)の自動生成が完了しました！")
             
+            # ▼▼▼ ロト6版 リール自動投稿ロジック ▼▼▼
+            video_url = upload_video_to_cloudinary("reel_loto6.mp4") # ★ ファイル名をロト6用に変更
+            if video_url:
+                post_reel_to_instagram(video_url, caption)
+            # ▲▲▲ ここまで ▲▲▲
+            
         except Exception as e:
-            print(f"❌ 動画の自動生成エラー: {e}")
+            print(f"❌ 動画の自動生成・投稿エラー: {e}")
         # ====================================================
         
         # ② 画像が無事に作れたら、アップロードしてインスタに投稿する！（今までの処理）

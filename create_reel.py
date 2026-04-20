@@ -20,6 +20,9 @@ FONT_TITLE = ImageFont.truetype(FONT_PATH, 90)
 FONT_NUM = ImageFont.truetype(FONT_PATH, 110)
 FONT_SUB = ImageFont.truetype(FONT_PATH, 50)
 
+# ==========================================
+# 共通描画エンジン（最新Pillow対応版）
+# ==========================================
 def draw_sphere_ball(draw, x, y, r, text, ball_color, font_color=(255, 255, 255)):
     """立体的な当選ボールを描画"""
     draw.ellipse([x + 10, y + 10, x + 2*r + 10, y + 2*r + 10], fill=(0, 0, 0, 80))
@@ -33,6 +36,7 @@ def draw_sphere_ball(draw, x, y, r, text, ball_color, font_color=(255, 255, 255)
     hl_r = int(r * 0.3)
     draw.ellipse([x + int(r*0.2), y + int(r*0.2), x + int(r*0.2) + 2*hl_r, y + int(r*0.2) + 2*hl_r], fill=(255, 255, 255, 200))
 
+    # 🎯 最新Pillowの文字サイズ取得
     bbox = draw.textbbox((0, 0), text, font=FONT_NUM)
     w = bbox[2] - bbox[0]
     h = bbox[3] - bbox[1]
@@ -112,7 +116,7 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg"):
     create_stylish_video(make_frame, "reel_numbers.mp4")
 
 # ==========================================
-# 2. ロト6動画（ボーナス数字削除＆キャリーオーバー追加）
+# 2. ロト6動画
 # ==========================================
 def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image="bg_loto6.jpg"):
     print(f"🎬 ロト6の動画を作成中... (予想:{numbers} キャリーオーバー:{has_carryover})")
@@ -126,12 +130,10 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
         float_y = 350 + int(15 * math.sin(t * 3))
         draw.text((120, float_y), "🟦 次回 ロト6\n　 AI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
         
-        # キャリーオーバーの表示
         if has_carryover:
             blink = int(127 * (1 + math.sin(t * 8)))
             draw.text((120, float_y + 220), f"💰 キャリーオーバー発生中!\n　 {carryover}", font=FONT_SUB, fill=(255, 255, blink))
         
-        # 本数字6個を描画
         for i, num in enumerate(numbers):
             appear_t = 1.0 + i * 0.2
             if t > appear_t:
@@ -139,7 +141,6 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
                 y_off = int(50 * (1.0 - progress))
                 row = i // 3
                 col = i % 3
-                # キャリーオーバーがある場合はボール全体を下にずらす
                 base_y = 900 if has_carryover else 750
                 draw_sphere_ball(draw, 150 + col * 260, base_y + row * 230 + y_off, ball_r, num, (14, 165, 233))
 
@@ -148,7 +149,7 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
     create_stylish_video(make_frame, "reel_loto6.mp4")
 
 # ==========================================
-# 3. ロト7動画（ボーナス数字削除＆キャリーオーバー追加）
+# 3. ロト7動画
 # ==========================================
 def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image="bg_loto7.jpg"):
     print(f"🎬 ロト7の動画を作成中... (予想:{numbers} キャリーオーバー:{has_carryover})")
@@ -162,12 +163,10 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
         float_y = 300 + int(15 * math.sin(t * 3))
         draw.text((120, float_y), "🟧 次回 ロト7\n　 AI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
         
-        # キャリーオーバーの表示
         if has_carryover:
             blink = int(127 * (1 + math.sin(t * 8)))
             draw.text((120, float_y + 220), f"💰 キャリーオーバー発生中!\n　 {carryover}", font=FONT_SUB, fill=(255, 255, blink))
         
-        # 本数字7個を描画
         for i, num in enumerate(numbers):
             appear_t = 1.0 + i * 0.15 
             if t > appear_t:
@@ -182,3 +181,12 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
         return np.array(img.convert('RGB'))
 
     create_stylish_video(make_frame, "reel_loto7.mp4")
+
+# ==========================================
+# テスト用・強制実行ブロック（これが消えていました！）
+# ==========================================
+if __name__ == "__main__":
+    print("\n🔄 テスト実行を開始します...")
+    # テストの待ち時間を減らすため、まずはナンバーズだけ生成します。
+    # N4とN3のダミーデータを渡して実行！
+    generate_numbers_reel("5821", "670")
