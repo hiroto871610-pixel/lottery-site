@@ -28,7 +28,7 @@ jobs:
       - name: 必要なライブラリのインストール
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 tweepy python-dotenv Pillow
+          pip install requests beautifulsoup4 tweepy python-dotenv Pillow cloudinary moviepy numpy
 
       - name: 宝くじ全データ＆トップページの自動更新スクリプトを実行
         # ▼▼▼ ここを追加！GitHubに登録した鍵(Secrets)をPythonに渡す ▼▼▼
@@ -54,12 +54,18 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
         # ▲▲▲ ここまで追加 ▲▲▲
+        # ▼▼▼ ★動画機能用に追加（Cloudinaryの鍵） ▼▼▼
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          # ▲▲▲ ここまで追加 ▲▲▲
         
         run: |
           python update_loto7.py
           python update_loto6.py
           python update_numbers.py
           python update_index.py
+          python update_jumbo.py
 
       - name: 更新されたデータをGitHubに自動保存（コミット＆プッシュ）
         run: |
