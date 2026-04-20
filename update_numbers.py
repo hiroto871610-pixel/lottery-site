@@ -660,12 +660,6 @@ def generate_numbers_detail_page(result_data):
             </a>
         </div>
 
-        <div style="text-align: center; margin: 30px 0;">
-    <a href="numbers.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        ◀ ナンバーズ AI予想トップに戻る
-    </a>
-</div>
-
         <div class="section-card">
             <h2 class="section-header" style="color: #e11d48; border-color: #ffe4e6;">🎯 ナンバーズ3 抽選結果</h2>
             <div class="prediction-box" style="background-color: #fff1f2; border-color: #fecdd3;">
@@ -683,6 +677,12 @@ def generate_numbers_detail_page(result_data):
                 </tbody>
             </table>
         </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+    <a href="numbers.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        ◀ ナンバーズ AI予想トップに戻る
+    </a>
+</div>
 
         <div style="text-align: center; margin-bottom: 40px;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
