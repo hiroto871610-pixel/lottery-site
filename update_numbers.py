@@ -1235,12 +1235,10 @@ def build_html():
         else:
             print(f"💤 本日はSNS投稿日ではないため、LINE配信のみで終了します。")
         # ----------------------------------------------------
-        # ★ ここからInstagramの自動投稿処理を追加！
+        # ★ ここからInstagramの自動投稿処理＆動画生成を追加！
         # ----------------------------------------------------
-        # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
-        # 画像のファイル名（パス）に書き換えてください。
-        base_image = "base_image.png"     # ← ※ここはPNGのままでOKです（読み込む元画像なので）
-        image_path = "numbers_result.jpg" # ← ★ここを .png から .jpg に変更！
+        base_image = "base_image.png"     
+        image_path = "numbers_result.jpg"
         
         # ▼▼▼ 数字を職人に渡すために取り出す ▼▼▼
         n4_yosou_a = history_record[0]['n4_preds'][0]
@@ -1248,10 +1246,25 @@ def build_html():
         
         caption = f"🎯最新のナンバーズ AI予想です！\n\n{msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① 新しい職人に、N4とN3の数字を別々に渡してデザイン作成を依頼する！
+        # ① 今までの職人に「静止画」を作成してもらう
         is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path)
-        
-        # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
+
+        # ====================================================
+        # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！
+        # ====================================================
+        try:
+            # create_reel.py から ナンバーズ専用の動画作成エンジンを呼び出す
+            from create_reel import generate_numbers_reel
+            
+            # 動画作成エンジンに本物の「N4予想A」と「N3予想A」を渡す！
+            generate_numbers_reel(n4_yosou=n4_yosou_a, n3_yosou=n3_yosou_a)
+            print(f"✅ 最新の予想データ(N4:{n4_yosou_a} N3:{n3_yosou_a})でリール動画の生成が完了しました！")
+            
+        except Exception as e:
+            print(f"❌ 動画の自動生成エラー: {e}")
+        # ====================================================
+
+        # ② 画像が無事に作れたら、アップロードしてインスタに投稿する！（今までの処理）
         if is_created:
             public_image_url = upload_image_to_server(image_path)
             if public_image_url:
@@ -1259,9 +1272,6 @@ def build_html():
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
         # ----------------------------------------------------
-    else:
-        print(f"💤 配信条件外（的中なし、または配信時間外）のためスキップしました。")
-    # --------------------------------------------------------
 
     return html
 

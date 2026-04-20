@@ -1383,10 +1383,8 @@ def build_html():
             print(f"💤 本日はSNS投稿日ではないため、LINE配信のみで終了します。")
 
         # ----------------------------------------------------
-        # ★ ここからInstagramの自動投稿処理を追加！
+        # ★ ここからInstagramの自動投稿処理＆動画生成を追加！
         # ----------------------------------------------------
-        # ※ "loto7_result.png" の部分は、実際にプログラムが生成・保存している
-        # 画像のファイル名（パス）に書き換えてください。
         base_image = "base_image.png"     
         image_path = "loto6_result.jpg"
         
@@ -1396,10 +1394,28 @@ def build_html():
         
         caption = f"🎯最新のロト6 AI予想です！\n\n{msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① 新しい職人に「予想数字のリスト」と「キャリーオーバーの文章」を別々に渡す！
+        # ① 今までの職人に「静止画」を作成してもらう
         is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path)
+
+        # ====================================================
+        # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！
+        # ====================================================
+        try:
+            # create_reel.py から ロト6専用の動画作成エンジンを呼び出す
+            from create_reel import generate_loto6_reel
+            
+            # キャリーオーバーの有無を判定（「0円」や「なし」が含まれていなければ発生中とみなす）
+            is_carryover = "0円" not in carryover_text and "なし" not in carryover_text
+            
+            # 動画作成エンジンに本物の数字とキャリーオーバー情報を渡す！
+            generate_loto6_reel(numbers=yosou_a_list, carryover=carryover_text, has_carryover=is_carryover)
+            print("✅ 最新の予想データでリール動画(reel_loto6.mp4)の自動生成が完了しました！")
+            
+        except Exception as e:
+            print(f"❌ 動画の自動生成エラー: {e}")
+        # ====================================================
         
-        # ② 画像が無事に作れたら、ImgBBにアップロードしてインスタに投稿する！
+        # ② 画像が無事に作れたら、アップロードしてインスタに投稿する！（今までの処理）
         if is_created:
             public_image_url = upload_image_to_server(image_path)
             if public_image_url:
