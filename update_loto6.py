@@ -18,6 +18,10 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 import cloudinary
 import cloudinary.uploader
+import json
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 # ▲▲▲ ここまで ▲▲▲
 
 # =========================================================
@@ -344,6 +348,59 @@ def post_reel_to_instagram(video_url, caption_text):
     else:
         print(f"❌ 公開エラー: {publish_data}")
 # =========================================================
+# =========================================================
+# 🎥 YouTube Shorts用：自動アップロード機能
+# =========================================================
+def upload_to_youtube_shorts(video_path, title, description, tags):
+    """YouTubeへ動画を自動アップロードする"""
+    print("🎥 YouTube Shortsへ動画をアップロード中...")
+    
+    # GitHubのSecrets（または.env）からtoken.jsonの中身を取り出す
+    token_str = os.environ.get("YOUTUBE_TOKEN_JSON")
+    if not token_str:
+        print("❌ YOUTUBE_TOKEN_JSONが設定されていません。")
+        return
+        
+    try:
+        # 文字列から資格情報（パスポート）を復元
+        token_info = json.loads(token_str)
+        creds = Credentials.from_authorized_user_info(token_info)
+        
+        # YouTube APIに接続
+        youtube = build('youtube', 'v3', credentials=creds)
+        
+        # 動画の設定（タイトル、説明、タグなど）
+        body = {
+            'snippet': {
+                'title': title,
+                'description': description,
+                'tags': tags,
+                'categoryId': '24' # 24 = エンターテイメント
+            },
+            'status': {
+                'privacyStatus': 'public', # ★ public(公開), unlisted(限定公開), private(非公開)
+                'selfDeclaredMadeForKids': False
+            }
+        }
+        
+        # 動画ファイルの読み込み（YouTube Shortsは60秒以下の縦型なら自動的にShortsになります）
+        media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype='video/mp4')
+        
+        # アップロード実行！
+        request = youtube.videos().insert(
+            part=",".join(body.keys()),
+            body=body,
+            media_body=media
+        )
+        response = request.execute()
+        
+        video_id = response.get('id')
+        print(f"🎉🎉🎉 YouTube Shortsの自動投稿が完了しました！ URL: https://youtu.be/{video_id} 🎉🎉🎉")
+        
+    except Exception as e:
+        print(f"❌ YouTubeアップロードエラー: {e}")
+# =========================================================
+
 
 # =========================================================
 
@@ -1502,6 +1559,11 @@ def build_html():
             if video_url:
                 post_reel_to_instagram(video_url, caption)
             # ▲▲▲ ここまで ▲▲▲
+            # ▼▼▼ 追加：YouTube Shortsへの投稿 ▼▼▼
+                yt_title = "🎯 明日のロト6激アツAI予想！ #shorts"
+                yt_tags = ["ロト6", "宝くじ", "AI予想", "ショート"]
+                upload_to_youtube_shorts("reel_loto6.mp4", yt_title, caption, yt_tags)
+                # ▲▲▲ ここまで ▲▲▲
             
         except Exception as e:
             print(f"❌ 動画の自動生成・投稿エラー: {e}")
