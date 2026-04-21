@@ -8,7 +8,8 @@ from googleapiclient.http import MediaFileUpload
 # ステップ2でダウンロードしたファイルの名前
 CLIENT_SECRETS_FILE = "client_secret.json"
 # 今回要求する権限（YouTubeへのアップロード権限）
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = ["https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.force-ssl"]
 
 def main():
     print("🔄 ブラウザを開いてYouTubeアカウントの認証を行います...")

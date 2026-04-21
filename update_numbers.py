@@ -324,27 +324,58 @@ def post_reel_to_instagram(video_url, caption_text):
         print(f"❌ 公開エラー: {publish_data}")
 # =========================================================
 # =========================================================
+# 💬 YouTube：コメント投稿＆固定（ピン留め）機能
+# =========================================================
+def add_pinned_comment(video_id, comment_text):
+    print(f"💬 動画(ID:{video_id})に固定コメントを追加中...")
+    token_str = os.environ.get("YOUTUBE_TOKEN_JSON")
+    try:
+        token_info = json.loads(token_str)
+        creds = Credentials.from_authorized_user_info(token_info)
+        youtube = build('youtube', 'v3', credentials=creds)
+        
+        # 1. コメントを投稿する
+        comment_res = youtube.commentThreads().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "videoId": video_id,
+                    "topLevelComment": {
+                        "snippet": {"textOriginal": comment_text}
+                    }
+                }
+            }
+        ).execute()
+        
+        # 2. そのコメントを一番上に「固定」する
+        comment_id = comment_res['snippet']['topLevelComment']['id']
+        youtube.comments().setModerationStatus(
+            id=comment_id,
+            moderationStatus="published",
+            ban=False
+        ).execute()
+        
+        print("✅ 固定コメントの設置が完了しました！")
+    except Exception as e:
+        print(f"⚠️ コメント固定エラー（手動で固定してください）: {e}")
+
+# =========================================================
 # 🎥 YouTube Shorts用：自動アップロード機能
 # =========================================================
 def upload_to_youtube_shorts(video_path, title, description, tags):
-    """YouTubeへ動画を自動アップロードする"""
+    """YouTubeへ動画を自動アップロードし、直後にコメントを固定する"""
     print("🎥 YouTube Shortsへ動画をアップロード中...")
     
-    # GitHubのSecrets（または.env）からtoken.jsonの中身を取り出す
     token_str = os.environ.get("YOUTUBE_TOKEN_JSON")
     if not token_str:
         print("❌ YOUTUBE_TOKEN_JSONが設定されていません。")
         return
         
     try:
-        # 文字列から資格情報（パスポート）を復元
         token_info = json.loads(token_str)
         creds = Credentials.from_authorized_user_info(token_info)
-        
-        # YouTube APIに接続
         youtube = build('youtube', 'v3', credentials=creds)
         
-        # 動画の設定（タイトル、説明、タグなど）
         body = {
             'snippet': {
                 'title': title,
@@ -353,29 +384,34 @@ def upload_to_youtube_shorts(video_path, title, description, tags):
                 'categoryId': '24' # 24 = エンターテイメント
             },
             'status': {
-                'privacyStatus': 'public', # ★ public(公開), unlisted(限定公開), private(非公開)
+                'privacyStatus': 'public',
                 'selfDeclaredMadeForKids': False
             }
         }
         
-        # 動画ファイルの読み込み（YouTube Shortsは60秒以下の縦型なら自動的にShortsになります）
         media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype='video/mp4')
         
-        # アップロード実行！
         request = youtube.videos().insert(
             part=",".join(body.keys()),
             body=body,
             media_body=media
         )
+        # 動画アップロード実行
         response = request.execute()
-        
         video_id = response.get('id')
         print(f"🎉🎉🎉 YouTube Shortsの自動投稿が完了しました！ URL: https://youtu.be/{video_id} 🎉🎉🎉")
         
+        # ▼▼▼ アップロード成功直後に、ここで固定コメントを追加！ ▼▼▼
+        fixed_msg = (
+            "🎯 本日のAI全予想はこちら（完全無料）！\n"
+            "👉 https://loto-yosou-ai.com/\n\n"
+            "次回の予想も見逃さないよう、チャンネル登録お願いします！✨"
+        )
+        add_pinned_comment(video_id, fixed_msg)
+        # ▲▲▲ ここまで ▲▲▲
+        
     except Exception as e:
         print(f"❌ YouTubeアップロードエラー: {e}")
-# =========================================================
-
 # =========================================================
 
 def create_result_image(n4_text, n3_text, base_image_path, output_image_path):

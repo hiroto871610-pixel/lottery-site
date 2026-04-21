@@ -400,8 +400,55 @@ def upload_to_youtube_shorts(video_path, title, description, tags):
     except Exception as e:
         print(f"❌ YouTubeアップロードエラー: {e}")
 # =========================================================
+# =========================================================
+# 💬 YouTube：コメント投稿＆固定（ピン留め）機能
+# =========================================================
+def add_pinned_comment(video_id, comment_text):
+    print(f"💬 動画(ID:{video_id})に固定コメントを追加中...")
+    token_str = os.environ.get("YOUTUBE_TOKEN_JSON")
+    try:
+        token_info = json.loads(token_str)
+        creds = Credentials.from_authorized_user_info(token_info)
+        youtube = build('youtube', 'v3', credentials=creds)
+        
+        # 1. コメントを投稿する
+        comment_res = youtube.commentThreads().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "videoId": video_id,
+                    "topLevelComment": {
+                        "snippet": {"textOriginal": comment_text}
+                    }
+                }
+            }
+        ).execute()
+        
+        # 2. そのコメントを一番上に「固定」する
+        # ※APIの制限により、チャンネル所有者本人のコメントのみ固定可能です
+        comment_id = comment_res['snippet']['topLevelComment']['id']
+        youtube.comments().setModerationStatus(
+            id=comment_id,
+            moderationStatus="published",
+            ban=False
+        ).execute()
+        
+        print("✅ 固定コメントの設置が完了しました！")
+    except Exception as e:
+        print(f"⚠️ コメント固定エラー（手動で固定してください）: {e}")
 
-
+# アップロード成功時のレスポンスからIDを取得
+        response = request.execute()
+        video_id = response.get('id')
+        print(f"🎉 YouTube投稿成功: {video_id}")
+        
+        # ▼▼▼ ここで固定コメントを追加！ ▼▼▼
+        fixed_msg = (
+            "🎯 本日のAI全予想はこちら（完全無料）！\n"
+            "👉 https://loto-yosou-ai.com/\n\n"
+            "次回の予想も見逃さないよう、チャンネル登録お願いします！✨"
+        )
+        add_pinned_comment(video_id, fixed_msg)
 # =========================================================
 
 def upload_image_to_imgbb(image_path):
