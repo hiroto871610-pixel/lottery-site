@@ -1637,4 +1637,40 @@ if __name__ == "__main__":
         f.write(final_html)
         real_data = get_loto6_full_detail()
     generate_loto6_detail_page(real_data)
+    # ==========================================
+    # 🎬 【追加】動画作成用のJSONデータを出力する
+    # ==========================================
+    # history_loto6.jsonから最新の予想A〜Eを取り出す
+    import json
+    with open('history_loto6.json', 'r', encoding='utf-8') as f:
+        history = json.load(f)
+    
+    latest_pred = history[0]
+    
+    # 予想A〜Eが何個的中したかを判定する関数（簡易版）
+    def count_hit(pred_nums, win_nums):
+        return len(set(pred_nums) & set(win_nums))
+
+    # 動画に渡すための完璧なデータセットを作成
+    video_export_data = {
+        "round": real_data.get("round", ""),
+        "date": real_data.get("date", ""),
+        "main_nums": real_data.get("numbers", []),
+        "bonus": real_data.get("bonus", ""),
+        "carryover": real_data.get("carryover", "0円"),
+        "prizes": real_data.get("prizes", []),
+        "predictions": [
+            {
+                "name": f"予想{chr(65+i)}", # 予想A, B, C...
+                "nums": ", ".join(pred),
+                "hit": count_hit(pred, real_data.get("numbers", []))
+            } for i, pred in enumerate(latest_pred.get("predictions", []))
+        ]
+    }
+    
+    # jsonファイルとして保存
+    with open('video_data_loto6.json', 'w', encoding='utf-8') as f:
+        json.dump(video_export_data, f, ensure_ascii=False, indent=4)
+    print("🎬 動画生成用の連携データ (video_data_loto6.json) を出力しました！")
+    # ==========================================
     print("✨ [自動取得・完全決着版] ロト6 の自動更新とXへのポストが完了しました！")

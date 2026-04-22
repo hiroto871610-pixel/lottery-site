@@ -1562,4 +1562,37 @@ if __name__ == "__main__":
         f.write(final_html)
         real_data = get_loto7_full_detail()
     generate_loto7_detail_page(real_data)
+    # ==========================================
+    # 🎬 【追加】動画作成用のJSONデータを出力する (ロト7版)
+    # ==========================================
+    import json
+    try:
+        with open('history_loto7.json', 'r', encoding='utf-8') as f:
+            history = json.load(f)
+        latest_pred = history[0]
+        
+        def count_hit(pred_nums, win_nums):
+            return len(set(pred_nums) & set(win_nums))
+
+        video_export_data = {
+            "round": real_data.get("round", ""),
+            "date": real_data.get("date", ""),
+            "main_nums": real_data.get("numbers", []),
+            "bonus": ", ".join(real_data.get("bonuses", [])), # ロト7はボーナスが2個あるため結合
+            "carryover": real_data.get("carryover", "0円"),
+            "prizes": real_data.get("prizes", []),
+            "predictions": [
+                {
+                    "name": f"予想{chr(65+i)}", 
+                    "nums": ", ".join(pred),
+                    "hit": count_hit(pred, real_data.get("numbers", []))
+                } for i, pred in enumerate(latest_pred.get("predictions", []))
+            ]
+        }
+        with open('video_data_loto7.json', 'w', encoding='utf-8') as f:
+            json.dump(video_export_data, f, ensure_ascii=False, indent=4)
+        print("🎬 動画生成用の連携データ (video_data_loto7.json) を出力しました！")
+    except Exception as e:
+        print(f"⚠️ 動画用JSONの出力に失敗しました: {e}")
+    # ==========================================
     print("✨ ロト7の全データ取得と自動ポストが完了しました！")

@@ -1465,4 +1465,51 @@ if __name__ == "__main__":
         f.write(final_html)
         real_data = get_numbers_full_detail()
     generate_numbers_detail_page(real_data)
+    # ==========================================
+    # 🎬 【追加】動画作成用のJSONデータを出力する (ナンバーズ版)
+    # ==========================================
+    import json
+    try:
+        with open('history_numbers.json', 'r', encoding='utf-8') as f:
+            history = json.load(f)
+        latest_pred = history[0]
+        
+        actual_n4_str = "".join(real_data.get("n4_numbers", []))
+        actual_n3_str = "".join(real_data.get("n3_numbers", []))
+
+        # 的中判定用の関数
+        def eval_numbers(pred, actual):
+            if not actual or actual == "----" or actual == "---": return "抽選待ち"
+            if pred == actual: return "ストレート🎯"
+            elif sorted(pred) == sorted(actual): return "ボックス🎯"
+            return "ハズレ"
+
+        video_export_data = {
+            "round": real_data.get("round", ""),
+            "date": real_data.get("date", ""),
+            "n4_win": real_data.get("n4_numbers", []),
+            "n4_prizes": real_data.get("n4_prizes", []),
+            "n4_preds": [
+                {
+                    "name": f"予想{chr(65+i)}",
+                    "nums": pred,
+                    "result": eval_numbers(pred, actual_n4_str)
+                } for i, pred in enumerate(latest_pred.get("n4_preds", []))
+            ],
+            "n3_win": real_data.get("n3_numbers", []),
+            "n3_prizes": real_data.get("n3_prizes", []),
+            "n3_preds": [
+                {
+                    "name": f"予想{chr(65+i)}",
+                    "nums": pred,
+                    "result": eval_numbers(pred, actual_n3_str)
+                } for i, pred in enumerate(latest_pred.get("n3_preds", []))
+            ]
+        }
+        with open('video_data_numbers.json', 'w', encoding='utf-8') as f:
+            json.dump(video_export_data, f, ensure_ascii=False, indent=4)
+        print("🎬 動画生成用の連携データ (video_data_numbers.json) を出力しました！")
+    except Exception as e:
+        print(f"⚠️ 動画用JSONの出力に失敗しました: {e}")
+    # ==========================================
     print("✨ [自動取得・完全決着版] ナンバーズ3＆4 の自動更新とXへのポストが完了しました！")
