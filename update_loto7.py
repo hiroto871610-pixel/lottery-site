@@ -1116,6 +1116,7 @@ def manage_history(latest_data, new_predictions):
         history_record.insert(0, {
             "target_kai": next_kai,
             "status": "waiting",
+            "date": next_date_str,
             "predictions": new_predictions,
             "actual_main": "----",
             "actual_bonus": "",
@@ -1574,6 +1575,7 @@ if __name__ == "__main__":
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ロト7版)
     # ==========================================
+    import json
     try:
         # JSONBinから最新の履歴を直接取得する！
         history = load_history_from_jsonbin()

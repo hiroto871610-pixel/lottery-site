@@ -3,6 +3,11 @@ import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from moviepy.editor import VideoClip, AudioFileClip, CompositeAudioClip
+# ▼▼▼ ココを追加！ (Pillow 10.0以降のANTIALIASエラー対策) ▼▼▼
+import PIL.Image
+if not hasattr(PIL.Image, 'ANTIALIAS'):
+    PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
+# ▲▲▲ ここまで ▲▲▲
 
 # ==========================================
 # 🔍 準備

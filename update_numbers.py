@@ -1066,6 +1066,7 @@ def manage_history(latest_data, n4_preds, n3_preds):
         history_record.insert(0, {
             "target_kai": next_kai,
             "status": "waiting",
+            "date": next_date_str,
             "n4_preds": n4_preds,
             "n3_preds": n3_preds,
             "actual_n4": "----",
