@@ -1564,7 +1564,7 @@ def build_html():
     # 最後に送信処理をまとめる
     if send_flag and msg:
         # post_to_x(msg)
-        # post_to_line(msg)
+        post_to_line(msg)
         # --- InstagramとThreadsの配信曜日判定 ---
         # 日本時間の現在時刻を取得
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
