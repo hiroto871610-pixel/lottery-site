@@ -133,7 +133,7 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
         draw = ImageDraw.Draw(img)
 
         float_y = 280 + int(15 * math.sin(t * 3))
-        draw.text((120, float_y), "次回 ロト6\nAI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
+        draw.text((120, float_y), "次回 ロト6 AI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
 
         # ★追加：タイトルの下に回号と日付を表示
         draw.text((120, float_y + 300), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
@@ -173,7 +173,7 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
 
         # ★修正：絵文字（🟧）を削除し、位置を少し上にズラす
         float_y = 280 + int(15 * math.sin(t * 3))
-        draw.text((120, float_y), "次回 ロト7\nAI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
+        draw.text((120, float_y), "次回 ロト7 AI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
 
         # ★追加：タイトルの下に回号と日付を表示
         draw.text((120, float_y + 300), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
