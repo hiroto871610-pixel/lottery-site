@@ -67,6 +67,7 @@ jobs:
           python update_numbers.py
           python update_index.py
           python update_jumbo.py
+          python sync_prize_data.py
 
       - name: 更新されたデータをGitHubに自動保存（コミット＆プッシュ）
         run: |
