@@ -82,7 +82,7 @@ def create_stylish_video(make_frame_func, output_path, bgm_path="bgm.mp3", durat
 # ==========================================
 # 1. ナンバーズ動画
 # ==========================================
-def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg"):
+def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg", target_kai="", target_date=""):
     print(f"🎬 ナンバーズの動画を作成中... (N4:{n4_yosou} N3:{n3_yosou})")
     bg_base = Image.open(bg_image).resize((1080, 1920)).convert('RGBA') if os.path.exists(bg_image) else Image.new('RGBA', (1080, 1920), color=(30, 41, 59, 255))
     ball_r = 90 
@@ -122,7 +122,7 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg"):
 # ==========================================
 # 2. ロト6動画
 # ==========================================
-def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image="bg_loto6.jpg"):
+def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image="bg_loto6.jpg", target_kai="", target_date=""):
     print(f"🎬 ロト6の動画を作成中... (予想:{numbers} キャリーオーバー:{has_carryover})")
     bg_base = Image.open(bg_image).resize((1080, 1920)).convert('RGBA') if os.path.exists(bg_image) else Image.new('RGBA', (1080, 1920), color=(14, 165, 233, 255))
     ball_r = 75 
@@ -161,7 +161,7 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
 # ==========================================
 # 3. ロト7動画
 # ==========================================
-def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image="bg_loto7.jpg"):
+def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image="bg_loto7.jpg", target_kai="", target_date=""):
     print(f"🎬 ロト7の動画を作成中... (予想:{numbers} キャリーオーバー:{has_carryover})")
     bg_base = Image.open(bg_image).resize((1080, 1920)).convert('RGBA') if os.path.exists(bg_image) else Image.new('RGBA', (1080, 1920), color=(245, 158, 11, 255))
     ball_r = 65 
