@@ -237,6 +237,11 @@ def post_to_instagram(image_url, caption_text):
         return
         
     creation_id = container_data['id']
+
+    # ▼▼▼ ココに1行追加！ ▼▼▼
+    print("⏳ Instagram側の画像処理完了を15秒待ちます...")
+    time.sleep(60) 
+    # ▲▲▲ ココまで ▲▲▲
     
     # 【ステップ2】メディアの公開
     publish_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
