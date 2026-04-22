@@ -95,8 +95,9 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg", target_
         float_y = 250 + int(15 * math.sin(t * 3))
         draw.text((120, float_y), "明日のナンバーズ\n激アツ予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
         
-        # ★追加：タイトルの下に回号と日付を表示
-        draw.text((120, float_y + 180), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
+        # ▼▼▼ ★ココ！この1行が抜けているため、画面に文字が出ません！ ▼▼▼
+        draw.text((120, float_y + 240), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
+        # ▲▲▲ ココまで ▲▲▲
 
         draw.text((120, 700), "■ ナンバーズ4", font=FONT_SUB, fill=(52, 211, 153))
         for i, num in enumerate(list(n4_yosou)):
@@ -135,14 +136,14 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
         draw.text((120, float_y), "次回 ロト6\nAI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
 
         # ★追加：タイトルの下に回号と日付を表示
-        draw.text((120, float_y + 180), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
+        draw.text((120, float_y + 240), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
         
         if has_carryover:
             blink = int(127 * (1 + math.sin(t * 8)))
             # ★修正：二重になっていた原因を直し、絵文字を消して改行する
             # 元のテキスト自体に「キャリーオーバー発生中！」が入っているのでそのまま使う
             clean_carryover = carryover.replace("💰 ", "").replace("！(", "！\n　 ")
-            draw.text((120, float_y + 260), clean_carryover, font=FONT_SUB, fill=(255, 255, blink))
+            draw.text((120, float_y + 320), clean_carryover, font=FONT_SUB, fill=(255, 255, blink))
         
         for i, num in enumerate(numbers):
             appear_t = 1.0 + i * 0.2
@@ -175,13 +176,13 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
         draw.text((120, float_y), "次回 ロト7\nAI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
 
         # ★追加：タイトルの下に回号と日付を表示
-        draw.text((120, float_y + 180), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
+        draw.text((120, float_y + 240), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
         
         if has_carryover:
             blink = int(127 * (1 + math.sin(t * 8)))
             # ★修正：二重になっていた原因を直し、絵文字を消して改行する
             clean_carryover = carryover.replace("💰 ", "").replace("！(", "！\n　 ")
-            draw.text((120, float_y + 260), clean_carryover, font=FONT_SUB, fill=(255, 255, blink))
+            draw.text((120, float_y + 320), clean_carryover, font=FONT_SUB, fill=(255, 255, blink))
         
         for i, num in enumerate(numbers):
             appear_t = 1.0 + i * 0.15 
