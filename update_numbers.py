@@ -453,6 +453,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     # フォントサイズの設定（見やすく大きく！）
     font_title = ImageFont.truetype(font_path, 90)
     font_num = ImageFont.truetype(font_path, 95)
+    font_sub = ImageFont.truetype(font_path, 50) # ★追加：日付用の少し小さなフォント
 
     # 全体の上下バランスを見て、描画開始Y位置を決める
     current_y = 250 
@@ -461,6 +462,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     # 描画1：ナンバーズ4
     # ------------------------------------------------
     title4 = "【ナンバーズ4 予想A】"
+    subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # ★Pillowの機能でタイトルの描画サイズを取得し、中央位置(X)を計算
     # (Pillow 9.2.0以降推奨の textbbox を使用)
@@ -473,6 +475,13 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     draw.text((title_x + shadow_offset, current_y + shadow_offset), title4, font=font_title, fill=shadow_color)
     # タイトル本体を描画
     draw.text((title_x, current_y), title4, font=font_title, fill=n4_color)
+
+    # ★追加：サブタイトル（回号と日付）の描画
+    left_s, top_s, right_s, bottom_s = draw.textbbox((0, 0), subtitle, font=font_sub)
+    sub_w = right_s - left_s
+    sub_x = (W - sub_w) / 2
+    draw.text((sub_x + shadow_offset, current_y + 110 + shadow_offset), subtitle, font=font_sub, fill=shadow_color)
+    draw.text((sub_x, current_y + 110), subtitle, font=font_sub, fill=white)
     
     current_y += text_h + 80 # ボール列との間隔
 
@@ -503,6 +512,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     # ------------------------------------------------
     current_y += ball_dia + 180 # N4とN3の間隔
     title3 = "【ナンバーズ3 予想A】"
+    subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # タイトルの中央位置を計算
     left, top, right, bottom = draw.textbbox((0, 0), title3, font=font_title)
@@ -511,6 +521,10 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
     
     draw.text((title_x + shadow_offset, current_y + shadow_offset), title3, font=font_title, fill=shadow_color)
     draw.text((title_x, current_y), title3, font=font_title, fill=n3_color)
+
+    # ★追加：ここにもサブタイトル（回号と日付）の描画
+    draw.text((sub_x + shadow_offset, current_y + 110 + shadow_offset), subtitle, font=font_sub, fill=shadow_color)
+    draw.text((sub_x, current_y + 110), subtitle, font=font_sub, fill=white)
     
     current_y += text_h + 80 
 
@@ -1427,14 +1441,14 @@ def build_html():
         caption = f"🎯最新のナンバーズ AI予想です！\n\n{msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ① 今までの職人に「静止画」を作成してもらう
-        is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path)
+        is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path, target_kai=next_kai, target_date=next_date_str)
 
         # ====================================================
         # 🎬 ここで動画職人を呼び出し、本物の数字を渡す！
         # ====================================================
         try:
                 from create_reel import generate_numbers_reel
-                generate_numbers_reel(n4_yosou=n4_yosou_a, n3_yosou=n3_yosou_a)
+                generate_numbers_reel(n4_yosou=n4_yosou_a, n3_yosou=n3_yosou_a, target_kai=next_kai, target_date=next_date_str)
                 print(f"✅ 本物のデータでリール生成完了！")
                 
                 # ▼▼▼ いよいよリール自動投稿の最終ロジック！ ▼▼▼

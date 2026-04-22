@@ -91,8 +91,12 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg"):
         img = bg_base.copy()
         draw = ImageDraw.Draw(img)
 
-        float_y = 300 + int(15 * math.sin(t * 3))
-        draw.text((120, float_y), "🎯 明日のナンバーズ\n　 激アツ予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
+        # ★修正：絵文字（🎯）を消し、上下に揺れるアニメーションの基準位置を少し上げる
+        float_y = 250 + int(15 * math.sin(t * 3))
+        draw.text((120, float_y), "明日のナンバーズ\n激アツ予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
+        
+        # ★追加：タイトルの下に回号と日付を表示
+        draw.text((120, float_y + 180), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
 
         draw.text((120, 700), "■ ナンバーズ4", font=FONT_SUB, fill=(52, 211, 153))
         for i, num in enumerate(list(n4_yosou)):
