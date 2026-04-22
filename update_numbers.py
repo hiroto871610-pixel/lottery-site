@@ -1486,12 +1486,11 @@ if __name__ == "__main__":
     generate_numbers_detail_page(real_data)
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ナンバーズ版)
-    # ==========================================
-    import json
+    # =========================================
     try:
-        with open('history_numbers.json', 'r', encoding='utf-8') as f:
-            history = json.load(f)
-        latest_pred = history[0]
+        # JSONBinから最新の履歴を直接取得する！
+        history = load_history_from_jsonbin()
+        latest_pred = history[0] if history else {}
         
         actual_n4_str = "".join(real_data.get("n4_numbers", []))
         actual_n3_str = "".join(real_data.get("n3_numbers", []))

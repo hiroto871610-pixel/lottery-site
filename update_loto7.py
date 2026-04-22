@@ -1574,11 +1574,10 @@ if __name__ == "__main__":
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ロト7版)
     # ==========================================
-    import json
     try:
-        with open('history_loto7.json', 'r', encoding='utf-8') as f:
-            history = json.load(f)
-        latest_pred = history[0]
+        # JSONBinから最新の履歴を直接取得する！
+        history = load_history_from_jsonbin()
+        latest_pred = history[0] if history else {}
         
         def count_hit(pred_nums, win_nums):
             return len(set(pred_nums) & set(win_nums))
