@@ -1651,11 +1651,8 @@ if __name__ == "__main__":
     # 🎬 【追加】動画作成用のJSONデータを出力する
     # ==========================================
     # history_loto6.jsonから最新の予想A〜Eを取り出す
-    import json
-    with open('history_loto6.json', 'r', encoding='utf-8') as f:
-        history = json.load(f)
-    
-    latest_pred = history[0]
+    history = load_history_from_jsonbin()
+    latest_pred = history[0] if history else {}
     
     # 予想A〜Eが何個的中したかを判定する関数（簡易版）
     def count_hit(pred_nums, win_nums):
