@@ -499,6 +499,7 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     # 描画1：タイトル
     # ------------------------------------------------
     title = "【ロト7 最新AI予想 A】"
+    subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # タイトルの中央位置を計算
     left, top, right, bottom = draw.textbbox((0, 0), title, font=font_title)
@@ -508,6 +509,14 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     # タイトルの影と本体を描画（白文字）
     draw.text((title_x + shadow_offset, current_y + shadow_offset), title, font=font_title, fill=shadow_color)
     draw.text((title_x, current_y), title, font=font_title, fill=title_color)
+
+    # ★追加：サブタイトル（回号と日付）の描画
+    font_sub = ImageFont.truetype(font_path, 50) # 日付用の少し小さなフォント
+    left_s, top_s, right_s, bottom_s = draw.textbbox((0, 0), subtitle, font=font_sub)
+    sub_w = right_s - left_s
+    sub_x = (W - sub_w) / 2
+    draw.text((sub_x + shadow_offset, current_y + 110 + shadow_offset), subtitle, font=font_sub, fill=shadow_color)
+    draw.text((sub_x, current_y + 110), subtitle, font=font_sub, fill=white)
     
     current_y += (bottom - top) + 80 # ボール列（1段目）との間隔
 
@@ -553,12 +562,7 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     if carryover_info:
         current_y += 60 # 2段目のボールの下からの間隔
         
-        # ▼▼▼ 追加：長すぎる場合は「：」や「スペース」で強制的に改行（2行に）する ▼▼▼
-        if "：" in carryover_info:
-            carryover_info = carryover_info.replace("：", "：\n")
-        elif " " in carryover_info:
-            carryover_info = carryover_info.replace(" ", "\n")
-        # ▲▲▲ ここまで ▲▲▲
+        carryover_info = carryover_info.replace("💰 ", "").replace("！(", "！\n(")
         
         # ▼ 改行対応のため textbbox → multiline_textbbox に変更
         left, top, right, bottom = draw.multiline_textbbox((0, 0), carryover_info, font=font_carry, align="center")
@@ -1520,7 +1524,7 @@ def build_html():
         caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ① 今までの職人に「静止画」を作成してもらう
-        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path)
+        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str)
         
         # ====================================================
         # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！
@@ -1529,7 +1533,7 @@ def build_html():
             from create_reel import generate_loto7_reel
             
             is_carryover = "0円" not in carryover_text and "なし" not in carryover_text
-            generate_loto7_reel(numbers=yosou_a_list, carryover=carryover_text, has_carryover=is_carryover)
+            generate_loto7_reel(numbers=yosou_a_list, carryover=carryover_text, has_carryover=is_carryover, target_kai=next_kai, target_date=next_date_str)
             print("✅ 最新の予想データでリール動画(reel_loto7.mp4)の自動生成が完了しました！")
             
             # ▼▼▼ ロト7版 リール自動投稿ロジック ▼▼▼

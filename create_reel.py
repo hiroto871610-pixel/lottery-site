@@ -166,12 +166,18 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
         img = bg_base.copy()
         draw = ImageDraw.Draw(img)
 
-        float_y = 300 + int(15 * math.sin(t * 3))
-        draw.text((120, float_y), "🟧 次回 ロト7\n　 AI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
+        # ★修正：絵文字（🟧）を削除し、位置を少し上にズラす
+        float_y = 280 + int(15 * math.sin(t * 3))
+        draw.text((120, float_y), "次回 ロト7\nAI予想【A】", font=FONT_TITLE, fill=(255, 255, 255))
+
+        # ★追加：タイトルの下に回号と日付を表示
+        draw.text((120, float_y + 180), f"{target_kai} ({target_date})", font=FONT_SUB, fill=(220, 220, 220))
         
         if has_carryover:
             blink = int(127 * (1 + math.sin(t * 8)))
-            draw.text((120, float_y + 220), f"💰 キャリーオーバー発生中!\n　 {carryover}", font=FONT_SUB, fill=(255, 255, blink))
+            # ★修正：二重になっていた原因を直し、絵文字を消して改行する
+            clean_carryover = carryover.replace("💰 ", "").replace("！(", "！\n　 ")
+            draw.text((120, float_y + 260), clean_carryover, font=FONT_SUB, fill=(255, 255, blink))
         
         for i, num in enumerate(numbers):
             appear_t = 1.0 + i * 0.15 
