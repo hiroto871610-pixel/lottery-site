@@ -419,7 +419,7 @@ def upload_to_youtube_shorts(video_path, title, description, tags):
         print(f"❌ YouTubeアップロードエラー: {e}")
 # =========================================================
 
-def create_result_image(n4_text, n3_text, base_image_path, output_image_path):
+def create_result_image(n4_text, n3_text, base_image_path, output_image_path, target_kai="", target_date=""):
     """ナンバーズ専用：1080x1350の大画面に合わせて、文字を大きく中央揃えで描画する職人"""
     print("🎨 ナンバーズ専用の予想画像を生成中（中央揃え・大画面版）...")
     try:

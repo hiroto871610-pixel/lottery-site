@@ -486,7 +486,7 @@ def upload_image_to_imgbb(image_path):
         return None
     # =========================================================
 
-def create_result_image(loto6_nums, carryover_info, base_image_path, output_image_path):
+def create_result_image(loto6_nums, carryover_info, base_image_path, output_image_path, target_kai="", target_date=""):
     """ロト6専用：1080x1350の大画面に合わせて、特大2段組＆白タイトルで描画する職人"""
     print("🎨 ロト6専用の予想画像を生成中（特大2段・白タイトル版）...")
     try:
