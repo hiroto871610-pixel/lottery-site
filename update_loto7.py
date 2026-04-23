@@ -1116,7 +1116,6 @@ def manage_history(latest_data, new_predictions):
         history_record.insert(0, {
             "target_kai": next_kai,
             "status": "waiting",
-            "date": next_date_str,
             "predictions": new_predictions,
             "actual_main": "----",
             "actual_bonus": "",

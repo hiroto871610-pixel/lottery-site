@@ -29,11 +29,10 @@ bg_video = None
 bgm_clip = None
 
 # ==========================================
-# 🔍 共通準備（根本的レイアウト修正版）
+# 🔍 共通準備（フォント・自動配置ツール）
 # ==========================================
 FONT_PATH = "assets/font.ttf"
 try:
-    # ★ 根本的修正：枠内に100%収めるため、フォントサイズをさらに小さく再設定
     FONT_TITLE = ImageFont.truetype(FONT_PATH, 45)
     FONT_SUB = ImageFont.truetype(FONT_PATH, 35)
     FONT_NUM = ImageFont.truetype(FONT_PATH, 55)
@@ -78,15 +77,16 @@ def draw_sphere_ball_with_bounce(draw, x, y, r, text, ball_color, t, appear_t):
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw_text_with_shadow(draw, x + r - w / 2, y + y_offset + r - h / 2 - 10, text, FONT_NUM, (255, 255, 255))
 
+# ★ 根本的解決：エラーの元だった無駄な1行を削除し、強制リサイズを有効化！
 def get_base_frame(t):
     if bg_video:
         frame_t = t % bg_video.duration
-        return Image.fromarray(bg_video.get_frame(frame_t)).convert('RGBA')
+        frame_img = Image.fromarray(bg_video.get_frame(frame_t)).convert('RGBA')
         return frame_img.resize((1920, 1080), PIL.Image.LANCZOS)
     return Image.new('RGBA', (1920, 1080), color=(15, 23, 42, 255))
 
 # ==========================================
-# ☁️ データ取得
+# ☁️ データ取得・照合
 # ==========================================
 def fetch_finished_history(bin_id, limit):
     api_key = os.environ.get("JSONBIN_API_KEY")
@@ -116,20 +116,62 @@ def fetch_video_db_safe(bin_id):
         return safe_db
     except: return {}
 
+def get_short_date(d_str):
+    """日付を「●月●日」の形式に綺麗にフォーマットする"""
+    if not d_str or d_str == "----/--/--": return "----/--/--"
+    m = re.search(r'\d{4}[/年]\s*(\d{1,2})[/月]\s*(\d{1,2})', d_str)
+    if m: return f"{m.group(1)}月{m.group(2)}日"
+    return d_str
+
 # ==========================================
-# 🔥 【新機能】HOT & COLD 紹介シーン職人
+# 📺 【新機能】タイトルコール職人
+# ==========================================
+def create_title_clip(records, title_name, main_color):
+    """各宝くじの最初に流れる「●月●日～●月●日 結果まとめ」のシーン"""
+    duration = 4
+    if not records: return None
+    
+    # リストの中で0番目が最新、最後が最古のデータ
+    oldest = records[-1]
+    newest = records[0]
+    
+    old_kai = oldest.get('target_kai', '')
+    new_kai = newest.get('target_kai', '')
+    old_date = get_short_date(oldest.get('date', '----/--/--'))
+    new_date = get_short_date(newest.get('date', '----/--/--'))
+
+    def make_frame(t):
+        img = get_base_frame(t)
+        draw = ImageDraw.Draw(img)
+        
+        draw_centered_text(draw, 350, f"■ {title_name} 結果まとめ ■", FONT_TITLE, main_color)
+        
+        if old_kai == new_kai:
+            # 1回分しかない場合
+            draw_centered_text(draw, 500, f"{old_date} ({old_kai})", FONT_NUM, (255, 255, 255))
+        else:
+            # 複数回分ある場合
+            draw_centered_text(draw, 460, f"{old_date} ({old_kai})", FONT_NUM, (255, 255, 255))
+            draw_centered_text(draw, 580, "▼", FONT_LIST, (200, 200, 200))
+            draw_centered_text(draw, 660, f"{new_date} ({new_kai})", FONT_NUM, (255, 255, 255))
+
+        return np.array(img.convert('RGB'))
+
+    clip = VideoClip(make_frame, duration=duration)
+    if os.path.exists("assets/se_whoosh.mp3"):
+        clip = clip.set_audio(AudioFileClip("assets/se_whoosh.mp3").set_start(0.5))
+    return clip
+
+# ==========================================
+# 🔥 HOT & COLD 紹介シーン職人
 # ==========================================
 def create_hot_cold_clip(loto6_records):
-    """直近データからHOT数字とCOLD数字を算出し、1つのシーンとして描画する"""
     duration = 10
-    
-    # すべての出現数字を集める
     all_nums = []
     for rec in loto6_records:
         nums = [n.strip() for n in rec.get("actual_main", "").split(",") if n.strip().isdigit()]
         all_nums.extend(nums)
 
-    # カウントと仕分け
     counts = Counter(all_nums)
     for i in range(1, 44):
         n_str = str(i).zfill(2)
@@ -163,7 +205,6 @@ def create_hot_cold_clip(loto6_records):
         return np.array(img.convert('RGB'))
 
     clip = VideoClip(make_frame, duration=duration)
-    # SE追加
     audio_clips = []
     if os.path.exists("assets/se_don.mp3"):
         for i in range(5): audio_clips.append(AudioFileClip("assets/se_don.mp3").set_start(1.5 + (i * 0.3)))
@@ -178,7 +219,6 @@ def create_trend_graph_clip(loto6_records):
     duration = 10
     targets = list(reversed(loto6_records[:10]))
     
-    # ★ 根本的修正：データが2回分未満の場合は「収集中」の画面を出してスキップさせない
     if len(targets) < 2:
         def make_frame_empty(t):
             img = get_base_frame(t)
@@ -264,7 +304,7 @@ def create_loto_clip(record, loto_type="LOTO6"):
             draw_centered_text(draw, 80, f"■ {loto_type} {target_kai} 結果発表 ■", FONT_TITLE, (56, 189, 248) if loto_type == "LOTO6" else (251, 191, 36))
             draw_centered_text(draw, 150, f"抽選日: {date_str}", FONT_LIST, (220, 220, 220))
             
-            ball_r = 65 # ボールをさらに小さく
+            ball_r = 65
             gap = 20
             total_balls = len(actual_main) + 1
             total_w = total_balls * (2 * ball_r) + (total_balls - 1) * gap + 40
@@ -289,8 +329,7 @@ def create_loto_clip(record, loto_type="LOTO6"):
                 base_prize_y = 230
                 for i, p in enumerate(prizes[:6]):
                     if t > 9.5 + (i * 0.8):
-                        y = base_prize_y + (i * 90) # 行間を詰める
-                        # ★ 根本的修正：座標を中央に完全に寄せる
+                        y = base_prize_y + (i * 90)
                         draw_text_with_shadow(draw, 400, y, p.get('grade',''), FONT_LIST, (255, 255, 255))
                         draw_right_aligned_text(draw, 1050, y, p.get('prize',''), FONT_NUM, (250, 204, 21))
                         draw_text_with_shadow(draw, 1150, y, p.get('winners',''), FONT_LIST, (156, 163, 175))
@@ -311,7 +350,6 @@ def create_loto_clip(record, loto_type="LOTO6"):
                 if t > 19.0 + (i * 2.2):
                     y = base_list_y + (i * 120)
                     p_str = ", ".join(p) if isinstance(p, list) else p
-                    # ★ 根本的修正：安全マージンを大幅確保
                     draw_text_with_shadow(draw, 350, y, f"予想{chr(65+i)} :  {p_str}", FONT_LIST, (200, 200, 200))
                     
                     hit_m = len(set(p) & set(actual_main)) if isinstance(p, list) else 0
@@ -383,7 +421,6 @@ def create_numbers_clip(record):
         elif t < 16.0:
             draw_centered_text(draw, 80, "【 当せん金額 と 口数 】", FONT_TITLE, (52, 211, 153))
             
-            # ★ 根本的修正：N4を X=100〜850 に確実に収める
             draw_text_with_shadow(draw, 150, 200, "■ ナンバーズ4", FONT_LIST, (22, 163, 74))
             if n4_prizes:
                 for i, p in enumerate(n4_prizes):
@@ -395,7 +432,6 @@ def create_numbers_clip(record):
             else:
                 if t > 9.0: draw_text_with_shadow(draw, 200, 400, "※集計中...", FONT_LIST, (200, 200, 200))
 
-            # ★ 根本的修正：N3を X=1000〜1800 に確実に収める
             draw_text_with_shadow(draw, 1100, 200, "■ ナンバーズ3", FONT_LIST, (217, 119, 6))
             if n3_prizes:
                 for i, p in enumerate(n3_prizes):
@@ -475,41 +511,61 @@ def generate_weekly_video():
     v_db_l6 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO6"))
     v_db_l7 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO7"))
 
-    # ★ 結合処理（日付や賞金データ）
-    for rec in reversed(n_hist):
+    # ★ データと日付を「動画を作る前」に先にすべて結合しておく
+    for rec in n_hist:
         nums = re.findall(r'\d+', rec.get("target_kai", ""))
         if nums and str(int(nums[0])) in v_db_n:
             kai_key = str(int(nums[0]))
             rec["date"] = v_db_n[kai_key].get("date", "----/--/--")
             rec["n4_prizes"] = v_db_n[kai_key].get("n4_prizes", [])
             rec["n3_prizes"] = v_db_n[kai_key].get("n3_prizes", [])
-        all_clips.append(create_numbers_clip(rec))
 
-    for rec in reversed(l6_hist):
+    for rec in l6_hist:
         nums = re.findall(r'\d+', rec.get("target_kai", ""))
         if nums and str(int(nums[0])) in v_db_l6:
             kai_key = str(int(nums[0]))
             rec["date"] = v_db_l6[kai_key].get("date", "----/--/--")
             rec["prizes"] = v_db_l6[kai_key].get("prizes", [])
             rec["carryover"] = v_db_l6[kai_key].get("carryover", "0円")
-        all_clips.append(create_loto_clip(rec, "LOTO6"))
 
-    for rec in reversed(l7_hist):
+    for rec in l7_hist:
         nums = re.findall(r'\d+', rec.get("target_kai", ""))
         if nums and str(int(nums[0])) in v_db_l7:
             kai_key = str(int(nums[0]))
             rec["date"] = v_db_l7[kai_key].get("date", "----/--/--")
             rec["prizes"] = v_db_l7[kai_key].get("prizes", [])
             rec["carryover"] = v_db_l7[kai_key].get("carryover", "0円")
-        all_clips.append(create_loto_clip(rec, "LOTO7"))
 
-    # ★【新機能】HOT & COLD 分析シーンの追加
+    # =========================================================
+    # ★ 新機能：タイトルコールを各宝くじの直前に挿入！
+    # =========================================================
+    if n_hist:
+        print("📺 ナンバーズのタイトルシーンを生成中...")
+        title_clip = create_title_clip(n_hist, "ナンバーズ", (52, 211, 153))
+        if title_clip: all_clips.append(title_clip)
+        for rec in reversed(n_hist):
+            all_clips.append(create_numbers_clip(rec))
+
+    if l6_hist:
+        print("📺 ロト6のタイトルシーンを生成中...")
+        title_clip = create_title_clip(l6_hist, "ロト6", (56, 189, 248))
+        if title_clip: all_clips.append(title_clip)
+        for rec in reversed(l6_hist):
+            all_clips.append(create_loto_clip(rec, "LOTO6"))
+
+    if l7_hist:
+        print("📺 ロト7のタイトルシーンを生成中...")
+        title_clip = create_title_clip(l7_hist, "ロト7", (251, 191, 36))
+        if title_clip: all_clips.append(title_clip)
+        for rec in reversed(l7_hist):
+            all_clips.append(create_loto_clip(rec, "LOTO7"))
+    # =========================================================
+
     if l6_hist_all:
         print("🔥 HOT & COLD 分析のシーンを生成中...")
         hc_clip = create_hot_cold_clip(l6_hist_all)
         if hc_clip: all_clips.append(hc_clip)
 
-    # ★ グラフシーンの追加（データ不足時は「収集中」と表示）
     print("📊 分析グラフのシーンを生成中...")
     graph_clip = create_trend_graph_clip(l6_hist_all) 
     if graph_clip: all_clips.append(graph_clip)
