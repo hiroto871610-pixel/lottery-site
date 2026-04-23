@@ -32,27 +32,27 @@
     "n4_preds": [
         {
             "name": "予想A",
-            "nums": "1121",
+            "nums": "4428",
             "result": "ハズレ"
         },
         {
             "name": "予想B",
-            "nums": "4112",
+            "nums": "2424",
             "result": "ハズレ"
         },
         {
             "name": "予想C",
-            "nums": "2141",
+            "nums": "4426",
             "result": "ハズレ"
         },
         {
             "name": "予想D",
-            "nums": "2411",
+            "nums": "2420",
             "result": "ハズレ"
         },
         {
             "name": "予想E",
-            "nums": "4211",
+            "nums": "7424",
             "result": "ハズレ"
         }
     ],
@@ -91,27 +91,27 @@
     "n3_preds": [
         {
             "name": "予想A",
-            "nums": "888",
+            "nums": "139",
             "result": "ハズレ"
         },
         {
             "name": "予想B",
-            "nums": "848",
+            "nums": "149",
             "result": "ハズレ"
         },
         {
             "name": "予想C",
-            "nums": "884",
+            "nums": "109",
             "result": "ハズレ"
         },
         {
             "name": "予想D",
-            "nums": "818",
+            "nums": "039",
             "result": "ハズレ"
         },
         {
             "name": "予想E",
-            "nums": "881",
+            "nums": "639",
             "result": "ハズレ"
         }
     ]
