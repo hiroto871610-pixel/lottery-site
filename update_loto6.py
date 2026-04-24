@@ -1,4 +1,8 @@
 import random
+import numpy as np
+import pandas as pd
+import itertools
+from sklearn.ensemble import RandomForestClassifier
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -909,7 +913,7 @@ def fetch_history_data():
     today = datetime.date.today()
     target_urls = [f"{base_url}lastresults/"]
     
-    for i in range(12):
+    for i in range(36):
         y = today.year
         m = today.month - i
         if m <= 0:
@@ -995,78 +999,68 @@ def analyze_trends(history_data):
     
     return hot, cold
 
-# --- 3. 複合アルゴリズム予想生成（★今回刷新した高度分析ロジック） ---
+# --- 3. 複合アルゴリズム予想生成（★機械学習ハイブリッド版に刷新） ---
 def generate_advanced_predictions(history_data):
-    main_draws = [[int(n) for n in d['main']] for d in history_data]
-    if not main_draws:
-        return []
+    print("🧠 AI（Random Forest）が過去の傾向と数字の共起性を学習中...")
+    if not history_data or len(history_data) < 20:
+        return [] 
 
-    # 【分析1】合計値分析
-    sums = [sum(draw) for draw in main_draws]
-    min_sum, max_sum = min(sums), max(sums)
+    main_draws = [list(map(int, d['main'])) for d in reversed(history_data)]
+    
+    # --- 1. 共起性行列（ペア相性）の作成 ---
+    pair_counts = Counter()
+    for draw in main_draws:
+        for pair in itertools.combinations(sorted(draw), 2):
+            pair_counts[pair] += 1
 
-    # 【分析2】奇数偶数バランス分析
-    odd_counts = [sum(1 for n in draw if n % 2 != 0) for draw in main_draws]
-    avg_odd = round(sum(odd_counts) / len(odd_counts)) if odd_counts else 3
-    target_odds = [avg_odd - 1, avg_odd, avg_odd + 1] # 平均値±1の範囲を許容
+    # --- 2. 機械学習のためのデータセット作成 ---
+    features = []
+    labels = []
+    window_size = 10 
+    
+    for i in range(window_size, len(main_draws) - 1):
+        past_window = [num for draw in main_draws[i-window_size:i] for num in draw]
+        past_counts = Counter(past_window)
+        
+        target_draw = main_draws[i] 
+        for num in range(1, 44): # ★ロト6は1〜43
+            feature = [past_counts.get(num, 0)]
+            features.append(feature)
+            labels.append(1 if num in target_draw else 0)
 
-    # 【分析3】連続数字分析 (12, 13などの連続)
-    seq_count = sum(1 for draw in main_draws if any(draw[i]+1 == draw[i+1] for i in range(len(draw)-1)))
-    seq_prob = seq_count / len(main_draws)
+    X = np.array(features)
+    y = np.array(labels)
 
-    # 【分析4】連続出現数字分析 (前回と同じ数字が引っ張られる確率)
-    repeat_count = sum(len(set(main_draws[i]) & set(main_draws[i+1])) for i in range(len(main_draws)-1))
-    total_nums = 6 * (len(main_draws) - 1) if len(main_draws) > 1 else 1
-    repeat_prob = repeat_count / total_nums
+    # --- 3. モデルの学習 (Random Forest) ---
+    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
+    model.fit(X, y)
 
-    # 【分析5＆6】過去1年の傾向 (HOT/COLD) ＆ 最新最古数字分析
-    freq = {i: 0 for i in range(1, 44)}
-    freq_10 = {i: 0 for i in range(1, 44)}
-    last_seen = {i: 999 for i in range(1, 44)}
+    # --- 4. 次回の予測スコアを算出 ---
+    latest_window = [num for draw in main_draws[-window_size:] for num in draw]
+    latest_counts = Counter(latest_window)
+    
+    next_features = np.array([[latest_counts.get(num, 0)] for num in range(1, 44)]) # ★ロト6は1〜43
+    probabilities = model.predict_proba(next_features)[:, 1] 
+    
+    ml_scores = {num: prob for num, prob in enumerate(probabilities, start=1)}
 
-    for idx, draw in enumerate(main_draws):
-        for n in draw:
-            freq[n] += 1
-            if idx < 10:
-                freq_10[n] += 1
-            if last_seen[n] == 999:
-                last_seen[n] = idx
-
-    # 【分析7】各数字の順位付け（確率スコアリング）
-    scores = {}
-    for n in range(1, 44):
-        score = 1.0
-        # 過去一年間の傾向 (ベースポイント)
-        score += freq[n] * 0.5 
-        # ★直近の傾向(過去10回)に重点をおく (高ウェイト)
-        score += freq_10[n] * 2.5 
-
-        # 最新・最古および連続出現の反映
-        if last_seen[n] == 0:
-            # 前回出た数字は、連続出現確率(repeat_prob)を元にスコア加算
-            score += (repeat_prob * 10)
-        elif last_seen[n] > 15:
-            # 最も出ていない古い数字は「そろそろ出る」として優先度(確率)を上げる
-            score += 3.0
-        else:
-            score += 1.0
-
-        scores[n] = max(0.1, score)
-
-    # --- 分析結果の掛け合わせによる選定・抽出 ---
+    # --- 5. ハイブリッド選定（MLスコア × 共起性） ---
     predictions = []
-    numbers = list(range(1, 44))
-    weights = [scores[n] for n in numbers]
+    seen = set()
+    
+    numbers = list(range(1, 44)) # ★ロト6は1〜43
+    weights = [ml_scores[n] for n in numbers]
 
-    # 大量の候補セットを生成し、すべての分析条件をクリアしたものだけを抽出
     candidates = []
-    for _ in range(2000):
-        # 順位付け(スコア)に基づいた重み付きランダム抽出 (ロト6は6個)
+    for _ in range(3000): # 3000パターン生成
         cand = []
         pool_nums = list(numbers)
         pool_weights = list(weights)
-        for _ in range(6):
-            choice = random.choices(pool_nums, weights=pool_weights)[0]
+        for _ in range(6): # ★ロト6は6個選ぶ
+            if sum(pool_weights) > 0:
+                choice = random.choices(pool_nums, weights=pool_weights)[0]
+            else:
+                choice = random.choice(pool_nums)
             cand.append(choice)
             idx = pool_nums.index(choice)
             pool_nums.pop(idx)
@@ -1076,27 +1070,16 @@ def generate_advanced_predictions(history_data):
 
     valid_candidates = []
     for cand in candidates:
-        # 条件適用①: 合計値分析 (最大値〜最小値の間に収める)
-        if not (min_sum <= sum(cand) <= max_sum): 
-            continue
-
-        # 条件適用②: 奇数偶数バランス
-        odds = sum(1 for n in cand if n % 2 != 0)
-        if odds not in target_odds: 
-            continue
-
-        # 条件適用③: 連続数字分析の確率を掛け合わせ (スコア補正)
-        has_seq = any(cand[i]+1 == cand[i+1] for i in range(5))
-        cand_score = sum(scores[n] for n in cand)
+        base_score = sum(ml_scores[n] for n in cand)
         
-        if (has_seq and seq_prob > 0.5) or (not has_seq and seq_prob <= 0.5):
-            cand_score *= 1.2 # 確率の高い傾向に沿っている組み合わせのスコアを強化
+        pair_bonus = 0
+        for pair in itertools.combinations(cand, 2):
+            pair_bonus += pair_counts.get(pair, 0)
+            
+        final_score = base_score + (pair_bonus * 0.05)
+        valid_candidates.append((final_score, cand))
 
-        valid_candidates.append((cand_score, cand))
-
-    # スコア順にランキングし、上位5つの予想を選定
     valid_candidates.sort(key=lambda x: x[0], reverse=True)
-    seen = set()
     for score, cand in valid_candidates:
         t_cand = tuple(cand)
         if t_cand not in seen:
@@ -1104,15 +1087,6 @@ def generate_advanced_predictions(history_data):
             predictions.append([str(n).zfill(2) for n in cand])
         if len(predictions) == 5:
             break
-
-    # 万が一、条件が厳しすぎて5個揃わなかった場合の安全処理
-    while len(predictions) < 5:
-        cand = random.sample(numbers, 6)
-        cand.sort()
-        t_cand = tuple(cand)
-        if t_cand not in seen:
-            seen.add(t_cand)
-            predictions.append([str(n).zfill(2) for n in cand])
 
     return predictions
 

@@ -1,4 +1,8 @@
 import random
+import numpy as np
+import pandas as pd
+import itertools
+from sklearn.ensemble import RandomForestClassifier
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -835,7 +839,7 @@ def fetch_single_history(base_url, length):
     today = datetime.date.today()
     target_urls = [base_url]
     
-    for i in range(12):
+    for i in range(36):
         y = today.year
         m = today.month - i
         if m <= 0:
@@ -926,97 +930,124 @@ def analyze_digit_trends(history_data, win_key):
     cold = list(reversed(sorted_counts))[:3] # 下位3つ
     return hot, cold
 
-# --- 3. 複合アルゴリズム予想生成（★ナンバーズ専用：ポジション分析型へ超強化） ---
+# --- 3. 複合アルゴリズム予想生成（★機械学習ハイブリッド版・ナンバーズ専用） ---
 def generate_advanced_predictions(history_data, length, win_key):
-    draws = [d[win_key] for d in history_data]
-    if not draws:
-        return []
+    print(f"🧠 AI（Random Forest）がナンバーズ{length}の『桁ごとの傾向』と共起性を学習中...")
+    if not history_data or len(history_data) < 20:
+        return [] 
 
-    # 【分析1】合計値の範囲を取得
-    sums = [sum(int(n) for n in draw) for draw in draws]
-    min_sum, max_sum = min(sums), max(sums)
-
-    # 【分析2】全体の出現傾向
-    overall_freq = {str(i): 0 for i in range(10)}
-    for draw in draws:
-        for n in draw: overall_freq[n] += 1
-
-    # 【分析3】★桁(ポジション)ごとの出現傾向（ナンバーズにおいて最重要）
-    pos_freq = [{str(i): 0 for i in range(10)} for _ in range(length)]
-    pos_freq_10 = [{str(i): 0 for i in range(10)} for _ in range(length)] # 直近10回
-
-    for idx, draw in enumerate(draws):
-        for pos, n in enumerate(draw):
-            pos_freq[pos][n] += 1
-            if idx < 10:
-                pos_freq_10[pos][n] += 1
-
-    # 【分析4】各桁ごとに数字のスコア（確率）を計算
-    pos_scores = []
-    for pos in range(length):
-        scores = {}
-        for i in range(10):
-            n = str(i)
-            # 全体の傾向 + その桁での過去1年の傾向
-            score = 1.0 + (overall_freq[n] * 0.1) + (pos_freq[pos][n] * 0.5)
-            # ★直近10回のその桁でのトレンドを最も強く評価
-            score += pos_freq_10[pos][n] * 2.5
-            scores[n] = score
-        pos_scores.append(scores)
-
-    # --- 分析結果を元に候補を生成 ---
-    predictions = []
-    digits = [str(i) for i in range(10)]
+    # 古い順（時系列）に並び替え、数字を整数のリストに変換
+    draws = [[int(n) for n in d[win_key]] for d in reversed(history_data)]
     
-    # 大量の候補セットを生成
+    # --- 1. 共起性行列（一緒に選ばれやすい数字のペア） ---
+    pair_counts = Counter()
+    for draw in draws:
+        # 順番を問わず、同じ回に出現した数字のペアをカウント
+        for pair in itertools.combinations(sorted(draw), 2):
+            pair_counts[pair] += 1
+
+    # --- 2 & 3. 桁(ポジション)ごとの機械学習モデルの構築と予測 ---
+    # ナンバーズは桁ごとに傾向が異なるため、各桁専用のAIモデルを個別に作ります
+    pos_ml_scores = []
+    window_size = 10 
+    
+    for pos in range(length):
+        features = []
+        labels = []
+        
+        # この桁(ポジション)だけの過去の出現履歴を抽出
+        pos_sequence = [draw[pos] for draw in draws]
+        
+        for i in range(window_size, len(pos_sequence) - 1):
+            past_window = pos_sequence[i-window_size:i]
+            past_counts = Counter(past_window)
+            
+            target_digit = pos_sequence[i] 
+            for num in range(10): # ナンバーズは0〜9
+                feature = [past_counts.get(num, 0)]
+                features.append(feature)
+                labels.append(1 if num == target_digit else 0)
+
+        X = np.array(features)
+        y = np.array(labels)
+
+        # Random Forestモデルの学習
+        model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
+        
+        # データが偏りすぎて1種類しかない場合のエラー回避
+        if len(np.unique(y)) > 1:
+            model.fit(X, y)
+            
+            # 次回の予測スコアを算出
+            latest_window = pos_sequence[-window_size:]
+            latest_counts = Counter(latest_window)
+            next_features = np.array([[latest_counts.get(num, 0)] for num in range(10)])
+            probabilities = model.predict_proba(next_features)[:, 1]
+        else:
+            probabilities = np.array([0.1] * 10) # 例外処理
+            
+        ml_scores = {num: prob for num, prob in enumerate(probabilities)}
+        pos_ml_scores.append(ml_scores)
+
+    # --- 4. ハイブリッド選定（桁ごとのML確率 × 共起性） ---
+    predictions = []
+    seen = set()
+    seen_box = set() # ボックスでの重複も防ぎ、予想のカバー範囲を最大化する
+    digits = list(range(10))
+
     candidates = []
-    for _ in range(3000):
-        cand_chars = []
-        # 各桁ごとに、その桁のスコア(重み)に基づいて数字を選ぶ
+    for _ in range(4000): # パターンを多めに生成
+        cand = []
         for pos in range(length):
-            weights = [pos_scores[pos][n] for n in digits]
-            chosen = random.choices(digits, weights=weights, k=1)[0]
-            cand_chars.append(chosen)
-        candidates.append("".join(cand_chars))
+            # 各桁ごとに、専用のAIが弾き出した確率(重み)を使って数字を抽出
+            weights = [pos_ml_scores[pos][n] for n in digits]
+            if sum(weights) > 0:
+                choice = random.choices(digits, weights=weights)[0]
+            else:
+                choice = random.choice(digits)
+            cand.append(choice)
+        candidates.append(cand)
 
     valid_candidates = []
     for cand in candidates:
-        cand_nums = [int(x) for x in cand]
+        # MLのベーススコア（各桁のAIが弾き出した確率の合計）
+        base_score = sum(pos_ml_scores[pos][cand[pos]] for pos in range(length))
         
-        # 条件適用①: 合計値分析
-        if not (min_sum <= sum(cand_nums) <= max_sum): 
-            continue
-
-        # 条件適用②: トリプル(同じ数字が3つ)の除外フィルター
-        # ナンバーズにおいて同じ数字が3つ以上出る確率は極めて低いため除外して精度を上げる
+        # 共起性(ペア)ボーナスの加算
+        pair_bonus = 0
+        for pair in itertools.combinations(sorted(cand), 2):
+            pair_bonus += pair_counts.get(pair, 0)
+            
+        final_score = base_score + (pair_bonus * 0.05)
+        
+        # ナンバーズ特有のフィルター：同じ数字が3つ以上出る確率（トリプル以上）は極めて低いため除外
         counts = Counter(cand)
         if any(v >= 3 for v in counts.values()):
             continue
+            
+        valid_candidates.append((final_score, cand))
 
-        # 候補全体の強さ(スコア)を計算
-        cand_score = sum(pos_scores[pos][cand[pos]] for pos in range(length))
-        valid_candidates.append((cand_score, cand))
-
-    # スコア順にランキングし、上位5つの予想を選定
+    # 最終スコア順にランキングし、上位5つの予想を選定
     valid_candidates.sort(key=lambda x: x[0], reverse=True)
-    seen = set()
-    seen_box = set() # ボックスでの重複も避ける（カバー範囲を広げるため）
     
     for score, cand in valid_candidates:
-        box_cand = "".join(sorted(cand))
-        if cand not in seen and box_cand not in seen_box:
-            seen.add(cand)
-            seen_box.add(box_cand)
-            predictions.append(cand)
+        cand_str = "".join(map(str, cand))
+        box_str = "".join(sorted(cand_str))
+        
+        # ストレートでもボックスでも過去の予想と被らないようにする
+        if cand_str not in seen and box_str not in seen_box:
+            seen.add(cand_str)
+            seen_box.add(box_str)
+            predictions.append(cand_str)
         if len(predictions) == 5:
             break
 
-    # 安全処理
+    # 万が一、条件が厳しすぎて5個揃わなかった場合の安全処理
     while len(predictions) < 5:
-        cand = "".join(str(random.randint(0,9)) for _ in range(length))
-        if cand not in seen:
-            seen.add(cand)
-            predictions.append(cand)
+        cand_str = "".join(str(random.randint(0,9)) for _ in range(length))
+        if cand_str not in seen:
+            seen.add(cand_str)
+            predictions.append(cand_str)
 
     return predictions
 
