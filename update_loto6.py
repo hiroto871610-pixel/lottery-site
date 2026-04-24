@@ -36,22 +36,23 @@ JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
 JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
 
 def load_history_from_jsonbin():
-    """JSONBinから履歴データをダウンロードする"""
-    if not JSONBIN_BIN_ID:
-        return []
-    
+    if not JSONBIN_BIN_ID: return []
     headers = {"X-Master-Key": JSONBIN_API_KEY}
     try:
-        res = requests.get(JSONBIN_URL, headers=headers)
+        # 通信のタイムアウトを10秒に設定
+        res = requests.get(JSONBIN_URL, headers=headers, timeout=60)
+        
         if res.status_code == 200:
-            # JSONBinはデータを 'record' というキーの中に包んで返してきます
             return res.json().get('record', [])
         else:
-            print(f"⚠️ JSONBin読込エラー: {res.status_code}")
-            return []
+            # 🚨 ステータスコードが200以外（エラー）の場合は空配列を返さず、処理を止める！
+            print(f"⚠️ JSONBin取得エラー: {res.status_code} - {res.text}")
+            raise SystemExit("🚨 データの消失（サイレント上書き）を防ぐため、処理を強制終了しました。")
+            
     except Exception as e:
+        # 🚨 通信タイムアウトなどの場合も同様に強制終了させる
         print(f"⚠️ JSONBin通信エラー: {e}")
-        return []
+        raise SystemExit("🚨 データの消失（サイレント上書き）を防ぐため、処理を強制終了しました。")
 
 def save_history_to_jsonbin(data):
     """JSONBinへ履歴データをアップロードして上書きする"""
