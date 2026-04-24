@@ -3,97 +3,142 @@ import pandas as pd
 from collections import Counter
 import itertools
 from sklearn.ensemble import RandomForestClassifier
+import requests
+from bs4 import BeautifulSoup
+import re
+import datetime
 
+# ==========================================
+# 1. データ取得機能（AI学習用に強化版：過去3年分を取得）
+# ==========================================
+def fetch_real_history_data():
+    print("☁️ 楽天宝くじから過去の履歴データを取得中（AI学習のため過去3年分）...")
+    base_url = "https://takarakuji.rakuten.co.jp/backnumber/loto7/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    history_data = []
+    
+    today = datetime.date.today()
+    target_urls = [f"{base_url}lastresults/"]
+    
+    # 過去36ヶ月（3年分）のURLを生成
+    for i in range(1, 36):
+        y = today.year
+        m = today.month - i
+        while m <= 0:
+            m += 12
+            y -= 1
+        target_urls.append(f"{base_url}{y}{m:02d}/")
+    
+    for url in target_urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code != 200: continue
+            res.encoding = 'euc-jp'
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            text = soup.get_text(separator=' ')
+            
+            for m in re.finditer(r'第\s*(\d+)\s*回', text):
+                kai_num = m.group(1).zfill(4)
+                kai_str = f"第{kai_num}回"
+                
+                chunk = text[m.end():m.end() + 300]
+                next_kai_match = re.search(r'第\s*\d+\s*回', chunk)
+                if next_kai_match:
+                    chunk = chunk[:next_kai_match.start()]
+                
+                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
+                if not date_m: continue
+                
+                date_str = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
+                num_chunk = chunk[date_m.end():]
+                all_digits = re.findall(r'\d+', num_chunk)
+                
+                valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= 37]
+                
+                if len(valid_nums) >= 9:
+                    main_nums = valid_nums[:7]
+                    bonus_nums = valid_nums[7:9]
+                    
+                    if not any(d['kai'] == kai_str for d in history_data):
+                        history_data.append({
+                            "kai": kai_str,
+                            "date": date_str,
+                            "main": main_nums,
+                            "bonus": bonus_nums
+                        })
+        except Exception:
+            pass # エラーはスキップ
+            
+    # 最新の回号が一番上に来るように並び替え
+    history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
+    print(f"✅ 合計 {len(history_data)} 回分の過去データを取得しました！")
+    return history_data
+
+# ==========================================
+# 2. ハイブリッドAI 予測アルゴリズム
+# ==========================================
 def generate_hybrid_predictions(history_data):
-    """
-    機械学習(個別の確率) × 共起性分析(ペア相性) のハイブリッド予想
-    """
+    print("🧠 AIが過去の傾向と数字の相性（共起性）を学習中...")
     if not history_data or len(history_data) < 20:
-        return [] # データが少なすぎる場合はスキップ
+        return [] 
 
-    # 過去データから本数字のみを古い順(時系列)に並び替え
     main_draws = [list(map(int, d['main'])) for d in reversed(history_data)]
     
-    # ==========================================
-    # 1. 共起性行列（ペア相性）の作成
-    # ==========================================
+    # --- 1. 共起性行列（ペア相性）の作成 ---
     pair_counts = Counter()
     for draw in main_draws:
-        # 1回の抽選結果(7個)から作られるすべての2個の組み合わせをカウント
         for pair in itertools.combinations(sorted(draw), 2):
             pair_counts[pair] += 1
 
-    # ==========================================
-    # 2. 機械学習のためのデータセット作成
-    # ==========================================
-    # AIに学習させる「過去の傾向（特徴量）」を作ります
+    # --- 2. 機械学習のためのデータセット作成 ---
     features = []
     labels = []
-    
-    # 過去10回分のデータを見て、次の回を予測するモデル
     window_size = 10 
     
     for i in range(window_size, len(main_draws) - 1):
-        # 過去10回分の抽選データを1つの配列に平坦化
         past_window = [num for draw in main_draws[i-window_size:i] for num in draw]
         past_counts = Counter(past_window)
         
-        # 1〜37の各数字について、特徴量と正解ラベルを作成
-        target_draw = main_draws[i] # 予測したい「次の回」の結果
+        target_draw = main_draws[i] 
         for num in range(1, 38):
-            # 特徴量: 過去10回で何回出たか
             feature = [past_counts.get(num, 0)]
             features.append(feature)
-            # ラベル: 実際に出たか(1)、出なかったか(0)
             labels.append(1 if num in target_draw else 0)
 
     X = np.array(features)
     y = np.array(labels)
 
-    # ==========================================
-    # 3. モデルの学習 (Random Forest)
-    # ==========================================
-    # AIモデルの初期化と学習の実行
+    # --- 3. モデルの学習 (Random Forest) ---
     model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
     model.fit(X, y)
 
-    # ==========================================
-    # 4. 次回（最新）の予測スコアを算出
-    # ==========================================
+    # --- 4. 次回の予測スコアを算出 ---
     latest_window = [num for draw in main_draws[-window_size:] for num in draw]
     latest_counts = Counter(latest_window)
     
     next_features = np.array([[latest_counts.get(num, 0)] for num in range(1, 38)])
-    # 各数字が次に出る確率(0.0〜1.0)を予測
     probabilities = model.predict_proba(next_features)[:, 1] 
     
-    # 数字と確率を紐付け ( {1: 0.85, 2: 0.12, ...} )
     ml_scores = {num: prob for num, prob in enumerate(probabilities, start=1)}
 
-    # ==========================================
-    # 5. ハイブリッド選定（MLスコア × 共起性）
-    # ==========================================
+    # --- 5. ハイブリッド選定（MLスコア × 共起性） ---
     predictions = []
     seen = set()
-    
     import random
     numbers = list(range(1, 38))
-    # MLスコアを重みとして使う
     weights = [ml_scores[n] for n in numbers]
 
     candidates = []
-    # 候補を多めに(2000個)生成
-    for _ in range(2000):
+    for _ in range(3000): # より精度の高い組み合わせを見つけるため3000パターン生成
         cand = []
         pool_nums = list(numbers)
         pool_weights = list(weights)
         for _ in range(7):
-            # 確率の合計が0より大きい場合のみ重み付き抽出
             if sum(pool_weights) > 0:
                 choice = random.choices(pool_nums, weights=pool_weights)[0]
             else:
                 choice = random.choice(pool_nums)
-                
             cand.append(choice)
             idx = pool_nums.index(choice)
             pool_nums.pop(idx)
@@ -103,19 +148,15 @@ def generate_hybrid_predictions(history_data):
 
     valid_candidates = []
     for cand in candidates:
-        # MLのベーススコア
         base_score = sum(ml_scores[n] for n in cand)
         
-        # ★共起性(ペア)ボーナスの加算
         pair_bonus = 0
         for pair in itertools.combinations(cand, 2):
             pair_bonus += pair_counts.get(pair, 0)
             
-        # ボーナスの影響度を調整（例: 共起回数1回につき0.05ポイント加算など）
         final_score = base_score + (pair_bonus * 0.05)
         valid_candidates.append((final_score, cand))
 
-    # 最終スコア順にソートして上位5つを獲得
     valid_candidates.sort(key=lambda x: x[0], reverse=True)
     for score, cand in valid_candidates:
         t_cand = tuple(cand)
@@ -127,17 +168,23 @@ def generate_hybrid_predictions(history_data):
 
     return predictions
 
-# --- テスト実行用 ---
+# ==========================================
+# 実行ブロック
+# ==========================================
 if __name__ == "__main__":
-    # テスト用のダミーデータ（過去の配列）
-    # ※実際はJSONBinから取得したデータを使用します
-    dummy_history = [
-        {"main": ["01", "05", "12", "15", "22", "30", "35"]},
-        {"main": ["02", "05", "13", "18", "25", "31", "36"]},
-        # ... 本来はここに数十〜数百の履歴が入る
-    ] * 20 # ダミーで水増し
+    print("--- 🚀 ロト7 ハイブリッドAIテスト開始 ---")
+    # 1. 実データの取得
+    real_history = fetch_real_history_data()
     
-    print("🤖 ハイブリッドAIで予測を生成中...")
-    result = generate_hybrid_predictions(dummy_history)
-    for i, res in enumerate(result, 1):
-        print(f"予想{i}: {res}")
+    if real_history:
+        print(f"最新のデータ: {real_history[0]['kai']} ({real_history[0]['date']})")
+        
+        # 2. AIによる予測生成
+        result = generate_hybrid_predictions(real_history)
+        
+        print("\n🎯 導き出された最新のAI予想:")
+        for i, res in enumerate(result, 1):
+            print(f"予想{i}: {res}")
+    else:
+        print("データの取得に失敗しました。")
+    print("--- 🏁 テスト完了 ---")
