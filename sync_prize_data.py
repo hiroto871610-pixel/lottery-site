@@ -15,14 +15,25 @@ BINS_VIDEO = {
 }
 
 def get_video_db(bin_id):
-    if not bin_id or not API_KEY: return {}
+    """動画専用DBを取得（サイレント上書き防止の安全装置付き）"""
+    if not bin_id or not API_KEY: return None
     try:
-        res = requests.get(f"https://api.jsonbin.io/v3/b/{bin_id}", headers={"X-Master-Key": API_KEY})
+        # timeoutを設定し、通信が詰まった場合もエラーとして扱う
+        res = requests.get(f"https://api.jsonbin.io/v3/b/{bin_id}", headers={"X-Master-Key": API_KEY}, timeout=10)
+        
+        # サーバーからの返答が正常(200)でない場合はエラーとみなす
+        if res.status_code != 200:
+            print(f"⚠️ [警告] 過去データの取得に失敗しました (Status: {res.status_code})")
+            return None
+            
         data = res.json().get('record', {})
         while isinstance(data, dict) and "record" in data:
             data = data["record"]
         return data if isinstance(data, dict) else {}
-    except: return {}
+    except Exception as e:
+        # 通信エラーが発生した場合は空データではなく「None(取得失敗)」を返す
+        print(f"⚠️ [警告] 通信エラーにより過去データが取得できませんでした: {e}")
+        return None
 
 def save_video_db(bin_id, data):
     if not bin_id or not API_KEY: return
@@ -31,18 +42,15 @@ def save_video_db(bin_id, data):
     except Exception as e: print(f"保存エラー: {e}")
 
 # ==========================================
-# 🛡️ 【修正】回号・日付の逆探知システム
+# 🛡️ 回号・日付の逆探知システム
 # ==========================================
 def extract_round_and_date(target_table):
-    """テーブルの直前から最も正確な回号と日付を抽出する（上部バナーなどの誤爆を防ぐ）"""
-    # 1. まずはテーブル内をチェック
     table_text = target_table.get_text(separator=' ', strip=True)
     m_round = re.search(r'第\s*(\d+)\s*回', table_text)
     m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
     if m_round and m_date:
         return f"第{m_round.group(1)}回", m_date.group().replace('-', '/')
 
-    # 2. 直前の要素を遡る（最も近い「回」と「日付」を抽出）
     text_buffer = ""
     for node in target_table.find_all_previous(string=True):
         s = str(node).strip()
@@ -52,7 +60,6 @@ def extract_round_and_date(target_table):
             m_d = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', text_buffer)
             if m_r and m_d:
                 return f"第{m_r.group(1)}回", m_d.group().replace('-', '/')
-        # ページの一番上にある「次回発売中」などのバナーを拾わないための安全装置（長すぎたら探索打ち切り）
         if len(text_buffer) > 1000:
             break
             
@@ -88,7 +95,6 @@ def fetch_loto_details(loto_type):
                 tds = tr.find_all('td')
                 if tds: result["carryover"] = tds[-1].get_text(strip=True)
 
-        # ★ 修正：逆探知システムを利用して正確な回号を取得
         rnd, dt = extract_round_and_date(target_table)
         if rnd: result["round"] = rnd
         if dt: result["date"] = dt
@@ -120,7 +126,6 @@ def fetch_numbers_details():
                         if len(tds) >= 2: result["n4_prizes"].append({"grade": grade, "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)})
                 break
         
-        # ★ 修正：逆探知システムを利用して正確な回号を取得
         if target_table4:
             rnd, dt = extract_round_and_date(target_table4)
             if rnd: result["round"] = rnd
@@ -152,23 +157,33 @@ def update_video_db():
     l6 = fetch_loto_details("loto6")
     if l6["round"]:
         db = get_video_db(BINS_VIDEO["LOTO6"])
-        db[l6["round"]] = l6 
-        save_video_db(BINS_VIDEO["LOTO6"], db)
-        print(f"✅ ロト6 ({l6['round']}) を動画用DBに保存しました！")
+        # ★ 修正：dbがNone(取得失敗)でない場合のみ保存処理を行う！
+        if db is not None:
+            db[l6["round"]] = l6 
+            save_video_db(BINS_VIDEO["LOTO6"], db)
+            print(f"✅ ロト6 ({l6['round']}) を動画用DBに保存しました！")
+        else:
+            print("❌ ロト6: 過去データの取得に失敗したため、データ保護(サイレント上書き防止)のため保存を中止しました。")
 
     l7 = fetch_loto_details("loto7")
     if l7["round"]:
         db = get_video_db(BINS_VIDEO["LOTO7"])
-        db[l7["round"]] = l7
-        save_video_db(BINS_VIDEO["LOTO7"], db)
-        print(f"✅ ロト7 ({l7['round']}) を動画用DBに保存しました！")
+        if db is not None:
+            db[l7["round"]] = l7
+            save_video_db(BINS_VIDEO["LOTO7"], db)
+            print(f"✅ ロト7 ({l7['round']}) を動画用DBに保存しました！")
+        else:
+            print("❌ ロト7: 過去データの取得に失敗したため、データ保護(サイレント上書き防止)のため保存を中止しました。")
 
     num = fetch_numbers_details()
     if num["round"]:
         db = get_video_db(BINS_VIDEO["NUMBERS"])
-        db[num["round"]] = num
-        save_video_db(BINS_VIDEO["NUMBERS"], db)
-        print(f"✅ ナンバーズ ({num['round']}) を動画用DBに保存しました！")
+        if db is not None:
+            db[num["round"]] = num
+            save_video_db(BINS_VIDEO["NUMBERS"], db)
+            print(f"✅ ナンバーズ ({num['round']}) を動画用DBに保存しました！")
+        else:
+            print("❌ ナンバーズ: 過去データの取得に失敗したため、データ保護(サイレント上書き防止)のため保存を中止しました。")
 
 if __name__ == "__main__":
     update_video_db()
