@@ -8,7 +8,6 @@ load_dotenv()
 
 API_KEY = os.environ.get("JSONBIN_API_KEY")
 
-# ★ 動画専用のBIN IDを指定
 BINS_VIDEO = {
     "LOTO6": os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO6"),
     "LOTO7": os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO7"),
@@ -16,20 +15,52 @@ BINS_VIDEO = {
 }
 
 def get_video_db(bin_id):
-    """動画専用DB(辞書型)を取得"""
     if not bin_id or not API_KEY: return {}
     try:
         res = requests.get(f"https://api.jsonbin.io/v3/b/{bin_id}", headers={"X-Master-Key": API_KEY})
-        return res.json().get('record', {}) if res.status_code == 200 else {}
+        data = res.json().get('record', {})
+        while isinstance(data, dict) and "record" in data:
+            data = data["record"]
+        return data if isinstance(data, dict) else {}
     except: return {}
 
 def save_video_db(bin_id, data):
-    """動画専用DBへ保存"""
     if not bin_id or not API_KEY: return
     try:
-        requests.put(f"https://api.jsonbin.io/v3/b/{bin_id}", json={"record": data}, headers={"Content-Type": "application/json", "X-Master-Key": API_KEY})
+        requests.put(f"https://api.jsonbin.io/v3/b/{bin_id}", json=data, headers={"Content-Type": "application/json", "X-Master-Key": API_KEY})
     except Exception as e: print(f"保存エラー: {e}")
 
+# ==========================================
+# 🛡️ 【修正】回号・日付の逆探知システム
+# ==========================================
+def extract_round_and_date(target_table):
+    """テーブルの直前から最も正確な回号と日付を抽出する（上部バナーなどの誤爆を防ぐ）"""
+    # 1. まずはテーブル内をチェック
+    table_text = target_table.get_text(separator=' ', strip=True)
+    m_round = re.search(r'第\s*(\d+)\s*回', table_text)
+    m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
+    if m_round and m_date:
+        return f"第{m_round.group(1)}回", m_date.group().replace('-', '/')
+
+    # 2. 直前の要素を遡る（最も近い「回」と「日付」を抽出）
+    text_buffer = ""
+    for node in target_table.find_all_previous(string=True):
+        s = str(node).strip()
+        if s:
+            text_buffer = s + " " + text_buffer
+            m_r = re.search(r'第\s*(\d+)\s*回', text_buffer)
+            m_d = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', text_buffer)
+            if m_r and m_d:
+                return f"第{m_r.group(1)}回", m_d.group().replace('-', '/')
+        # ページの一番上にある「次回発売中」などのバナーを拾わないための安全装置（長すぎたら探索打ち切り）
+        if len(text_buffer) > 1000:
+            break
+            
+    return "", ""
+
+# ==========================================
+# ☁️ 各宝くじの取得処理
+# ==========================================
 def fetch_loto_details(loto_type):
     url = f"https://takarakuji.rakuten.co.jp/backnumber/{loto_type}/"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -44,7 +75,6 @@ def fetch_loto_details(loto_type):
             if '本数字' in table.get_text() and '1等' in table.get_text():
                 target_table = table
                 break
-        
         if not target_table: return result
 
         for tr in target_table.find_all('tr'):
@@ -58,11 +88,10 @@ def fetch_loto_details(loto_type):
                 tds = tr.find_all('td')
                 if tds: result["carryover"] = tds[-1].get_text(strip=True)
 
-        text = target_table.get_text(separator=' ', strip=True)
-        m_round = re.search(r'第\s*\d+\s*回', text)
-        m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', text)
-        if m_round: result["round"] = m_round.group().replace(' ', '')
-        if m_date: result["date"] = m_date.group()
+        # ★ 修正：逆探知システムを利用して正確な回号を取得
+        rnd, dt = extract_round_and_date(target_table)
+        if rnd: result["round"] = rnd
+        if dt: result["date"] = dt
 
         return result
     except: return result
@@ -75,17 +104,10 @@ def fetch_numbers_details():
         res4.encoding = 'euc-jp'
         soup4 = BeautifulSoup(res4.content, 'html.parser')
         
-        for heading in soup4.find_all(['h1', 'h2', 'h3', 'div', 'p']):
-            h_text = heading.get_text(separator=' ', strip=True)
-            if '第' in h_text and '回' in h_text and 'ナンバーズ4' in h_text:
-                m_round = re.search(r'第\s*\d+\s*回', h_text)
-                m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', h_text)
-                if m_round: result["round"] = m_round.group().replace(' ', '')
-                if m_date: result["date"] = m_date.group()
-                break
-
+        target_table4 = None
         for table in soup4.find_all('table'):
             if 'ストレート' in table.get_text() and 'ボックス' in table.get_text():
+                target_table4 = table
                 for tr in table.find_all('tr'):
                     header = tr.get_text(strip=True).replace(' ', '').replace('　', '')
                     grade = None
@@ -97,6 +119,12 @@ def fetch_numbers_details():
                         tds = tr.find_all('td')
                         if len(tds) >= 2: result["n4_prizes"].append({"grade": grade, "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)})
                 break
+        
+        # ★ 修正：逆探知システムを利用して正確な回号を取得
+        if target_table4:
+            rnd, dt = extract_round_and_date(target_table4)
+            if rnd: result["round"] = rnd
+            if dt: result["date"] = dt
 
         res3 = requests.get("https://takarakuji.rakuten.co.jp/backnumber/numbers3/", headers=headers)
         res3.encoding = 'euc-jp'
@@ -121,15 +149,13 @@ def fetch_numbers_details():
 def update_video_db():
     print("🔄 動画専用BINへのデータ収集を開始します...")
     
-    # ロト6
     l6 = fetch_loto_details("loto6")
     if l6["round"]:
         db = get_video_db(BINS_VIDEO["LOTO6"])
-        db[l6["round"]] = l6 # 回号をキーにして保存
+        db[l6["round"]] = l6 
         save_video_db(BINS_VIDEO["LOTO6"], db)
         print(f"✅ ロト6 ({l6['round']}) を動画用DBに保存しました！")
 
-    # ロト7
     l7 = fetch_loto_details("loto7")
     if l7["round"]:
         db = get_video_db(BINS_VIDEO["LOTO7"])
@@ -137,7 +163,6 @@ def update_video_db():
         save_video_db(BINS_VIDEO["LOTO7"], db)
         print(f"✅ ロト7 ({l7['round']}) を動画用DBに保存しました！")
 
-    # ナンバーズ
     num = fetch_numbers_details()
     if num["round"]:
         db = get_video_db(BINS_VIDEO["NUMBERS"])
