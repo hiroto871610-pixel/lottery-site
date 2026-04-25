@@ -11,7 +11,7 @@ from moviepy.audio.fx.all import audio_loop
 from moviepy.video.fx.all import fadein, fadeout
 from dotenv import load_dotenv
 from collections import Counter
-from gtts import gTTS  # ★新機能：AI音声生成ライブラリ
+from gtts import gTTS
 
 import matplotlib.pyplot as plt
 import matplotlib
@@ -28,7 +28,7 @@ load_dotenv()
 # ==========================================
 BG_VIDEO_PATH = os.path.join("assets", "create_weekly.mp4")
 BGM_PATH = os.path.join("assets", "create_weekly.mp3")
-QR_CODE_PATH = os.path.join("assets", "qrcode.png") # ★新機能：QRコード
+QR_CODE_PATH = os.path.join("assets", "qrcode.png")
 
 bg_video = None
 bgm_clip = None
@@ -77,9 +77,6 @@ def draw_sphere_ball_with_bounce(draw, x, y, r, text, ball_color, t, appear_t):
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw_text_with_shadow(draw, x + r - w / 2, y + y_offset + r - h / 2 - 10, text, FONT_NUM, (255, 255, 255))
 
-# ==========================================
-# 🎨 【新機能】ダイナミック背景（色付きフィルター）
-# ==========================================
 def get_base_frame(t, tint_color=None):
     if bg_video:
         frame_t = t % bg_video.duration
@@ -87,39 +84,41 @@ def get_base_frame(t, tint_color=None):
         frame_img = frame_img.resize((1920, 1080), PIL.Image.LANCZOS)
     else:
         frame_img = Image.new('RGBA', (1920, 1080), color=(15, 23, 42, 255))
-    
-    # 指定された宝くじのイメージカラーの半透明フィルターを被せてオシャレ度UP！
     if tint_color:
         overlay = Image.new('RGBA', frame_img.size, tint_color)
         frame_img = Image.alpha_composite(frame_img, overlay)
-        
     return frame_img
 
 def apply_fade(clip, fade_duration=1.0):
     return fadeout(fadein(clip, fade_duration), fade_duration)
 
-# ==========================================
-# 🗣️ 【新機能】AI音声ジェネレーター
-# ==========================================
+def cleanup_old_voice_files():
+    assets_dir = "assets"
+    if not os.path.exists(assets_dir): return
+    print("🧹 過去のAI音声データを綺麗にお掃除しています...")
+    for f in os.listdir(assets_dir):
+        if f.endswith(".mp3") and (f.startswith("v_") or f.startswith("voice_")):
+            try:
+                os.remove(os.path.join(assets_dir, f))
+            except Exception:
+                pass
+
 def get_voice_clip(text, filename, start_time):
-    """テキストからAI音声を自動生成し、指定した秒数から再生するオーディオクリップを作成"""
     filepath = os.path.join("assets", filename)
-    if not os.path.exists(filepath):
-        try:
-            print(f"🎙️ AI音声を生成中... ({text})")
-            tts = gTTS(text=text, lang='ja')
-            tts.save(filepath)
-        except Exception as e:
-            print(f"⚠️ 音声生成スキップ: {e}")
-            return None
-            
+    if os.path.exists(filepath):
+        try: os.remove(filepath)
+        except: pass
+    try:
+        print(f"🎙️ AI音声を生成中... ({text})")
+        tts = gTTS(text=text, lang='ja')
+        tts.save(filepath)
+    except Exception as e:
+        print(f"⚠️ 音声生成スキップ: {e}")
+        return None
     if os.path.exists(filepath):
         return AudioFileClip(filepath).set_start(start_time)
     return None
 
-# ==========================================
-# ☁️ データ取得・照合
-# ==========================================
 def fetch_finished_history(bin_id, limit):
     api_key = os.environ.get("JSONBIN_API_KEY")
     if not bin_id or not api_key: return []
@@ -159,7 +158,6 @@ def get_short_date(d_str):
     return d_str
 
 def fetch_all_rakuten_hot_cold():
-    print("☁️ 楽天宝くじから直近数ヶ月分のデータを取得して各HOT/COLDを分析中...")
     targets = [
         ("LOTO6", "loto6", 43, 6),
         ("LOTO7", "loto7", 37, 7),
@@ -169,7 +167,6 @@ def fetch_all_rakuten_hot_cold():
     headers = {'User-Agent': 'Mozilla/5.0'}
     today = datetime.date.today()
     results = {}
-
     for t_name, t_url_part, max_num, pick_count in targets:
         all_nums = []
         urls = [f"https://takarakuji.rakuten.co.jp/backnumber/{t_url_part}/lastresults/"]
@@ -191,7 +188,6 @@ def fetch_all_rakuten_hot_cold():
                     if not date_m: continue
                     num_chunk = chunk[date_m.end():]
                     digits = re.findall(r'\d+', num_chunk)
-                    
                     if "NUMBERS" in t_name:
                         for d in digits:
                             if len(d) == pick_count:
@@ -211,12 +207,8 @@ def fetch_all_rakuten_hot_cold():
 
         sorted_c = counts.most_common()
         results[t_name] = {"hot": sorted_c[:5], "cold": list(reversed(sorted_c))[:5]}
-
     return results
 
-# ==========================================
-# 🎬 OP ＆ ED 職人 (QRコード追加)
-# ==========================================
 def create_opening_clip(start_date, end_date):
     duration = 15
     date_text = f"【 {start_date} 〜 {end_date} の予想結果 】" if start_date and end_date else "〜 今週の抽選結果とAI予想の答え合わせ 〜"
@@ -226,57 +218,52 @@ def create_opening_clip(start_date, end_date):
         draw = ImageDraw.Draw(img)
         alpha = int(255 * min(1.0, t / 2.0))
         
-        if t > 1.0:
-            draw_centered_text(draw, 350, "ロト＆ナンバーズ攻略局 完全無料のAI予想", FONT_TITLE, (250, 204, 21, alpha))
-        if t > 3.0:
-            draw_centered_text(draw, 500, date_text, FONT_NUM, (255, 255, 255, alpha))
-        if t > 6.0:
-            draw_centered_text(draw, 700, "ナンバーズ ＆ ロト 全データ一挙公開！", FONT_LIST, (52, 211, 153, alpha))
+        if t > 1.0: draw_centered_text(draw, 350, "ロト＆ナンバーズ攻略局 完全無料のAI予想", FONT_TITLE, (250, 204, 21, alpha))
+        if t > 3.0: draw_centered_text(draw, 500, date_text, FONT_NUM, (255, 255, 255, alpha))
+        if t > 6.0: draw_centered_text(draw, 700, "ナンバーズ ＆ ロト 全データ一挙公開！", FONT_LIST, (52, 211, 153, alpha))
             
         return np.array(img.convert('RGB'))
         
     clip = VideoClip(make_frame, duration=duration)
-    
     audio_clips = []
-    if os.path.exists("assets/se_op_jingle.mp3"):
-        audio_clips.append(AudioFileClip("assets/se_op_jingle.mp3").set_start(1.0))
-    elif os.path.exists("assets/se_tada.mp3"):
-        audio_clips.append(AudioFileClip("assets/se_tada.mp3").set_start(2.0))
+    if os.path.exists("assets/se_op_jingle.mp3"): audio_clips.append(AudioFileClip("assets/se_op_jingle.mp3").set_start(1.0))
+    elif os.path.exists("assets/se_tada.mp3"): audio_clips.append(AudioFileClip("assets/se_tada.mp3").set_start(2.0))
         
     voice = get_voice_clip("ロトとナンバーズのAI予想、今週の結果まとめです！", "voice_op.mp3", 2.0)
     if voice: audio_clips.append(voice)
-    
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
     return apply_fade(clip)
 
 def create_ending_clip():
     duration = 20
-    
-    # ★新機能：QRコード画像をメモリに準備
     qr_img = None
     if os.path.exists(QR_CODE_PATH):
         try:
             qr_img = Image.open(QR_CODE_PATH).convert("RGBA")
-            qr_img = qr_img.resize((250, 250), PIL.Image.LANCZOS)
+            qr_img = qr_img.resize((230, 230), PIL.Image.LANCZOS)
         except: pass
 
     def make_frame(t):
         img = get_base_frame(t)
         draw = ImageDraw.Draw(img)
         alpha = int(255 * min(1.0, t / 2.0))
-        if t > 1.0:
-            draw_centered_text(draw, 250, "最後までご視聴ありがとうございました！", FONT_TITLE, (255, 255, 255, alpha))
+        if t > 1.0: draw_centered_text(draw, 200, "最後までご視聴ありがとうございました！", FONT_TITLE, (255, 255, 255, alpha))
         if t > 4.0:
-            draw_centered_text(draw, 400, "高評価 ＆ チャンネル登録", FONT_NUM, (250, 204, 21, alpha))
-            draw_centered_text(draw, 500, "よろしくお願いします！", FONT_TITLE, (250, 204, 21, alpha))
+            draw_centered_text(draw, 380, "高評価 ＆ チャンネル登録", FONT_NUM, (250, 204, 21, alpha))
+            draw_centered_text(draw, 480, "よろしくお願いします！", FONT_TITLE, (250, 204, 21, alpha))
         if t > 7.0:
-            draw_centered_text(draw, 700, "▼ 次回のAI予想は当サイトで完全無料公開中 ▼", FONT_LIST, (52, 211, 153, alpha))
-            draw_centered_text(draw, 800, "【 ロトナンバーズ攻略局 】で検索", FONT_NUM, (255, 255, 255, alpha))
+            draw_centered_text(draw, 680, "▼ 次回のAI予想は当サイトで完全無料公開中 ▼", FONT_LIST, (52, 211, 153, alpha))
+            search_text = "🔍 ロトナンバーズ攻略局"
+            draw_text_with_shadow(draw, 250, 800, search_text, FONT_NUM, (255, 255, 255, alpha))
+            draw_text_with_shadow(draw, 450, 880, "で検索！", FONT_LIST, (250, 204, 21, alpha))
             
-            # QRコードの合成
             if qr_img:
-                img.paste(qr_img, (1400, 700), qr_img)
-                draw_text_with_shadow(draw, 1380, 960, "スマホでチェック！", FONT_LIST, (255, 255, 255))
+                qr_x, qr_y = 1350, 760
+                img.paste(qr_img, (qr_x, qr_y), qr_img)
+                text_str = "スマホでチェック！"
+                bbox = draw.textbbox((0, 0), text_str, font=FONT_SUB)
+                tw = bbox[2] - bbox[0]
+                draw_text_with_shadow(draw, qr_x + 115 - tw / 2, 1000, text_str, FONT_SUB, (255, 255, 255, alpha))
                 
         return np.array(img.convert('RGB'))
         
@@ -285,9 +272,6 @@ def create_ending_clip():
     if voice: clip = clip.set_audio(CompositeAudioClip([voice]).set_duration(duration))
     return apply_fade(clip)
 
-# ==========================================
-# 📺 タイトルコール職人
-# ==========================================
 def create_title_clip(records, title_name, main_color, voice_text, voice_file):
     duration = 10
     if not records: return None
@@ -296,7 +280,6 @@ def create_title_clip(records, title_name, main_color, voice_text, voice_file):
     old_date = get_short_date(oldest.get('date', '----/--/--'))
     new_date = get_short_date(newest.get('date', '----/--/--'))
 
-    # ★ 背景カラーをダイナミックに設定
     tint_color = (0, 0, 0, 0)
     if "ロト6" in title_name: tint_color = (0, 100, 255, 40)
     elif "ロト7" in title_name: tint_color = (255, 150, 0, 40)
@@ -323,26 +306,19 @@ def create_title_clip(records, title_name, main_color, voice_text, voice_file):
     clip = VideoClip(make_frame, duration=duration)
     audio_clips = []
     if os.path.exists("assets/se_whoosh.mp3"): audio_clips.append(AudioFileClip("assets/se_whoosh.mp3").set_start(0.5))
-    
     voice = get_voice_clip(voice_text, voice_file, 1.0)
     if voice: audio_clips.append(voice)
-        
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
     return apply_fade(clip)
 
-# ==========================================
-# 🔥 個別 HOT & COLD 紹介シーン職人
-# ==========================================
 def create_hot_cold_clip(title_name, hot, cold, main_color):
     duration = 20
     if not hot or not cold: return None
-    
-    tint_color = (255, 0, 50, 20) # HOT＆COLDはうっすら赤系の背景に
+    tint_color = (255, 0, 50, 20)
 
     def make_frame(t):
         img = get_base_frame(t, tint_color)
         draw = ImageDraw.Draw(img)
-
         draw_centered_text(draw, 100, f"■ {title_name} 直近の傾向 (HOT & COLD) ■", FONT_TITLE, main_color)
         
         if t > 1.0:
@@ -379,9 +355,6 @@ def create_hot_cold_clip(title_name, hot, cold, main_color):
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
     return apply_fade(clip)
 
-# ==========================================
-# 📊 分析グラフ作成職人
-# ==========================================
 def create_trend_graph_clip(loto6_records):
     duration = 25
     targets = list(reversed(loto6_records[:10]))
@@ -431,9 +404,6 @@ def create_trend_graph_clip(loto6_records):
     if os.path.exists("assets/se_tada.mp3"): clip = clip.set_audio(AudioFileClip("assets/se_tada.mp3").set_start(0.5))
     return apply_fade(clip)
 
-# ==========================================
-# 🎬 ロト動画職人 (的中テロップ追加)
-# ==========================================
 def create_loto_clip(record, loto_type="LOTO6"):
     duration = 50 
     main_color = (14, 165, 233) if loto_type == "LOTO6" else (245, 158, 11)
@@ -447,7 +417,6 @@ def create_loto_clip(record, loto_type="LOTO6"):
     carryover = record.get('carryover', '')
     preds = record.get('predictions', [])[:5]
     
-    # 的中したかどうかを事前にチェック
     has_hit = any(len(set(p) & set(actual_main)) >= 3 for p in preds if isinstance(p, list))
 
     def make_frame(t):
@@ -476,8 +445,14 @@ def create_loto_clip(record, loto_type="LOTO6"):
                 for i, p in enumerate(prizes[:6]):
                     if t > 16.0 + (i * 0.8):
                         y = 230 + (i * 100)
-                        draw_text_with_shadow(draw, 400, y, p.get('grade',''), FONT_LIST, (255, 255, 255))
-                        draw_right_aligned_text(draw, 1100, y, p.get('prize',''), FONT_NUM, (250, 204, 21))
+                        # ★ 新機能：タイプライター演出（文字がパラパラ出る）
+                        show_len = int(max(0, (t - (16.0 + i * 0.8)) * 15)) # 1秒間に15文字表示
+                        grade_text = p.get('grade','')[:show_len]
+                        prize_text = p.get('prize','')[:show_len]
+                        
+                        draw_text_with_shadow(draw, 400, y, grade_text, FONT_LIST, (255, 255, 255))
+                        if len(p.get('grade','')) <= show_len:
+                            draw_right_aligned_text(draw, 1100, y, prize_text, FONT_NUM, (250, 204, 21))
                         draw_text_with_shadow(draw, 1150, y, p.get('winners',''), FONT_LIST, (156, 163, 175))
             else:
                 if t > 16.5: draw_centered_text(draw, 450, "※賞金・口数データは現在集計中です...", FONT_LIST, (200, 200, 200))
@@ -491,10 +466,14 @@ def create_loto_clip(record, loto_type="LOTO6"):
             draw_centered_text(draw, 160, f"本数字: {'  '.join(actual_main)}", FONT_LIST, (255, 255, 255))
             
             for i, p in enumerate(preds):
-                if t > 33.0 + (i * 2.2):
+                appear_t = 33.0 + (i * 2.2)
+                if t > appear_t:
                     y = 260 + (i * 130)
                     p_str = ", ".join(p) if isinstance(p, list) else p
-                    draw_text_with_shadow(draw, 300, y, f"予想{chr(65+i)} :  {p_str}", FONT_LIST, (200, 200, 200))
+                    
+                    # ★ 新機能：予想数字のタイプライター演出
+                    show_len = int(max(0, (t - appear_t) * 15))
+                    draw_text_with_shadow(draw, 300, y, f"予想{chr(65+i)} :  {p_str[:show_len]}", FONT_LIST, (200, 200, 200))
                     
                     hit_m = len(set(p) & set(actual_main)) if isinstance(p, list) else 0
                     hit_b = len(set(p) & set(actual_bonus)) if isinstance(p, list) else 0
@@ -504,9 +483,11 @@ def create_loto_clip(record, loto_type="LOTO6"):
                     if hit_m >= 4:
                         blink = int(255 * (0.5 + 0.5 * math.sin(t * 15)))
                         hit_color = (255, blink, 0)
-                    draw_right_aligned_text(draw, 1580, y, hit_text, FONT_HIT, hit_color)
+                        
+                    # 数字が出きったら結果を表示
+                    if len(p_str) <= show_len:
+                        draw_right_aligned_text(draw, 1580, y, hit_text, FONT_HIT, hit_color)
             
-            # ★ 新機能：的中のド派手なテロップ
             if has_hit and t > 45.0:
                 blink = int(255 * (0.5 + 0.5 * math.sin(t * 20)))
                 draw.rectangle([0, 930, 1920, 1080], fill=(220, 38, 38, 200))
@@ -517,8 +498,7 @@ def create_loto_clip(record, loto_type="LOTO6"):
     clip = VideoClip(make_frame, duration=duration)
     audio_clips = []
     
-    # 状況に合わせたAI実況ボイス
-    v_res = get_voice_clip(f"{loto_type} 第{target_kai}、結果発表です！", f"v_{loto_type}_{target_kai}_res.mp3", 0.5)
+    v_res = get_voice_clip(f"{loto_type} {target_kai}、結果発表です！", f"v_{loto_type}_{target_kai}_res.mp3", 0.5)
     v_prz = get_voice_clip("続いて、当選金額と口数です。", f"v_{loto_type}_{target_kai}_prz.mp3", 16.0)
     v_ans = get_voice_clip("最後に、AI予想の答え合わせです！", f"v_{loto_type}_{target_kai}_ans.mp3", 33.0)
     if v_res: audio_clips.append(v_res)
@@ -533,11 +513,10 @@ def create_loto_clip(record, loto_type="LOTO6"):
     if os.path.exists("assets/se_drumroll.mp3"): audio_clips.append(AudioFileClip("assets/se_drumroll.mp3").set_start(30.0).set_duration(2.0))
     if os.path.exists("assets/se_tada.mp3"): audio_clips.append(AudioFileClip("assets/se_tada.mp3").set_start(33.0))
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
-    return apply_fade(clip)
+    
+    # ★ フラッシュバック判定のために clip と hit_flag を返す
+    return apply_fade(clip), has_hit
 
-# ==========================================
-# 🎬 ナンバーズ動画職人 (的中テロップ追加)
-# ==========================================
 def create_numbers_clip(record):
     duration = 45 
     tint_color = (0, 200, 100, 30)
@@ -580,10 +559,14 @@ def create_numbers_clip(record):
             draw_text_with_shadow(draw, 100, 180, "■ ナンバーズ4", FONT_LIST, (22, 163, 74))
             if n4_prizes:
                 for i, p in enumerate(n4_prizes):
-                    if t > 16.0 + (i * 0.5):
+                    appear_t = 16.0 + (i * 0.5)
+                    if t > appear_t:
                         y = 260 + (i * 140)
-                        draw_text_with_shadow(draw, 100, y, p.get('grade',''), FONT_LIST, (255, 255, 255))
-                        draw_right_aligned_text(draw, 650, y + 55, p.get('prize',''), FONT_NUM, (250, 204, 21))
+                        # ★ 新機能：タイプライター演出
+                        show_len = int(max(0, (t - appear_t) * 15))
+                        draw_text_with_shadow(draw, 100, y, p.get('grade','')[:show_len], FONT_LIST, (255, 255, 255))
+                        if len(p.get('grade','')) <= show_len:
+                            draw_right_aligned_text(draw, 650, y + 55, p.get('prize',''), FONT_NUM, (250, 204, 21))
                         draw_text_with_shadow(draw, 680, y + 70, p.get('winners',''), FONT_SUB, (156, 163, 175))
             else:
                 if t > 16.5: draw_text_with_shadow(draw, 150, 400, "※集計中...", FONT_LIST, (200, 200, 200))
@@ -591,10 +574,13 @@ def create_numbers_clip(record):
             draw_text_with_shadow(draw, 1050, 180, "■ ナンバーズ3", FONT_LIST, (217, 119, 6))
             if n3_prizes:
                 for i, p in enumerate(n3_prizes):
-                    if t > 18.0 + (i * 0.5):
+                    appear_t = 18.0 + (i * 0.5)
+                    if t > appear_t:
                         y = 260 + (i * 140)
-                        draw_text_with_shadow(draw, 1050, y, p.get('grade',''), FONT_LIST, (255, 255, 255))
-                        draw_right_aligned_text(draw, 1600, y + 55, p.get('prize',''), FONT_NUM, (250, 204, 21))
+                        show_len = int(max(0, (t - appear_t) * 15))
+                        draw_text_with_shadow(draw, 1050, y, p.get('grade','')[:show_len], FONT_LIST, (255, 255, 255))
+                        if len(p.get('grade','')) <= show_len:
+                            draw_right_aligned_text(draw, 1600, y + 55, p.get('prize',''), FONT_NUM, (250, 204, 21))
                         draw_text_with_shadow(draw, 1630, y + 70, p.get('winners',''), FONT_SUB, (156, 163, 175))
             else:
                 if t > 18.5: draw_text_with_shadow(draw, 1100, 400, "※集計中...", FONT_LIST, (200, 200, 200))
@@ -605,23 +591,30 @@ def create_numbers_clip(record):
             draw_text_with_shadow(draw, 1000, 180, f"N3 本数字: {actual_n3}", FONT_LIST, (255, 255, 255))
 
             for i in range(5):
-                if t > 31.0 + (i * 1.0):
+                appear_t = 31.0 + (i * 1.0)
+                if t > appear_t:
                     y = 280 + (i * 135) 
                     p4 = n4_preds[i] if i < len(n4_preds) else "----"
-                    draw_text_with_shadow(draw, 80, y, f"予想{chr(65+i)}: {p4}", FONT_LIST, (200, 200, 200))
+                    
+                    # ★ 新機能：タイプライター演出
+                    show_len = int(max(0, (t - appear_t) * 15))
+                    draw_text_with_shadow(draw, 80, y, f"予想{chr(65+i)}: {p4[:show_len]}", FONT_LIST, (200, 200, 200))
+                    
                     if p4 == actual_n4: res, col = "当 ストレート", (255, 100, 100)
                     elif sorted(p4) == sorted(actual_n4) and actual_n4 != "----": res, col = "当 ボックス", (255, 150, 0)
                     else: res, col = "ハズレ", (150, 150, 150)
-                    draw_text_with_shadow(draw, 520, y, res, FONT_LIST, col)
+                    if len(p4) <= show_len:
+                        draw_text_with_shadow(draw, 520, y, res, FONT_LIST, col)
 
                     p3 = n3_preds[i] if i < len(n3_preds) else "---"
-                    draw_text_with_shadow(draw, 980, y, f"予想{chr(65+i)}: {p3}", FONT_LIST, (200, 200, 200))
+                    draw_text_with_shadow(draw, 980, y, f"予想{chr(65+i)}: {p3[:show_len]}", FONT_LIST, (200, 200, 200))
+                    
                     if p3 == actual_n3: res, col = "当 ストレート", (255, 100, 100)
                     elif sorted(p3) == sorted(actual_n3) and actual_n3 != "---": res, col = "当 ボックス", (255, 150, 0)
                     else: res, col = "ハズレ", (150, 150, 150)
-                    draw_text_with_shadow(draw, 1420, y, res, FONT_LIST, col)
+                    if len(p3) <= show_len:
+                        draw_text_with_shadow(draw, 1420, y, res, FONT_LIST, col)
             
-            # ★ 新機能：的中のド派手なテロップ
             if has_hit and t > 40.0:
                 blink = int(255 * (0.5 + 0.5 * math.sin(t * 20)))
                 draw.rectangle([0, 930, 1920, 1080], fill=(22, 163, 74, 200))
@@ -632,7 +625,7 @@ def create_numbers_clip(record):
     clip = VideoClip(make_frame, duration=duration)
     audio_clips = []
     
-    v_res = get_voice_clip(f"ナンバーズ 第{target_kai}、結果発表です！", f"v_num_{target_kai}_res.mp3", 0.5)
+    v_res = get_voice_clip(f"ナンバーズ {target_kai}、結果発表です！", f"v_num_{target_kai}_res.mp3", 0.5)
     v_prz = get_voice_clip("続いて、当選金額と口数です。", f"v_num_{target_kai}_prz.mp3", 16.0)
     v_ans = get_voice_clip("最後に、AI予想の答え合わせです！", f"v_num_{target_kai}_ans.mp3", 31.0)
     if v_res: audio_clips.append(v_res)
@@ -648,14 +641,15 @@ def create_numbers_clip(record):
         for i in range(5): audio_clips.append(AudioFileClip("assets/se_whoosh.mp3").set_start(31.0 + (i * 1.0)))
     if os.path.exists("assets/se_tada.mp3"): audio_clips.append(AudioFileClip("assets/se_tada.mp3").set_start(31.0))
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
-    return apply_fade(clip)
+    
+    # ★ フラッシュバック判定のために clip と hit_flag を返す
+    return apply_fade(clip), has_hit
 
-# ==========================================
-# 🚀 司令塔（メイン処理）
-# ==========================================
 def generate_weekly_video():
     global bg_video, bgm_clip
-    print("\n🎬 超長尺・完全版(声・色・QR付き) 1週間まとめ動画のプログラムを起動しました！")
+    print("\n🎬 超長尺・完全版(フラッシュバック＆タイプライター＆ダッキング搭載) 起動中！")
+    
+    cleanup_old_voice_files()
     
     try:
         if os.path.exists(BG_VIDEO_PATH): bg_video = VideoFileClip(BG_VIDEO_PATH)
@@ -665,6 +659,7 @@ def generate_weekly_video():
     except: pass
 
     all_clips = []
+    highlight_clips = [] # ★ 新機能：的中時のフラッシュバック用
     
     n_hist = fetch_finished_history(os.environ.get("JSONBIN_BIN_ID_NUMBERS"), 5)
     l6_hist_all = fetch_finished_history(os.environ.get("JSONBIN_BIN_ID"), 10)
@@ -676,24 +671,8 @@ def generate_weekly_video():
     v_db_l6 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO6"))
     v_db_l7 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO7"))
 
-    all_dates = []
-    for db in [v_db_n, v_db_l6, v_db_l7]:
-        for k, v in db.items():
-            if "date" in v and v["date"] != "----/--/--":
-                all_dates.append(v["date"])
-    
-    op_start_date, op_end_date = "", ""
-    if all_dates:
-        sorted_dates = sorted(all_dates)
-        op_start_date = get_short_date(sorted_dates[0])
-        op_end_date = get_short_date(sorted_dates[-1])
-
-    print("🌟 オープニングを生成中...")
-    op_clip = create_opening_clip(op_start_date, op_end_date)
-    if op_clip: all_clips.append(op_clip)
-
     for rec in n_hist:
-        nums = re.findall(r'\d+', rec.get("target_kai", ""))
+        nums = re.findall(r'\d+', str(rec.get("target_kai", "")))
         if nums and str(int(nums[0])) in v_db_n:
             kai_key = str(int(nums[0]))
             rec["date"] = v_db_n[kai_key].get("date", "----/--/--")
@@ -701,7 +680,7 @@ def generate_weekly_video():
             rec["n3_prizes"] = v_db_n[kai_key].get("n3_prizes", [])
 
     for rec in l6_hist:
-        nums = re.findall(r'\d+', rec.get("target_kai", ""))
+        nums = re.findall(r'\d+', str(rec.get("target_kai", "")))
         if nums and str(int(nums[0])) in v_db_l6:
             kai_key = str(int(nums[0]))
             rec["date"] = v_db_l6[kai_key].get("date", "----/--/--")
@@ -709,78 +688,111 @@ def generate_weekly_video():
             rec["carryover"] = v_db_l6[kai_key].get("carryover", "0円")
 
     for rec in l7_hist:
-        nums = re.findall(r'\d+', rec.get("target_kai", ""))
+        nums = re.findall(r'\d+', str(rec.get("target_kai", "")))
         if nums and str(int(nums[0])) in v_db_l7:
             kai_key = str(int(nums[0]))
             rec["date"] = v_db_l7[kai_key].get("date", "----/--/--")
             rec["prizes"] = v_db_l7[kai_key].get("prizes", [])
             rec["carryover"] = v_db_l7[kai_key].get("carryover", "0円")
 
+    all_dates = []
+    for rec in n_hist + l6_hist + l7_hist:
+        d = rec.get("date", "----/--/--")
+        if d != "----/--/--":
+            all_dates.append(d)
+    
+    op_start_date, op_end_date = "", ""
+    if all_dates:
+        sorted_dates = sorted(all_dates)
+        op_start_date = get_short_date(sorted_dates[0])
+        op_end_date = get_short_date(sorted_dates[-1])
+
+    # ======== 1. 動画クリップの生成と的中チェック ========
+    
     if n_hist:
-        print("📺 ナンバーズのタイトルシーンを生成中...")
         title_clip = create_title_clip(n_hist, "ナンバーズ", (52, 211, 153), "続いて、ナンバーズの結果まとめです！", "voice_title_num.mp3")
         if title_clip: all_clips.append(title_clip)
         for rec in reversed(n_hist):
-            all_clips.append(create_numbers_clip(rec))
+            clip, has_hit = create_numbers_clip(rec)
+            all_clips.append(clip)
+            # ★ 的中していたら、最後の「答え合わせシーン」の1.5秒間をフラッシュバック用に切り抜く！
+            if has_hit: highlight_clips.append(clip.subclip(40, 42.5))
 
     if l6_hist:
-        print("📺 ロト6のタイトルシーンを生成中...")
         title_clip = create_title_clip(l6_hist, "ロト6", (56, 189, 248), "続いて、ロトシックスの結果まとめです！", "voice_title_l6.mp3")
         if title_clip: all_clips.append(title_clip)
         for rec in reversed(l6_hist):
-            all_clips.append(create_loto_clip(rec, "LOTO6"))
+            clip, has_hit = create_loto_clip(rec, "LOTO6")
+            all_clips.append(clip)
+            if has_hit: highlight_clips.append(clip.subclip(45, 47.5))
 
     if l7_hist:
-        print("📺 ロト7のタイトルシーンを生成中...")
         title_clip = create_title_clip(l7_hist, "ロト7", (251, 191, 36), "続いて、ロトセブンの結果まとめです！", "voice_title_l7.mp3")
         if title_clip: all_clips.append(title_clip)
         for rec in reversed(l7_hist):
-            all_clips.append(create_loto_clip(rec, "LOTO7"))
+            clip, has_hit = create_loto_clip(rec, "LOTO7")
+            all_clips.append(clip)
+            if has_hit: highlight_clips.append(clip.subclip(45, 47.5))
 
     rakuten_hc_data = fetch_all_rakuten_hot_cold()
-    
     if "NUMBERS4" in rakuten_hc_data:
         hc_clip = create_hot_cold_clip("ナンバーズ4", rakuten_hc_data["NUMBERS4"]["hot"], rakuten_hc_data["NUMBERS4"]["cold"], (22, 163, 74))
         if hc_clip: all_clips.append(hc_clip)
-        
     if "NUMBERS3" in rakuten_hc_data:
         hc_clip = create_hot_cold_clip("ナンバーズ3", rakuten_hc_data["NUMBERS3"]["hot"], rakuten_hc_data["NUMBERS3"]["cold"], (217, 119, 6))
         if hc_clip: all_clips.append(hc_clip)
-
     if "LOTO6" in rakuten_hc_data:
         hc_clip = create_hot_cold_clip("ロト6", rakuten_hc_data["LOTO6"]["hot"], rakuten_hc_data["LOTO6"]["cold"], (56, 189, 248))
         if hc_clip: all_clips.append(hc_clip)
-
     if "LOTO7" in rakuten_hc_data:
         hc_clip = create_hot_cold_clip("ロト7", rakuten_hc_data["LOTO7"]["hot"], rakuten_hc_data["LOTO7"]["cold"], (251, 191, 36))
         if hc_clip: all_clips.append(hc_clip)
 
     if len(l6_hist_all) >= 2:
-        print("📊 分析グラフのシーンを生成中...")
         graph_clip = create_trend_graph_clip(l6_hist_all) 
         if graph_clip: all_clips.append(graph_clip)
 
-    print("🌟 エンディングを生成中...")
     ed_clip = create_ending_clip()
     if ed_clip: all_clips.append(ed_clip)
 
-    if not all_clips:
+    # ======== 2. オープニングとフラッシュバックの結合 ========
+    final_clips = []
+    
+    # ★ 新機能：もし今週「的中（has_hit）」があれば、一番最初にフラッシュバックを挿入！
+    if highlight_clips:
+        print("🎉 的中データを発見しました！冒頭にハイライトを挿入します。")
+        def make_hl_title(t):
+            img = Image.new('RGBA', (1920, 1080), color=(15, 23, 42, 255))
+            draw = ImageDraw.Draw(img)
+            draw_centered_text(draw, 500, "＼ 今 週 の ハ イ ラ イ ト ／", FONT_TITLE, (250, 204, 21))
+            return np.array(img.convert('RGB'))
+        hl_title = VideoClip(make_hl_title, duration=1.0)
+        final_clips.append(hl_title)
+        final_clips.extend(highlight_clips) # 的中シーン(2.5秒)をドカンと見せる
+
+    op_clip = create_opening_clip(op_start_date, op_end_date)
+    if op_clip: final_clips.append(op_clip)
+    
+    final_clips.extend(all_clips)
+
+    if not final_clips:
         print("❌ 生成できるデータがありませんでした。")
         return
 
-    print(f"\n🎞️ 全 {len(all_clips)} シーンを結合中... (レンダリングには数分かかります)")
-    final_video = concatenate_videoclips(all_clips, method="compose")
+    print(f"\n🎞️ 全 {len(final_clips)} シーンを結合中... (レンダリングには数分かかります)")
+    final_video = concatenate_videoclips(final_clips, method="compose")
     
+    # ★ 新機能：音声ダッキング（BGMの音量を少し下げて音声をクリアに際立たせる）
     if bgm_clip:
-        print("🎧 全体にBGMを合成します...")
-        looped_bgm = audio_loop(bgm_clip, duration=final_video.duration).volumex(0.3)
+        print("🎧 全体にBGMを合成し、音量バランスを最適化します...")
+        looped_bgm = audio_loop(bgm_clip, duration=final_video.duration).volumex(0.15) # BGMを控えめに設定（ダッキング効果）
         final_video = final_video.set_audio(CompositeAudioClip([looped_bgm, final_video.audio]))
 
     output_filename = "weekly_summary.mp4"
-    final_video.write_videofile(output_filename, fps=24, codec="libx264", audio_codec="libmp3lame", threads=4)
+    final_video.write_videofile(output_filename, fps=24, codec="libx264", audio_codec="libmp3lame", threads=1)
     
     if os.path.exists("temp_graph.png"): os.remove("temp_graph.png")
-    print(f"\n🎉🎉🎉 長尺・完全版 1週間まとめ動画が完成しました！ => {output_filename} 🎉🎉🎉")
+    print(f"\n🎉🎉🎉 究極版 1週間まとめ動画が完成しました！ => {output_filename} 🎉🎉🎉")
 
 if __name__ == "__main__":
     generate_weekly_video()
