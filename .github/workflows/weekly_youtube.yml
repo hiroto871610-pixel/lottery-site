@@ -1,0 +1,58 @@
+name: Weekly YouTube Video Upload
+
+# 毎週土曜日の朝7:00 (日本時間) に自動実行する設定
+on:
+  schedule:
+    - cron: '0 22 * * 5' # UTCの金曜22:00 = 日本時間の土曜07:00
+  workflow_dispatch: # 手動実行ボタンも有効化
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリのコードを取得
+        uses: actions/checkout@v3
+
+      - name: Pythonのセットアップ
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: 必要なライブラリのインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 python-dotenv Pillow numpy matplotlib gTTS google-api-python-client google-auth-oauthlib google-auth-httplib2 moviepy==1.0.3
+
+      - name: 動画専用データ（賞金・口数・日付）を同期 (数十秒)
+        env: 
+          TZ: 'Asia/Tokyo'
+          JSONBIN_BIN_ID_VIDEO_LOTO6: ${{ secrets.JSONBIN_BIN_ID_VIDEO_LOTO6 }}
+          JSONBIN_BIN_ID_VIDEO_LOTO7: ${{ secrets.JSONBIN_BIN_ID_VIDEO_LOTO7 }}
+          JSONBIN_BIN_ID_VIDEO_NUMBERS: ${{ secrets.JSONBIN_BIN_ID_VIDEO_NUMBERS }}
+          JSONBIN_API_KEY: ${{ secrets.JSONBIN_API_KEY }}
+        run: |
+          python sync_prize_data.py
+
+      - name: 超長尺1週間まとめ動画を作成 (約1時間)
+        env: 
+          TZ: 'Asia/Tokyo'
+          JSONBIN_BIN_ID: ${{ secrets.JSONBIN_BIN_ID }}
+          JSONBIN_BIN_ID_LOTO7: ${{ secrets.JSONBIN_BIN_ID_LOTO7 }}
+          JSONBIN_BIN_ID_NUMBERS: ${{ secrets.JSONBIN_BIN_ID_NUMBERS }}
+          JSONBIN_BIN_ID_VIDEO_LOTO6: ${{ secrets.JSONBIN_BIN_ID_VIDEO_LOTO6 }}
+          JSONBIN_BIN_ID_VIDEO_LOTO7: ${{ secrets.JSONBIN_BIN_ID_VIDEO_LOTO7 }}
+          JSONBIN_BIN_ID_VIDEO_NUMBERS: ${{ secrets.JSONBIN_BIN_ID_VIDEO_NUMBERS }}
+          JSONBIN_API_KEY: ${{ secrets.JSONBIN_API_KEY }}
+        run: |
+          python create_weekly_movie.py
+
+      - name: サムネイル作成＆YouTubeへ自動アップロード (数分)
+        env:
+          TZ: 'Asia/Tokyo'
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+        run: |
+          python upload_weekly_youtube.py
