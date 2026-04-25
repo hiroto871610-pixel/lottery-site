@@ -445,8 +445,7 @@ def create_loto_clip(record, loto_type="LOTO6"):
                 for i, p in enumerate(prizes[:6]):
                     if t > 16.0 + (i * 0.8):
                         y = 230 + (i * 100)
-                        # ★ 新機能：タイプライター演出（文字がパラパラ出る）
-                        show_len = int(max(0, (t - (16.0 + i * 0.8)) * 15)) # 1秒間に15文字表示
+                        show_len = int(max(0, (t - (16.0 + i * 0.8)) * 15))
                         grade_text = p.get('grade','')[:show_len]
                         prize_text = p.get('prize','')[:show_len]
                         
@@ -470,8 +469,6 @@ def create_loto_clip(record, loto_type="LOTO6"):
                 if t > appear_t:
                     y = 260 + (i * 130)
                     p_str = ", ".join(p) if isinstance(p, list) else p
-                    
-                    # ★ 新機能：予想数字のタイプライター演出
                     show_len = int(max(0, (t - appear_t) * 15))
                     draw_text_with_shadow(draw, 300, y, f"予想{chr(65+i)} :  {p_str[:show_len]}", FONT_LIST, (200, 200, 200))
                     
@@ -484,7 +481,6 @@ def create_loto_clip(record, loto_type="LOTO6"):
                         blink = int(255 * (0.5 + 0.5 * math.sin(t * 15)))
                         hit_color = (255, blink, 0)
                         
-                    # 数字が出きったら結果を表示
                     if len(p_str) <= show_len:
                         draw_right_aligned_text(draw, 1580, y, hit_text, FONT_HIT, hit_color)
             
@@ -514,7 +510,6 @@ def create_loto_clip(record, loto_type="LOTO6"):
     if os.path.exists("assets/se_tada.mp3"): audio_clips.append(AudioFileClip("assets/se_tada.mp3").set_start(33.0))
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
     
-    # ★ フラッシュバック判定のために clip と hit_flag を返す
     return apply_fade(clip), has_hit
 
 def create_numbers_clip(record):
@@ -562,7 +557,6 @@ def create_numbers_clip(record):
                     appear_t = 16.0 + (i * 0.5)
                     if t > appear_t:
                         y = 260 + (i * 140)
-                        # ★ 新機能：タイプライター演出
                         show_len = int(max(0, (t - appear_t) * 15))
                         draw_text_with_shadow(draw, 100, y, p.get('grade','')[:show_len], FONT_LIST, (255, 255, 255))
                         if len(p.get('grade','')) <= show_len:
@@ -596,7 +590,6 @@ def create_numbers_clip(record):
                     y = 280 + (i * 135) 
                     p4 = n4_preds[i] if i < len(n4_preds) else "----"
                     
-                    # ★ 新機能：タイプライター演出
                     show_len = int(max(0, (t - appear_t) * 15))
                     draw_text_with_shadow(draw, 80, y, f"予想{chr(65+i)}: {p4[:show_len]}", FONT_LIST, (200, 200, 200))
                     
@@ -642,7 +635,6 @@ def create_numbers_clip(record):
     if os.path.exists("assets/se_tada.mp3"): audio_clips.append(AudioFileClip("assets/se_tada.mp3").set_start(31.0))
     if audio_clips: clip = clip.set_audio(CompositeAudioClip(audio_clips).set_duration(duration))
     
-    # ★ フラッシュバック判定のために clip と hit_flag を返す
     return apply_fade(clip), has_hit
 
 def generate_weekly_video():
@@ -659,7 +651,7 @@ def generate_weekly_video():
     except: pass
 
     all_clips = []
-    highlight_clips = [] # ★ 新機能：的中時のフラッシュバック用
+    highlight_clips = [] 
     
     n_hist = fetch_finished_history(os.environ.get("JSONBIN_BIN_ID_NUMBERS"), 5)
     l6_hist_all = fetch_finished_history(os.environ.get("JSONBIN_BIN_ID"), 10)
@@ -704,18 +696,26 @@ def generate_weekly_video():
     op_start_date, op_end_date = "", ""
     if all_dates:
         sorted_dates = sorted(all_dates)
-        op_start_date = get_short_date(sorted_dates[0])
-        op_end_date = get_short_date(sorted_dates[-1])
+        # ★ 修正：一番新しいデータの日付を基準に「その週の月曜日〜金曜日」を計算する
+        latest_date_str = sorted_dates[-1]
+        m = re.search(r'(\d{4})[/年]\s*(\d{1,2})[/月]\s*(\d{1,2})', latest_date_str)
+        if m:
+            y, mth, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            latest_dt = datetime.date(y, mth, d)
+            monday = latest_dt - datetime.timedelta(days=latest_dt.weekday())
+            friday = monday + datetime.timedelta(days=4)
+            op_start_date = f"{monday.month}月{monday.day}日"
+            op_end_date = f"{friday.month}月{friday.day}日"
+        else:
+            op_start_date = get_short_date(sorted_dates[0])
+            op_end_date = get_short_date(sorted_dates[-1])
 
-    # ======== 1. 動画クリップの生成と的中チェック ========
-    
     if n_hist:
         title_clip = create_title_clip(n_hist, "ナンバーズ", (52, 211, 153), "続いて、ナンバーズの結果まとめです！", "voice_title_num.mp3")
         if title_clip: all_clips.append(title_clip)
         for rec in reversed(n_hist):
             clip, has_hit = create_numbers_clip(rec)
             all_clips.append(clip)
-            # ★ 的中していたら、最後の「答え合わせシーン」の1.5秒間をフラッシュバック用に切り抜く！
             if has_hit: highlight_clips.append(clip.subclip(40, 42.5))
 
     if l6_hist:
@@ -755,10 +755,8 @@ def generate_weekly_video():
     ed_clip = create_ending_clip()
     if ed_clip: all_clips.append(ed_clip)
 
-    # ======== 2. オープニングとフラッシュバックの結合 ========
     final_clips = []
     
-    # ★ 新機能：もし今週「的中（has_hit）」があれば、一番最初にフラッシュバックを挿入！
     if highlight_clips:
         print("🎉 的中データを発見しました！冒頭にハイライトを挿入します。")
         def make_hl_title(t):
@@ -768,7 +766,7 @@ def generate_weekly_video():
             return np.array(img.convert('RGB'))
         hl_title = VideoClip(make_hl_title, duration=1.0)
         final_clips.append(hl_title)
-        final_clips.extend(highlight_clips) # 的中シーン(2.5秒)をドカンと見せる
+        final_clips.extend(highlight_clips) 
 
     op_clip = create_opening_clip(op_start_date, op_end_date)
     if op_clip: final_clips.append(op_clip)
@@ -782,10 +780,9 @@ def generate_weekly_video():
     print(f"\n🎞️ 全 {len(final_clips)} シーンを結合中... (レンダリングには数分かかります)")
     final_video = concatenate_videoclips(final_clips, method="compose")
     
-    # ★ 新機能：音声ダッキング（BGMの音量を少し下げて音声をクリアに際立たせる）
     if bgm_clip:
         print("🎧 全体にBGMを合成し、音量バランスを最適化します...")
-        looped_bgm = audio_loop(bgm_clip, duration=final_video.duration).volumex(0.15) # BGMを控えめに設定（ダッキング効果）
+        looped_bgm = audio_loop(bgm_clip, duration=final_video.duration).volumex(0.15) 
         final_video = final_video.set_audio(CompositeAudioClip([looped_bgm, final_video.audio]))
 
     output_filename = "weekly_summary.mp4"
