@@ -8,6 +8,18 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from dotenv import load_dotenv
 
+# ▼▼▼ 追加：SNS告知メディア生成用のライブラリ ▼▼▼
+import math
+import numpy as np
+from moviepy.editor import VideoClip, AudioFileClip
+import cloudinary
+import cloudinary.uploader
+import requests
+import PIL.Image
+if not hasattr(PIL.Image, 'ANTIALIAS'):
+    PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
+# ▲▲▲ ここまで ▲▲▲
+
 load_dotenv()
 
 # ==========================================
@@ -92,6 +104,146 @@ def add_pinned_comment(youtube, video_id, comment_text):
     except Exception as e:
         print(f"⚠️ コメント固定エラー（動画処理が間に合っていない可能性があります）: {e}")
 
+# ▼▼▼ 新規追加：SNS告知メディア生成＆自動投稿職人 ▼▼▼
+def create_ig_announcements(thumbnail_path):
+    print("🎨 Instagram用の告知画像とリール動画を生成中...")
+    font_path = "assets/font.ttf"
+    try:
+        font_huge = ImageFont.truetype(font_path, 90)
+        font_large = ImageFont.truetype(font_path, 70)
+        font_medium = ImageFont.truetype(font_path, 50)
+    except:
+        font_huge = font_large = font_medium = ImageFont.load_default()
+
+    def draw_ig_text(d, y, text, font, fill_color, outline_color=(0,0,0)):
+        bbox = d.textbbox((0, 0), text, font=font)
+        x = (1080 - (bbox[2] - bbox[0])) / 2
+        for adj_x in range(-5, 6):
+            for adj_y in range(-5, 6):
+                d.text((x+adj_x, y+adj_y), text, font=font, fill=outline_color)
+        d.text((x, y), text, font=font, fill=fill_color)
+
+    img_feed = Image.new('RGB', (1080, 1350), color=(15, 23, 42))
+    draw_f = ImageDraw.Draw(img_feed)
+    
+    draw_ig_text(draw_f, 150, "＼ YouTubeで最新動画を公開！ ／", font_medium, (52, 211, 153))
+    draw_ig_text(draw_f, 250, "1週間の予想結果まとめ", font_huge, (255, 255, 255))
+    
+    if os.path.exists(thumbnail_path):
+        thumb = Image.open(thumbnail_path).resize((960, 540), PIL.Image.LANCZOS)
+        img_feed.paste(thumb, (60, 420))
+        
+    draw_f.rectangle([0, 1100, 1080, 1350], fill=(220, 38, 38))
+    draw_ig_text(draw_f, 1130, "ご視聴はプロフィールの", font_large, (255, 255, 255))
+    draw_ig_text(draw_f, 1220, "リンクから今すぐチェック👇", font_large, (250, 204, 21))
+    
+    feed_path = "ig_announcement.jpg"
+    img_feed.save(feed_path, "JPEG", quality=95)
+
+    def make_reel_frame(t):
+        img = Image.new('RGB', (1080, 1920), color=(15, 23, 42))
+        draw = ImageDraw.Draw(img)
+        
+        draw_ig_text(draw, 300, "＼ YouTubeで最新動画を公開！ ／", font_medium, (52, 211, 153))
+        draw_ig_text(draw, 400, "1週間の予想結果まとめ", font_huge, (255, 255, 255))
+        
+        y_off = int(20 * math.sin(t * 3))
+        if os.path.exists(thumbnail_path):
+            thumb = Image.open(thumbnail_path).resize((960, 540), PIL.Image.LANCZOS)
+            img.paste(thumb, (60, 600 + y_off))
+            
+        draw.rectangle([0, 1500, 1080, 1920], fill=(220, 38, 38))
+        draw_ig_text(draw, 1580, "ご視聴はプロフィールの", font_large, (255, 255, 255))
+        draw_ig_text(draw, 1700, "リンクから今すぐチェック👇", font_large, (250, 204, 21))
+        
+        return np.array(img)
+        
+    reel_clip = VideoClip(make_reel_frame, duration=6)
+    
+    bgm_path = "assets/create_weekly.mp3"
+    if os.path.exists(bgm_path):
+        try:
+            bgm = AudioFileClip(bgm_path).subclip(0, 6).audio_fadeout(1)
+            reel_clip = reel_clip.set_audio(bgm)
+        except: pass
+        
+    reel_path = "ig_announcement.mp4"
+    reel_clip.write_videofile(reel_path, fps=24, codec="libx264", audio_codec="libmp3lame", threads=1, logger=None)
+    
+    print("✅ Instagram用の告知メディア（画像・リール）作成完了！")
+    return feed_path, reel_path
+
+def post_to_line(message):
+    LINE_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+    if not LINE_ACCESS_TOKEN: return
+    url = "https://api.line.me/v2/bot/message/broadcast"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {LINE_ACCESS_TOKEN}"}
+    data = {"messages": [{"type": "text", "text": message}]}
+    try:
+        res = requests.post(url, headers=headers, json=data)
+        if res.status_code == 200: print("✅ LINEへのYouTube公開告知が成功しました！")
+    except: pass
+
+def upload_image_to_server(image_path):
+    url = "https://freeimage.host/api/1/upload"
+    try:
+        import base64
+        with open(image_path, "rb") as file:
+            b64_image = base64.b64encode(file.read()).decode('utf-8')
+        payload = {"key": "6d207e02198a847aa98d0a2a901485a5", "action": "upload", "source": b64_image, "format": "json"}
+        response = requests.post(url, data=payload).json()
+        if response.get("status_code") == 200: return response["image"]["url"]
+    except: pass
+    return None
+
+def post_to_instagram(image_url, caption_text):
+    ig_account_id = os.environ.get("IG_ACCOUNT_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    if not all([ig_account_id, access_token]): return
+    try:
+        print("☁️ Instagramへ告知画像をアップロード中...")
+        c_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
+        c_res = requests.post(c_url, data={'image_url': image_url, 'caption': caption_text, 'access_token': access_token}).json()
+        if 'id' in c_res:
+            time.sleep(15) 
+            p_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
+            p_res = requests.post(p_url, data={'creation_id': c_res['id'], 'access_token': access_token}).json()
+            if 'id' in p_res: print("✅ Instagram（フィード）への告知投稿が完了しました！")
+    except: pass
+
+def upload_video_to_cloudinary(video_path):
+    print("☁️ Cloudinaryへ告知リール動画をアップロード中...")
+    cloudinary.config( 
+        cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"), 
+        api_key = os.environ.get("CLOUDINARY_API_KEY"), 
+        api_secret = os.environ.get("CLOUDINARY_API_SECRET"),
+        secure = True
+    )
+    try:
+        res = cloudinary.uploader.upload(video_path, resource_type="video")
+        return res.get("secure_url")
+    except Exception as e:
+        print(f"⚠️ Cloudinaryエラー: {e}")
+        return None
+
+def post_reel_to_instagram(video_url, caption_text):
+    ig_account_id = os.environ.get("IG_ACCOUNT_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    if not all([ig_account_id, access_token]): return
+    try:
+        print("☁️ Instagramへ告知リール動画を送信中...")
+        c_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
+        payload = {'media_type': 'REELS', 'video_url': video_url, 'caption': caption_text, 'access_token': access_token}
+        c_res = requests.post(c_url, data=payload).json()
+        if 'id' in c_res:
+            print("⏳ リール処理のため60秒待機します...")
+            time.sleep(60)
+            p_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
+            p_res = requests.post(p_url, data={'creation_id': c_res['id'], 'access_token': access_token}).json()
+            if 'id' in p_res: print("🎉 Instagram（リール）への告知動画投稿が完了しました！")
+    except: pass
+# ▲▲▲ ここまで ▲▲▲
+
 # ==========================================
 # 🚀 YouTubeアップロード本処理
 # ==========================================
@@ -124,6 +276,10 @@ def upload_long_video():
         # メタデータ（タイトル・概要欄・タグ）
         title = f"【{title_date}】ロト6・ロト7・ナンバーズ AI予想と結果まとめ！HOT＆COLD分析"
         
+        # ★修正：欠落してエラーの原因となっていた環境変数の取得を復元しました
+        link_buy = os.environ.get("AFFILIATE_BUY_SERVICE", "https://loto-yosou-ai.com/")
+        link_lucky = os.environ.get("AFFILIATE_LUCKY_ITEM", "https://loto-yosou-ai.com/")
+
         description = (
             f"今週（{title_date}）の宝くじ（ロト6・ロト7・ナンバーズ3・ナンバーズ4）の抽選結果と、"
             "当サイトの完全無料AI予想の答え合わせを一挙公開！\n\n"
@@ -172,6 +328,9 @@ def upload_long_video():
 
         video_id = response.get('id')
         print(f"🎉 動画のアップロード成功！ URL: https://youtu.be/{video_id}")
+        
+        # ▼ 追加：動画のURLを変数として保持
+        youtube_url = f"https://youtu.be/{video_id}"
 
         # ▼ サムネイルのアップロード設定
         if thumbnail_path and os.path.exists(thumbnail_path):
@@ -196,6 +355,31 @@ def upload_long_video():
             "次回の動画も見逃さないよう、チャンネル登録をお願いします✨"
         )
         add_pinned_comment(youtube, video_id, fixed_msg)
+        
+        # ▼▼▼ 新規追加：SNSへ一斉告知！ ▼▼▼
+        print("\n📢 続いて、LINEとInstagramへYouTube公開の告知を行います！")
+        
+        ig_feed_path, ig_reel_path = create_ig_announcements(thumbnail_path)
+        
+        sns_message = (
+            f"🎬 今週の『ロト＆ナンバーズ 予想結果まとめ動画』をYouTubeで公開しました！\n\n"
+            f"当サイトの完全無料AI予想の答え合わせや、\n"
+            f"直近データから導き出す【HOT＆COLD数字分析グラフ】も特別公開中📈✨\n\n"
+            f"▼ 動画の視聴はプロフィールのリンク（またはこちら👇）から！\n"
+            f"{youtube_url}\n\n"
+            f"#ロト6 #ロト7 #ナンバーズ #AI予想 #宝くじ #高額当選"
+        )
+
+        post_to_line(sns_message)
+
+        if os.path.exists(ig_feed_path):
+            img_url = upload_image_to_server(ig_feed_path)
+            if img_url: post_to_instagram(img_url, sns_message)
+
+        if os.path.exists(ig_reel_path):
+            vid_url = upload_video_to_cloudinary(ig_reel_path)
+            if vid_url: post_reel_to_instagram(vid_url, sns_message)
+        # ▲▲▲ ここまで ▲▲▲
         
         print("🚀🚀🚀 YouTubeへの全自動投稿フローが完璧に完了しました！ 🚀🚀🚀")
         
