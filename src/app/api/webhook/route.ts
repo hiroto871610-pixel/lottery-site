@@ -78,3 +78,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: 'error' }, { status: 500 });
   }
 }
+
+// ▼▼▼ route.ts の一番下に追加 ▼▼▼
+export async function GET() {
+  return NextResponse.json({ message: "Webhook is running!" }, { status: 200 });
+}
