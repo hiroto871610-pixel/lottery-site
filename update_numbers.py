@@ -1543,8 +1543,8 @@ def build_html():
                 # ▲▲▲ ここまで ▲▲▲
 
                 # ▼▼▼ 新規追加：TikTokへの投稿 ▼▼▼
-            post_to_tiktok("reel_numbers.mp4", caption)
-            # ▲▲▲ ここまで ▲▲▲
+                post_to_tiktok("reel_numbers.mp4", caption)
+                # ▲▲▲ ここまで ▲▲▲
                 
         except Exception as e:
                 print(f"❌ 動画の自動生成・投稿エラー: {e}")
