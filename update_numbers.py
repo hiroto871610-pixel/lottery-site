@@ -434,6 +434,44 @@ def upload_to_youtube_shorts(video_path, title, description, tags):
         print(f"❌ YouTubeアップロードエラー: {e}")
 # =========================================================
 
+# =========================================================
+# 🎵 TikTok用：自動アップロード機能
+# =========================================================
+def post_to_tiktok(video_path, caption):
+    """TikTokへ動画を完全自動でアップロードする"""
+    session_id = os.environ.get("TIKTOK_SESSION_ID")
+    if not session_id:
+        print("⚠️ TIKTOK_SESSION_IDが設定されていないため、TikTokへの投稿をスキップしました。")
+        return
+
+    print(f"🎵 TikTokへ動画({video_path})をアップロード中...")
+
+    # tiktok-uploaderが読み込める「Netscape形式」のCookieファイルを自動生成
+    cookie_content = f".tiktok.com\tTRUE\t/\tFALSE\t2147483647\tsessionid\t{session_id}\n"
+    cookie_file = "tiktok_cookies.txt"
+    with open(cookie_file, "w") as f:
+        f.write(cookie_content)
+
+    try:
+        from tiktok_uploader.upload import upload_video
+        
+        # ヘッドレスブラウザ（裏側の見えないChrome）を起動して自動投稿
+        upload_video(
+            video_path,
+            description=caption,
+            cookies=cookie_file,
+            headless=True
+        )
+        print("🎉🎉🎉 TikTokへの自動投稿が完了しました！！！ 🎉🎉🎉")
+        
+    except Exception as e:
+        print(f"❌ TikTokアップロードエラー: {e}")
+    finally:
+        # セキュリティのため、使い終わったCookieファイルは削除しておく
+        if os.path.exists(cookie_file):
+            os.remove(cookie_file)
+# =========================================================
+
 def create_result_image(n4_text, n3_text, base_image_path, output_image_path, target_kai="", target_date=""):
     """ナンバーズ専用：1080x1350の大画面に合わせて、文字を大きく中央揃えで描画する職人"""
     print("🎨 ナンバーズ専用の予想画像を生成中（中央揃え・大画面版）...")
@@ -1503,6 +1541,10 @@ def build_html():
                 yt_tags = ["ナンバーズ", "宝くじ", "AI予想", "ショート"]
                 upload_to_youtube_shorts("reel_numbers.mp4", yt_title, caption, yt_tags)
                 # ▲▲▲ ここまで ▲▲▲
+
+                # ▼▼▼ 新規追加：TikTokへの投稿 ▼▼▼
+            post_to_tiktok("reel_numbers.mp4", caption)
+            # ▲▲▲ ここまで ▲▲▲
                 
         except Exception as e:
                 print(f"❌ 動画の自動生成・投稿エラー: {e}")

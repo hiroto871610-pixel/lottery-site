@@ -1634,6 +1634,10 @@ def build_html():
                 yt_tags = ["ロト6", "宝くじ", "AI予想", "ショート"]
                 upload_to_youtube_shorts("reel_loto6.mp4", yt_title, caption, yt_tags)
                 # ▲▲▲ ここまで ▲▲▲
+
+                # ▼▼▼ 新規追加：TikTokへの投稿 ▼▼▼
+            post_to_tiktok("reel_loto6.mp4", caption)
+            # ▲▲▲ ここまで ▲▲▲
             
         except Exception as e:
             print(f"❌ 動画の自動生成・投稿エラー: {e}")
