@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import itertools
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -66,6 +69,11 @@ from dotenv import load_dotenv
 # .envファイルを読み込む
 load_dotenv()
 # ▲▲▲ ここまで追加 ▲▲▲
+
+def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_predictions=3):
+    print("🧠 ハイブリッドAI（RF + XGB + LSTM）による予測を開始します...")
+    # ... 先ほどの関数の内容すべて ...
+    return predictions, confidence_rank, confidence_msg
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -506,7 +514,7 @@ def upload_image_to_imgbb(image_path):
         return None
     # =========================================================
 
-def create_result_image(loto7_nums, carryover_info, base_image_path, output_image_path, target_kai="", target_date=""):
+def create_result_image(..., target_kai="", target_date="", confidence_rank="Aランク"):
     """ロト7専用：1080x1350に合わせて、特大2段組（上4・下3）＆白タイトルで描画する職人"""
     print("🎨 ロト7専用の予想画像を生成中（特大2段・白タイトル版）...")
     try:
@@ -551,7 +559,7 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     # ------------------------------------------------
     # 描画1：タイトル
     # ------------------------------------------------
-    title = "【ロト7 最新AI予想 A】"
+    title = f"【ロト7 最新AI予想A {confidence_rank}】"
     subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # タイトルの中央位置を計算
@@ -1026,8 +1034,7 @@ def generate_advanced_predictions(history_data):
     y = np.array(labels)
 
     # --- 3. モデルの学習 (Random Forest) ---
-    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
-    model.fit(X, y)
+    predictions, confidence_rank, confidence_msg = generate_hybrid_predictions(X_train, y_train, X_latest)
 
     # --- 4. 次回の予測スコアを算出 ---
     latest_window = [num for draw in main_draws[-window_size:] for num in draw]
@@ -1508,7 +1515,10 @@ def build_html():
         # 夜（19時以降）に実行された場合のみ配信
         if current_hour >= 19:
             send_flag = True
-            msg = f"【#ロト7 予想更新🎯】\n次回({next_kai})のAI予想を公開中！\n"
+            msg = f"【#ロト7 予想更新🎯】\n"
+            msg += f"次回({next_kai})のAI予想を公開中！\n\n"
+            msg += f"{confidence_msg}\n\n"  # ←AIの「激アツ！」などのコメントが入る
+            msg += f"AI総合判定：{confidence_rank}\n" # ←ランクも表示するとより親切です
             if carryover_text:
                 msg += f"現在、{carryover_text}\n"
             msg += f"\n過去データから厳選したAI予想はこちらから👇\n{site_url}"
