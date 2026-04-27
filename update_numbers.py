@@ -1203,6 +1203,11 @@ def get_next_numbers_date():
 def build_html():
     history_data = fetch_both_history()
     latest_data = history_data[0]
+
+    # ⭕ ▼▼▼ この2行が消えているので追加してください ▼▼▼ ⭕
+    n4_hot, n4_cold = analyze_digit_trends(history_data, 'n4_win')
+    n3_hot, n3_cold = analyze_digit_trends(history_data, 'n3_win')
+    # ⭕ ▲▲▲ ここまで ▲▲▲ ⭕
     
     # ★新設した高度な複合分析ロジックを使用 (N4とN3それぞれで生成)
     n4_preds, n4_rank, n4_msg = generate_advanced_predictions(history_data, 4, 'n4_win')
