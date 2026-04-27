@@ -1,5 +1,4 @@
 import random
-import numpy as np
 import pandas as pd
 import itertools
 from sklearn.ensemble import RandomForestClassifier
@@ -70,9 +69,86 @@ from dotenv import load_dotenv
 load_dotenv()
 # ▲▲▲ ここまで追加 ▲▲▲
 
-def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_predictions=3):
+def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_predictions=5):
+    import numpy as np
     print("🧠 ハイブリッドAI（RF + XGB + LSTM）による予測を開始します...")
-    # ... 先ほどの関数の内容すべて ...
+
+    # ① Random Forest
+    rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_model.fit(X_train, y_train)
+    rf_preds = rf_model.predict_proba(X_latest)
+    
+    prob_rf = np.zeros(38)
+    if isinstance(rf_preds, list):
+        for i, p in enumerate(rf_preds):
+            if i + 1 <= 37:
+                prob_rf[i+1] = p[0][1] if p.shape[1] > 1 else 0
+    else:
+        for idx, cls in enumerate(rf_model.classes_):
+            if 1 <= int(cls) <= 37:
+                prob_rf[int(cls)] = rf_preds[0][idx]
+
+    # ② XGBoost
+    xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', random_state=42)
+    xgb_model.fit(X_train, y_train)
+    xgb_preds = xgb_model.predict_proba(X_latest)
+    
+    prob_xgb = np.zeros(38)
+    if isinstance(xgb_preds, list):
+        for i, p in enumerate(xgb_preds):
+            if i + 1 <= 37:
+                prob_xgb[i+1] = p[0][1] if p.shape[1] > 1 else 0
+    else:
+        xgb_preds = xgb_preds[0]
+        if hasattr(xgb_model, 'classes_') and len(xgb_model.classes_) == len(xgb_preds):
+            for idx, cls in enumerate(xgb_model.classes_):
+                if 1 <= int(cls) <= 37:
+                    prob_xgb[int(cls)] = xgb_preds[idx]
+        else:
+            for i in range(min(len(xgb_preds), 37)):
+                prob_xgb[i+1] = xgb_preds[i]
+
+    # ③ LSTM
+    # 既存の2Dデータ(サンプル数, 特徴量)を、LSTM用の3D(サンプル数, 1, 特徴量)に変換
+    X_train_3d = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
+    X_latest_3d = X_latest.reshape((1, 1, X_latest.shape[1]))
+
+    lstm_model = Sequential([
+        LSTM(64, activation='relu', input_shape=(1, X_train.shape[1])),
+        Dense(38, activation='softmax')
+    ])
+    lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+    lstm_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
+    prob_lstm = lstm_model.predict(X_latest_3d)[0]
+
+    # 統合と自信度計算
+    final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
+    top7_rf = set(np.argsort(prob_rf)[::-1][:7])
+    top7_xgb = set(np.argsort(prob_xgb)[::-1][:7])
+    top7_lstm = set(np.argsort(prob_lstm)[::-1][:7])
+    agreed_numbers = top7_rf & top7_xgb & top7_lstm
+
+    if len(agreed_numbers) >= 4:
+        confidence_rank = "Sランク"
+        confidence_msg = "🔥 激アツ！3つの最先端AIの予測が完全に一致しました！"
+    elif len(top7_rf & top7_xgb) >= 4 or len(top7_rf & top7_lstm) >= 4:
+        confidence_rank = "Aランク"
+        confidence_msg = "✨ チャンス！複数のAIが同じ傾向を示しています。"
+    else:
+        confidence_rank = "Bランク"
+        confidence_msg = "⚠️ 波乱含み。AI間で意見が分かれており、荒れる可能性があります。"
+
+    # 予想生成
+    predictions = []
+    weights = final_prob[1:38] + 0.0001
+    weights /= weights.sum()
+    numbers_pool = np.arange(1, 38)
+
+    for _ in range(num_predictions):
+        pred_nums = np.random.choice(numbers_pool, size=7, replace=False, p=weights)
+        pred_nums.sort()
+        predictions.append([str(n).zfill(2) for n in pred_nums])
+
     return predictions, confidence_rank, confidence_msg
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -514,7 +590,7 @@ def upload_image_to_imgbb(image_path):
         return None
     # =========================================================
 
-def create_result_image(..., target_kai="", target_date="", confidence_rank="Aランク"):
+def create_result_image(loto7_nums, carryover_info, base_image_path, output_image_path, target_kai="", target_date="", confidence_rank="Aランク"):
     """ロト7専用：1080x1350に合わせて、特大2段組（上4・下3）＆白タイトルで描画する職人"""
     print("🎨 ロト7専用の予想画像を生成中（特大2段・白タイトル版）...")
     try:
@@ -1030,20 +1106,28 @@ def generate_advanced_predictions(history_data):
             features.append(feature)
             labels.append(1 if num in target_draw else 0)
 
+    import numpy as np
     X = np.array(features)
     y = np.array(labels)
 
+# ▼▼▼ ここから追加（既存のデータをハイブリッドAIに渡す） ▼▼▼
+    X_train = X
+    y_train = y
+    
+    # 最新のデータを予測用の入力データ(X_latest)とする
+    X_latest = np.array([features[-1]])
+    
     # --- 3. モデルの学習 (Random Forest) ---
+    global global_confidence_rank, global_confidence_msg
     predictions, confidence_rank, confidence_msg = generate_hybrid_predictions(X_train, y_train, X_latest)
 
     # --- 4. 次回の予測スコアを算出 ---
-    latest_window = [num for draw in main_draws[-window_size:] for num in draw]
-    latest_counts = Counter(latest_window)
-    
-    next_features = np.array([[latest_counts.get(num, 0)] for num in range(1, 38)])
-    probabilities = model.predict_proba(next_features)[:, 1] 
-    
-    ml_scores = {num: prob for num, prob in enumerate(probabilities, start=1)}
+    # 新しいハイブリッドAIを呼び出して結果を受け取る
+    global global_confidence_rank, global_confidence_msg
+    predictions, global_confidence_rank, global_confidence_msg = generate_hybrid_predictions(X_train, y_train, X_latest)
+
+    # 新しいAIが作った予想リストをそのまま返す！
+    return predictions
 
     # --- 5. ハイブリッド選定（MLスコア × 共起性） ---
     predictions = []
@@ -1557,7 +1641,7 @@ def build_html():
         caption = f"🎯最新のロト7 AI予想です！\n\n{msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ① 今までの職人に「静止画」を作成してもらう
-        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str)
+        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str,confidence_rank=confidence_rank)
         
         # ====================================================
         # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！

@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import itertools
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -34,6 +37,81 @@ from googleapiclient.http import MediaFileUpload
 JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID")
 JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
 JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
+
+def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_predictions=5):
+    import numpy as np
+    print("🧠 ロト6 ハイブリッドAI予測を開始します...")
+
+    # ① Random Forest (0か1かの確率を取得)
+    rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_model.fit(X_train, y_train)
+    rf_preds = rf_model.predict_proba(X_latest)
+    
+    prob_rf = np.zeros(44)
+    # クラス「1(当選)」の確率を抽出
+    if rf_preds.shape[1] > 1:
+        for i in range(43):
+            prob_rf[i+1] = rf_preds[i, 1]
+    else:
+        for i in range(43):
+            prob_rf[i+1] = rf_preds[i, 0]
+
+    # ② XGBoost
+    xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+    xgb_model.fit(X_train, y_train)
+    xgb_preds = xgb_model.predict_proba(X_latest)
+    
+    prob_xgb = np.zeros(44)
+    if xgb_preds.shape[1] > 1:
+        for i in range(43):
+            prob_xgb[i+1] = xgb_preds[i, 1]
+    else:
+        for i in range(43):
+            prob_xgb[i+1] = xgb_preds[i, 0]
+
+    # ③ LSTM (二値分類モデルとして構築)
+    X_train_3d = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
+    X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
+
+    lstm_model = Sequential([
+        LSTM(64, activation='relu', input_shape=(1, X_train.shape[1])),
+        Dense(1, activation='sigmoid') # 0か1の確率を出力
+    ])
+    lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
+    lstm_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
+    lstm_preds = lstm_model.predict(X_latest_3d).flatten()
+    
+    prob_lstm = np.zeros(44)
+    for i in range(43):
+        prob_lstm[i+1] = lstm_preds[i]
+
+    # 統合と自信度計算
+    final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
+    
+    top6_rf = set(np.argsort(prob_rf)[::-1][:6])
+    top6_xgb = set(np.argsort(prob_xgb)[::-1][:6])
+    top6_lstm = set(np.argsort(prob_lstm)[::-1][:6])
+    agreed = top6_rf & top6_xgb & top6_lstm
+
+    if len(agreed) >= 4:
+        rank, msg = "Sランク", "🔥 激アツ！3つのAI予測がロト6で完全に一致！"
+    elif len(top6_rf & top6_xgb) >= 3 or len(top6_rf & top6_lstm) >= 3:
+        rank, msg = "Aランク", "✨ チャンス！複数のAIが同じ当選パターンを検知。"
+    else:
+        rank, msg = "Bランク", "⚠️ AIの意見が分散中。波乱の可能性があります。"
+
+    # 予想生成
+    predictions = []
+    weights = final_prob[1:44] + 0.0001
+    weights /= weights.sum()
+    numbers_pool = np.arange(1, 44)
+
+    for _ in range(num_predictions):
+        pred_nums = np.random.choice(numbers_pool, size=6, replace=False, p=weights)
+        pred_nums.sort()
+        predictions.append([str(n).zfill(2) for n in pred_nums])
+
+    return predictions, rank, msg
 
 def load_history_from_jsonbin():
     if not JSONBIN_BIN_ID: return []
@@ -529,7 +607,7 @@ def upload_image_to_imgbb(image_path):
         return None
     # =========================================================
 
-def create_result_image(loto6_nums, carryover_info, base_image_path, output_image_path, target_kai="", target_date=""):
+def create_result_image(loto6_nums, carryover_info, base_image_path, output_image_path, target_kai="", target_date="", confidence_rank="Aランク"):
     """ロト6専用：1080x1350の大画面に合わせて、特大2段組＆白タイトルで描画する職人"""
     print("🎨 ロト6専用の予想画像を生成中（特大2段・白タイトル版）...")
     try:
@@ -574,7 +652,7 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
     # ------------------------------------------------
     # 描画1：タイトル
     # ------------------------------------------------
-    title = "【ロト6 最新AI予想 A】"
+    title = f"【ロト6 最新AI予想A {confidence_rank}】"
     subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # タイトルの中央位置を計算
@@ -1070,9 +1148,21 @@ def generate_advanced_predictions(history_data):
     X = np.array(features)
     y = np.array(labels)
 
-    # --- 3. モデルの学習 (Random Forest) ---
-    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
-    model.fit(X, y)
+    # =========================================================
+    # ▼▼▼ 古いコード（次回の予測スコアを算出 など）を消してこれに書き換える ▼▼▼
+    # =========================================================
+    # 1. 次回の予測用データ(43個の数字の出現回数)を作る
+    latest_window = [num for draw in main_draws[-window_size:] for num in draw]
+    latest_counts = Counter(latest_window)
+    next_features = np.array([[latest_counts.get(num, 0)] for num in range(1, 44)])
+
+    # 2. 新しいAIを呼び出す（next_features を渡す）
+    global global_confidence_rank, global_confidence_msg
+    predictions, global_confidence_rank, global_confidence_msg = generate_hybrid_predictions(X, y, next_features)
+
+    return predictions
+    # =========================================================
+    # ▲▲▲ ここまで ▲▲▲
 
     # --- 4. 次回の予測スコアを算出 ---
     latest_window = [num for draw in main_draws[-window_size:] for num in draw]
@@ -1612,7 +1702,7 @@ def build_html():
         caption = f"🎯最新のロト6 AI予想です！\n\n{msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ① 今までの職人に「静止画」を作成してもらう
-        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str)
+        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=global_confidence_rank)
 
         # ====================================================
         # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！
