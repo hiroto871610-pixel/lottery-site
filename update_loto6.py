@@ -474,7 +474,6 @@ def upload_to_youtube_shorts(video_path, title, description, tags):
         # 動画ファイルの読み込み（YouTube Shortsは60秒以下の縦型なら自動的にShortsになります）
         media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype='video/mp4')
         
-        # アップロード実行！
         request = youtube.videos().insert(
             part=",".join(body.keys()),
             body=body,
@@ -485,6 +484,15 @@ def upload_to_youtube_shorts(video_path, title, description, tags):
         video_id = response.get('id')
         print(f"🎉🎉🎉 YouTube Shortsの自動投稿が完了しました！ URL: https://youtu.be/{video_id} 🎉🎉🎉")
         
+        # ⭕ ▼▼▼ ここに正しいインデントで追加 ▼▼▼ ⭕
+        fixed_msg = (
+            "🎯 本日のAI全予想はこちら（完全無料）！\n"
+            "👉 https://loto-yosou-ai.com/\n\n"
+            "次回の予想も見逃さないよう、チャンネル登録お願いします！✨"
+        )
+        add_pinned_comment(video_id, fixed_msg)
+        # ⭕ ▲▲▲ ここまで追加 ▲▲▲ ⭕
+
     except Exception as e:
         print(f"❌ YouTubeアップロードエラー: {e}")
 # =========================================================
