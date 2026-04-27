@@ -472,7 +472,7 @@ def post_to_tiktok(video_path, caption):
             os.remove(cookie_file)
 # =========================================================
 
-def create_result_image(n4_text, n3_text, base_image_path, output_image_path, target_kai="", target_date=""):
+def create_result_image(n4_text, n3_text, base_image_path, output_image_path, target_kai="", target_date="", n4_rank="", n3_rank=""):
     """ナンバーズ専用：1080x1350の大画面に合わせて、文字を大きく中央揃えで描画する職人"""
     print("🎨 ナンバーズ専用の予想画像を生成中（中央揃え・大画面版）...")
     try:
@@ -514,7 +514,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path, ta
     # ------------------------------------------------
     # 描画1：ナンバーズ4
     # ------------------------------------------------
-    title4 = "【ナンバーズ4 予想A】"
+    title4 = f"【ナンバーズ4 予想A {n4_rank}】"
     subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # ★Pillowの機能でタイトルの描画サイズを取得し、中央位置(X)を計算
@@ -564,7 +564,7 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path, ta
     # 描画2：ナンバーズ3
     # ------------------------------------------------
     current_y += ball_dia + 180 # N4とN3の間隔
-    title3 = "【ナンバーズ3 予想A】"
+    title3 = f"【ナンバーズ3 予想A {n3_rank}】"
     subtitle = f"{target_kai} ({target_date})" # ★追加：回号と日付
     
     # タイトルの中央位置を計算
@@ -981,30 +981,30 @@ def analyze_digit_trends(history_data, win_key):
 
 # --- 3. 複合アルゴリズム予想生成（★機械学習ハイブリッド版・ナンバーズ専用） ---
 def generate_advanced_predictions(history_data, length, win_key):
-    print(f"🧠 AI（Random Forest）がナンバーズ{length}の『桁ごとの傾向』と共起性を学習中...")
-    if not history_data or len(history_data) < 20:
-        return [] 
+    import numpy as np
+    from xgboost import XGBClassifier
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import LSTM, Dense
 
-    # 古い順（時系列）に並び替え、数字を整数のリストに変換
+    print(f"🧠 ナンバーズ{length} ハイブリッドAI（RF + XGB + LSTM）予測を開始します...")
+    if not history_data or len(history_data) < 20:
+        return [], "Bランク", "データ不足のため基本予想"
+
     draws = [[int(n) for n in d[win_key]] for d in reversed(history_data)]
     
-    # --- 1. 共起性行列（一緒に選ばれやすい数字のペア） ---
+    # --- 1. 共起性行列 ---
     pair_counts = Counter()
     for draw in draws:
-        # 順番を問わず、同じ回に出現した数字のペアをカウント
         for pair in itertools.combinations(sorted(draw), 2):
             pair_counts[pair] += 1
 
-    # --- 2 & 3. 桁(ポジション)ごとの機械学習モデルの構築と予測 ---
-    # ナンバーズは桁ごとに傾向が異なるため、各桁専用のAIモデルを個別に作ります
+    # --- 2 & 3. 桁ごとのハイブリッドAI構築 ---
     pos_ml_scores = []
     window_size = 10 
     
     for pos in range(length):
         features = []
         labels = []
-        
-        # この桁(ポジション)だけの過去の出現履歴を抽出
         pos_sequence = [draw[pos] for draw in draws]
         
         for i in range(window_size, len(pos_sequence) - 1):
@@ -1013,92 +1013,110 @@ def generate_advanced_predictions(history_data, length, win_key):
             
             target_digit = pos_sequence[i] 
             for num in range(10): # ナンバーズは0〜9
-                feature = [past_counts.get(num, 0)]
-                features.append(feature)
+                features.append([past_counts.get(num, 0)])
                 labels.append(1 if num == target_digit else 0)
 
         X = np.array(features)
         y = np.array(labels)
 
-        # Random Forestモデルの学習
-        model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
-        
-        # データが偏りすぎて1種類しかない場合のエラー回避
-        if len(np.unique(y)) > 1:
-            model.fit(X, y)
-            
-            # 次回の予測スコアを算出
-            latest_window = pos_sequence[-window_size:]
-            latest_counts = Counter(latest_window)
-            next_features = np.array([[latest_counts.get(num, 0)] for num in range(10)])
-            probabilities = model.predict_proba(next_features)[:, 1]
-        else:
-            probabilities = np.array([0.1] * 10) # 例外処理
-            
-        ml_scores = {num: prob for num, prob in enumerate(probabilities)}
+        latest_window = pos_sequence[-window_size:]
+        latest_counts = Counter(latest_window)
+        X_latest = np.array([[latest_counts.get(num, 0)] for num in range(10)])
+
+        # 万が一データが偏りすぎている場合のエラー回避フラグ
+        can_train = len(np.unique(y)) > 1
+
+        # ① Random Forest
+        rf_model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
+        prob_rf = np.zeros(10)
+        if can_train:
+            rf_model.fit(X, y)
+            rf_preds = rf_model.predict_proba(X_latest)
+            if rf_preds.shape[1] > 1:
+                for i in range(10): prob_rf[i] = rf_preds[i, 1]
+
+        # ② XGBoost
+        xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+        prob_xgb = np.zeros(10)
+        if can_train:
+            xgb_model.fit(X, y)
+            xgb_preds = xgb_model.predict_proba(X_latest)
+            if xgb_preds.shape[1] > 1:
+                for i in range(10): prob_xgb[i] = xgb_preds[i, 1]
+
+        # ③ LSTM
+        X_3d = X.reshape((X.shape[0], 1, X.shape[1]))
+        X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
+        lstm_model = Sequential([
+            LSTM(32, activation='relu', input_shape=(1, X.shape[1])),
+            Dense(1, activation='sigmoid')
+        ])
+        lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
+        prob_lstm = np.zeros(10)
+        if can_train:
+            lstm_model.fit(X_3d, y, epochs=5, verbose=0)
+            lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
+            for i in range(10): prob_lstm[i] = lstm_preds[i]
+
+        # 3つのAIの予測を統合
+        final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
+        ml_scores = {num: prob for num, prob in enumerate(final_prob)}
         pos_ml_scores.append(ml_scores)
 
-    # --- 4. ハイブリッド選定（桁ごとのML確率 × 共起性） ---
+    # --- 4. ハイブリッド選定 ---
     predictions = []
-    seen = set()
-    seen_box = set() # ボックスでの重複も防ぎ、予想のカバー範囲を最大化する
+    seen, seen_box = set(), set()
     digits = list(range(10))
-
     candidates = []
-    for _ in range(4000): # パターンを多めに生成
+
+    for _ in range(5000): 
         cand = []
         for pos in range(length):
-            # 各桁ごとに、専用のAIが弾き出した確率(重み)を使って数字を抽出
             weights = [pos_ml_scores[pos][n] for n in digits]
             if sum(weights) > 0:
-                choice = random.choices(digits, weights=weights)[0]
+                cand.append(random.choices(digits, weights=weights)[0])
             else:
-                choice = random.choice(digits)
-            cand.append(choice)
+                cand.append(random.choice(digits))
         candidates.append(cand)
 
     valid_candidates = []
     for cand in candidates:
-        # MLのベーススコア（各桁のAIが弾き出した確率の合計）
         base_score = sum(pos_ml_scores[pos][cand[pos]] for pos in range(length))
-        
-        # 共起性(ペア)ボーナスの加算
-        pair_bonus = 0
-        for pair in itertools.combinations(sorted(cand), 2):
-            pair_bonus += pair_counts.get(pair, 0)
-            
+        pair_bonus = sum(pair_counts.get(pair, 0) for pair in itertools.combinations(sorted(cand), 2))
         final_score = base_score + (pair_bonus * 0.05)
         
-        # ナンバーズ特有のフィルター：同じ数字が3つ以上出る確率（トリプル以上）は極めて低いため除外
         counts = Counter(cand)
-        if any(v >= 3 for v in counts.values()):
+        if any(v >= 3 for v in counts.values()): # トリプル以上を除外
             continue
             
         valid_candidates.append((final_score, cand))
 
-    # 最終スコア順にランキングし、上位5つの予想を選定
     valid_candidates.sort(key=lambda x: x[0], reverse=True)
     
     for score, cand in valid_candidates:
         cand_str = "".join(map(str, cand))
         box_str = "".join(sorted(cand_str))
-        
-        # ストレートでもボックスでも過去の予想と被らないようにする
         if cand_str not in seen and box_str not in seen_box:
-            seen.add(cand_str)
-            seen_box.add(box_str)
+            seen.add(cand_str), seen_box.add(box_str)
             predictions.append(cand_str)
-        if len(predictions) == 5:
-            break
+        if len(predictions) == 5: break
 
-    # 万が一、条件が厳しすぎて5個揃わなかった場合の安全処理
     while len(predictions) < 5:
         cand_str = "".join(str(random.randint(0,9)) for _ in range(length))
         if cand_str not in seen:
             seen.add(cand_str)
             predictions.append(cand_str)
 
-    return predictions
+    # 自信度の判定（ナンバーズ特有：各桁のスコアの平均で判定）
+    avg_max_score = np.mean([max(pos_ml_scores[pos].values()) for pos in range(length)])
+    if avg_max_score > 0.4:
+        rank, msg = "Sランク", f"🔥 激アツ！AIがナンバーズ{length}の強い偏りを検知！"
+    elif avg_max_score > 0.25:
+        rank, msg = "Aランク", f"✨ チャンス！ナンバーズ{length}の当選パターンが明確です。"
+    else:
+        rank, msg = "Bランク", f"⚠️ 過去データが分散。波乱の可能性があります。"
+
+    return predictions, rank, msg
 
 # --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, n4_preds, n3_preds):
@@ -1186,13 +1204,15 @@ def build_html():
     history_data = fetch_both_history()
     latest_data = history_data[0]
     
-    # ★N4とN3のトレンドを別々に取得
-    n4_hot, n4_cold = analyze_digit_trends(history_data, 'n4_win')
-    n3_hot, n3_cold = analyze_digit_trends(history_data, 'n3_win')
     # ★新設した高度な複合分析ロジックを使用 (N4とN3それぞれで生成)
-    n4_preds = generate_advanced_predictions(history_data, 4, 'n4_win')
-    n3_preds = generate_advanced_predictions(history_data, 3, 'n3_win')
+    n4_preds, n4_rank, n4_msg = generate_advanced_predictions(history_data, 4, 'n4_win')
+    n3_preds, n3_rank, n3_msg = generate_advanced_predictions(history_data, 3, 'n3_win')
     
+    # 総合的なメッセージを合成（SNS投稿用などに後で使えます）
+    global global_confidence_rank, global_confidence_msg
+    global_confidence_rank = f"N4: {n4_rank} / N3: {n3_rank}"
+    global_confidence_msg = f"{n4_msg}\n{n3_msg}"
+
     history_record = manage_history(latest_data, n4_preds, n3_preds)
 
     next_date_str = get_next_numbers_date()
@@ -1521,7 +1541,7 @@ def build_html():
         caption = f"🎯最新のナンバーズ AI予想です！\n\n{msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ① 今までの職人に「静止画」を作成してもらう
-        is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path, target_kai=next_kai, target_date=next_date_str)
+        is_created = create_result_image(yosou_n4_list, yosou_n3_list, base_image, image_path, target_kai=next_kai, target_date=next_date_str, n4_rank=n4_rank, n3_rank=n3_rank)
 
         # ====================================================
         # 🎬 ここで動画職人を呼び出し、本物の数字を渡す！
