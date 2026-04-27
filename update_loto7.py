@@ -36,24 +36,41 @@ JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID_LOTO7") # LOTO7用に変更
 JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
 JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
 
+import time # リトライの待機用に追加
+
 def load_history_from_jsonbin():
     if not JSONBIN_BIN_ID: return []
     headers = {"X-Master-Key": JSONBIN_API_KEY}
-    try:
-        # 通信のタイムアウトを10秒に設定
-        res = requests.get(JSONBIN_URL, headers=headers, timeout=60)
-        
-        if res.status_code == 200:
-            return res.json().get('record', [])
-        else:
-            # 🚨 ステータスコードが200以外（エラー）の場合は空配列を返さず、処理を止める！
-            print(f"⚠️ JSONBin取得エラー: {res.status_code} - {res.text}")
-            raise SystemExit("🚨 データの消失（サイレント上書き）を防ぐため、処理を強制終了しました。")
+    
+    max_retries = 3  # 最大3回試行
+    retry_delay = 5  # 失敗時に5秒待ってから再試行
+
+    for attempt in range(max_retries):
+        try:
+            # タイムアウトは60秒でOK（保存側のputも同様に長くしてください）
+            res = requests.get(JSONBIN_URL, headers=headers, timeout=60)
             
-    except Exception as e:
-        # 🚨 通信タイムアウトなどの場合も同様に強制終了させる
-        print(f"⚠️ JSONBin通信エラー: {e}")
-        raise SystemExit("🚨 データの消失（サイレント上書き）を防ぐため、処理を強制終了しました。")
+            if res.status_code == 200:
+                return res.json().get('record', [])
+            else:
+                print(f"⚠️ JSONBin取得エラー (試行 {attempt + 1}/{max_retries}): {res.status_code}")
+                # 500系のエラー（サーバー混雑）ならリトライの余地あり
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    raise SystemExit(f"🚨 JSONBin側のエラーにより、処理を強制終了しました: {res.text}")
+                    
+        except (requests.exceptions.RequestException, Exception) as e:
+            print(f"⚠️ 通信エラー (試行 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            else:
+                # 3回失敗したらデータ保護のために終了
+                raise SystemExit("🚨 3回連続で通信に失敗したため、データの安全を考慮し処理を強制終了しました。")
+
+    return []
 
 def save_history_to_jsonbin(data):
     if not JSONBIN_BIN_ID: return
