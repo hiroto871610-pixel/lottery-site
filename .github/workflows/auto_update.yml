@@ -28,8 +28,8 @@ jobs:
       - name: 必要なライブラリのインストール
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 tweepy python-dotenv Pillow cloudinary numpy google-api-python-client google-auth-oauthlib google-auth-httplib2 moviepy==1.0.3 matplotlib scikit-learn pandas numpy gTTS tiktok-uploader playwright 
-          playwright install chromium xgboost tensorflow
+          pip install requests beautifulsoup4 tweepy python-dotenv Pillow cloudinary numpy google-api-python-client google-auth-oauthlib google-auth-httplib2 moviepy==1.0.3 matplotlib scikit-learn pandas numpy gTTS tiktok-uploader playwright xgboost tensorflow
+          playwright install chromium 
 
       - name: 宝くじ全データ＆トップページの自動更新スクリプトを実行
         # ▼▼▼ ここを追加！GitHubに登録した鍵(Secrets)をPythonに渡す ▼▼▼
