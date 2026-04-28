@@ -1104,7 +1104,7 @@ def analyze_trends(history_data):
 def generate_advanced_predictions(history_data):
     print("🧠 AI（Random Forest）が過去の傾向と数字の共起性を学習中...")
     if not history_data or len(history_data) < 20:
-        return [] 
+        return [], "Cランク", "データ不足です"
 
     main_draws = [list(map(int, d['main'])) for d in reversed(history_data)]
     
@@ -1133,12 +1133,17 @@ def generate_advanced_predictions(history_data):
     X = np.array(features)
     y = np.array(labels)
 
-# ▼▼▼ ここから追加（既存のデータをハイブリッドAIに渡す） ▼▼▼
     X_train = X
     y_train = y
     
     # 最新のデータを予測用の入力データ(X_latest)とする
     X_latest = np.array([features[-1]])
+    
+    # --- 3. ハイブリッドAIによる予測とランクの取得 ---
+    predictions, confidence_rank, confidence_msg = generate_hybrid_predictions(X_train, y_train, X_latest)
+
+    # ★予想リスト、ランク、メッセージの3つをセットで返すように変更！
+    return predictions, confidence_rank, confidence_msg
     
     # --- 3. モデルの学習 (Random Forest) ---
     global global_confidence_rank, global_confidence_msg
@@ -1318,7 +1323,7 @@ def build_html():
     hot, cold = analyze_trends(history_data)
     
     # ★新設した高度な複合分析ロジックを使用
-    predictions = generate_advanced_predictions(history_data)
+    predictions, confidence_rank, confidence_msg = generate_advanced_predictions(history_data)
     
     history_record = manage_history(latest_data, predictions)
     
@@ -1456,7 +1461,25 @@ def build_html():
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
     
+    # ▼▼▼ 修正箇所：予想A〜Eが終わった直後に、解説ブロックを挿入します ▼▼▼
     html += f"""            </div>
+            
+            <div style="background-color: #f8fafc; border-left: 5px solid #3b82f6; padding: 20px; border-radius: 8px; margin-top: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h3 style="color: #1e3a8a; margin-top: 0; font-size: 18px; display: flex; align-items: center;">
+                    <span style="font-size: 22px; margin-right: 8px;">🤖</span> AI予測ロジック解説（当サイト独自）
+                </h3>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 12px;">
+                    今回の予測は、過去の膨大なデータを基に、<strong>「Random Forest」「XGBoost」「LSTM（ディープラーニング）」</strong>という3つの異なる最先端AIモデルを用いて多角的に算出されました。
+                </p>
+                <div style="background-color: #eff6ff; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #bfdbfe;">
+                    <strong style="color: #1e40af; font-size: 16px;">🎯 AI総合判定：{confidence_rank}</strong><br>
+                    <span style="color: #1e3a8a; font-weight: bold;">{confidence_msg}</span>
+                </div>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 0;">
+                    当サイトのAIは、単純な出現回数（HOT/COLD）だけでなく、数字同士の「共起性（一緒に選ばれやすい組み合わせ）」や、出目のトレンドの波を複合的にスコアリングしています。特に【予想A】は、3つの独立したAIが最も強い根拠を見出した、期待値の高い組み合わせとなっています。
+                </p>
+            </div>
+
         </div>
 
         <div class="section-card">
