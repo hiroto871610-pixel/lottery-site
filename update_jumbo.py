@@ -1,14 +1,14 @@
 import os
 import datetime
-from bs4 import BeautifulSoup
 import re
 from urllib.parse import urljoin
+from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-# --- 突破版：みずほ銀行からPlaywrightを使ってジャンボの結果を取得 ---
+# --- 突破版：みずほ銀行からPlaywrightを使ってジャンボの結果を確実に取得 ---
 def fetch_latest_jumbo_result():
-    print("☁️ みずほ銀行のサイトをブラウザで開いて取得中（Playwright稼働）...")
-    base_url = "https://www.mizuhobank.co.jp/retail/takarakuji/check/tsujyo/index.html"
+    print("☁️ みずほ銀行のサイトを解析中（スマートスキャン稼働）...")
+    base_url = "https://www.mizuhobank.co.jp/takarakuji/check/tsujyo/index.html"
     
     result_data = {
         "title": "最新ジャンボ宝くじ",
@@ -17,69 +17,112 @@ def fetch_latest_jumbo_result():
     }
     
     try:
-        # ブラウザを裏側（ヘッドレス）で起動して人間のアクセスを完全に再現
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+                viewport={'width': 1280, 'height': 800}
             )
             page = context.new_page()
             
-            # 1. みずほ銀行の通常宝くじページへアクセス
-            page.goto(base_url, wait_until="domcontentloaded", timeout=20000)
-            html_content = page.content()
-            soup = BeautifulSoup(html_content, 'html.parser')
+            print(f"🔗 {base_url} へアクセス...")
+            # ページが開くまで待ち、さらにJSがリンクを作るのを3秒間確実に待機する
+            page.goto(base_url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(3000) 
             
-            target_link = None
-            for a in soup.find_all('a', href=True):
-                href = a['href']
-                text = a.get_text()
-                if 'ジャンボ' in text or 'type=jumbo' in href:
-                    target_link = href
+            target_href = None
+            frame_url = base_url
+            
+            # --- 1. ジャンボのリンクを探す ---
+            # メインページと全フレームから 'jumbo' を含むリンクを探す
+            for frame in [page.main_frame] + page.frames:
+                try:
+                    links = frame.query_selector_all("a[href*='jumbo'], a[href*='JUMBO']")
+                    for link in links:
+                        href = link.get_attribute("href")
+                        if href and not href.startswith('#'):
+                            target_href = href
+                            frame_url = frame.url
+                            break
+                    if target_href: break
+                except:
+                    continue
+            
+            # 英語で見つからなかった場合は「ジャンボ」という日本語テキストで探す
+            if not target_href:
+                for frame in [page.main_frame] + page.frames:
+                    try:
+                        links = frame.query_selector_all("a")
+                        for link in links:
+                            text = link.inner_text()
+                            if 'ジャンボ' in text:
+                                target_href = link.get_attribute("href")
+                                frame_url = frame.url
+                                break
+                        if target_href: break
+                    except:
+                        continue
+
+            # 【新機能】それでも見つからない場合は、結果ページへ直接強行突破する！
+            if not target_href:
+                print("⚠️ リンクが見つからなかったため、結果ページへダイレクトアクセスを試みます...")
+                detail_url = "https://www.mizuhobank.co.jp/takarakuji/check/tsujyo/result.html?type=jumbo"
+            else:
+                detail_url = urljoin(frame_url, target_href)
+            
+            print(f"🔗 取得先詳細ページ: {detail_url}")
+            
+            # --- 2. 詳細ページへ遷移 ---
+            page.goto(detail_url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(3000) # 表が描画されるのを3秒待つ
+            
+            # --- 3. テーブルデータの解析 ---
+            found_table = False
+            for frame in [page.main_frame] + page.frames:
+                soup = BeautifulSoup(frame.content(), 'html.parser')
+                
+                # タイトルの取得
+                title_tag = soup.find(['h1', 'h2', 'h3'], string=re.compile('ジャンボ'))
+                if not title_tag:
+                    title_tag = soup.find(['th', 'td', 'div', 'p'], string=re.compile('ジャンボ宝くじ'))
+                if title_tag:
+                    result_data["title"] = title_tag.get_text(strip=True)
+                
+                # 抽選日の取得
+                date_match = re.search(r'(令和\d+年\d+月\d+日)', soup.get_text())
+                if date_match:
+                    result_data["date"] = f"抽選日：{date_match.group(1)}"
+                
+                # 当選番号の取得
+                tables = soup.find_all('table')
+                for table in tables:
+                    text = table.get_text()
+                    if '等' in text and ('組' in text or '番' in text):
+                        for tr in table.find_all('tr'):
+                            cells = tr.find_all(['th', 'td'])
+                            if len(cells) >= 2:
+                                grade = cells[0].get_text(strip=True)
+                                # 不要な改行をスペースにして結合
+                                number = " ".join([c.get_text(strip=True).replace('\n', ' ') for c in cells[1:]])
+                                if grade and ('等' in grade or '賞' in grade):
+                                    result_data["prizes"].append({"grade": grade, "number": number})
+                        
+                        if result_data["prizes"]:
+                            found_table = True
+                            break
+                if found_table:
                     break
                     
-            if not target_link:
-                print("❌ ジャンボのリンクが見つかりませんでした。")
-                browser.close()
-                return None
-                
-            detail_url = urljoin(base_url, target_link)
-            print(f"🔗 取得先URLへアクセス: {detail_url}")
-            
-            # 2. 詳細ページ（結果ページ）へ遷移
-            page.goto(detail_url, wait_until="domcontentloaded", timeout=20000)
-            detail_html = page.content()
             browser.close()
             
-            # 3. 取得したページを解析
-            soup_detail = BeautifulSoup(detail_html, 'html.parser')
-            
-            title_tag = soup_detail.find(['h2', 'h1', 'h3'])
-            if title_tag:
-                result_data["title"] = title_tag.get_text(strip=True)
-                
-            date_match = re.search(r'(令和\d+年\d+月\d+日)', soup_detail.get_text())
-            if date_match:
-                result_data["date"] = f"抽選日：{date_match.group(1)}"
-            else:
-                result_data["date"] = "抽選日：公式サイトでご確認ください"
-                
-            table = soup_detail.find('table')
-            if table:
-                for tr in table.find_all('tr'):
-                    cells = tr.find_all(['th', 'td'])
-                    if len(cells) >= 2:
-                        grade = cells[0].get_text(strip=True)
-                        number = " ".join([cell.get_text(strip=True).replace('\n', ' ') for cell in cells[1:]])
-                        if grade and ('等' in grade or '賞' in grade):
-                            result_data["prizes"].append({"grade": grade, "number": number})
-            
             if result_data["prizes"]:
+                if result_data["date"] == "取得中...":
+                    result_data["date"] = "抽選日：公式サイトでご確認ください"
                 print(f"✅ ジャンボ結果の取得に成功！: {result_data['title']}")
                 return result_data
                 
     except Exception as e:
-        print(f"❌ Playwright取得エラー: {e}")
+        print(f"❌ 取得エラー: {e}")
         
     return None
 
@@ -166,7 +209,6 @@ def build_html():
         .strategy-title {{ font-size: 18px; font-weight: bold; color: #be123c; margin-bottom: 10px; display: flex; align-items: center;}}
         .strategy-title span {{ background-color: #fecdd3; color: #be123c; font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-left: 10px; font-weight: normal; }}
 
-        /* シミュレーター用スタイル */
         .calc-box {{ background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; }}
         .slider-container {{ margin: 20px 0; }}
         input[type=range] {{ width: 100%; max-width: 400px; accent-color: #be123c; }}
