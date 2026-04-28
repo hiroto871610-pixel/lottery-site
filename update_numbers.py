@@ -1139,8 +1139,19 @@ def generate_advanced_predictions(history_data, length, win_key):
         rank, msg = "Aランク", f"✨ チャンス！ナンバーズ{length}の当選パターンが明確です。"
     else:
         rank, msg = "Bランク", f"⚠️ 過去データが分散。波乱の可能性があります。"
-
-    return predictions, rank, msg
+    
+    # ▼▼▼ 追加：全桁の中で一番確率が高い数字を抽出 ▼▼▼
+    best_pos, best_digit, best_score = 0, 0, -1
+    for pos in range(length):
+        for num, prob in pos_ml_scores[pos].items():
+            if prob > best_score:
+                best_score = prob
+                best_pos = pos
+                best_digit = num
+    
+    top_nums_str = f"【{best_pos+1}桁目】の「{best_digit}」"
+    # ▲▲▲ ここまで ▲▲▲
+    return predictions, rank, msg, top_nums_str
 
 # --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, n4_preds, n3_preds):
@@ -1234,8 +1245,8 @@ def build_html():
     # ⭕ ▲▲▲ ここまで ▲▲▲ ⭕
     
     # ★新設した高度な複合分析ロジックを使用 (N4とN3それぞれで生成)
-    n4_preds, n4_rank, n4_msg = generate_advanced_predictions(history_data, 4, 'n4_win')
-    n3_preds, n3_rank, n3_msg = generate_advanced_predictions(history_data, 3, 'n3_win')
+    n4_preds, n4_rank, n4_msg, n4_top_str = generate_advanced_predictions(history_data, 4, 'n4_win')
+    n3_preds, n3_rank, n3_msg, n3_top_str = generate_advanced_predictions(history_data, 3, 'n3_win')
     
     # 総合的なメッセージを合成（SNS投稿用などに後で使えます）
     global global_confidence_rank, global_confidence_msg
@@ -1405,16 +1416,17 @@ def build_html():
                 </p>
                 <div style="background-color: #f0fdf4; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #bbf7d0;">
                     <strong style="color: #16a34a; font-size: 16px;">🎯 ナンバーズ4 AI判定：{n4_rank}</strong><br>
-                    <span style="color: #15803d; font-weight: bold; display: block; margin-bottom: 8px;">{n4_msg}</span>
+                    <span style="color: #15803d; font-weight: bold; display: block; margin-bottom: 5px;">{n4_msg}</span>
+                    <span style="color: #e11d48; font-weight: bold; font-size: 14px; display: block; margin-bottom: 12px;">🔥 特注HOT数字: {n4_top_str}</span>
+                    
                     <strong style="color: #ea580c; font-size: 16px;">🎯 ナンバーズ3 AI判定：{n3_rank}</strong><br>
-                    <span style="color: #c2410c; font-weight: bold;">{n3_msg}</span>
+                    <span style="color: #c2410c; font-weight: bold; display: block; margin-bottom: 5px;">{n3_msg}</span>
+                    <span style="color: #e11d48; font-weight: bold; font-size: 14px; display: block;">🔥 特注HOT数字: {n3_top_str}</span>
                 </div>
                 <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 0;">
-                    当サイトのAIは、単純な出現回数だけでなく、各桁ごとのトレンドの波を複合的にスコアリングしています。AIの判定ランクを参考に、ストレートやボックスなど最適な買い方を検討してみてください。
+                    当サイトのAIは各桁ごとのトレンドの波を複合的にスコアリングしています。上記の特注数字を軸に構成された<strong>【予想A】</strong>が、当サイトの最もおすすめな本命予想です！
                 </p>
             </div>
-
-        </div>
 
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>

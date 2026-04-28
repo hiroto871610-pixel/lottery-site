@@ -165,7 +165,12 @@ def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_
         pred_nums = np.random.choice(numbers_pool, size=7, replace=False, p=weights)
         pred_nums.sort()
         predictions.append([str(n).zfill(2) for n in pred_nums])
-
+    
+    # ▼▼▼ 追加：AIが最も確率が高いと判断した3つの数字を抽出 ▼▼▼
+        top3_indices = np.argsort(final_prob)[::-1]
+        top_nums = [str(i).zfill(2) for i in top3_indices if 1 <= i <= 37][:3]
+        top_nums_str = "、".join(top_nums)
+        # ▲▲▲ ここまで ▲▲▲
     return predictions, confidence_rank, confidence_msg
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -1140,10 +1145,10 @@ def generate_advanced_predictions(history_data):
     X_latest = np.array([features[-1]])
     
     # --- 3. ハイブリッドAIによる予測とランクの取得 ---
-    predictions, confidence_rank, confidence_msg = generate_hybrid_predictions(X_train, y_train, X_latest)
+    predictions, confidence_rank, confidence_msg, top_nums_str = generate_hybrid_predictions(X_train, y_train, X_latest)
 
     # ★予想リスト、ランク、メッセージの3つをセットで返すように変更！
-    return predictions, confidence_rank, confidence_msg
+    return predictions, confidence_rank, confidence_msg, top_nums_str
     
     # --- 3. モデルの学習 (Random Forest) ---
     global global_confidence_rank, global_confidence_msg
@@ -1323,7 +1328,7 @@ def build_html():
     hot, cold = analyze_trends(history_data)
     
     # ★新設した高度な複合分析ロジックを使用
-    predictions, confidence_rank, confidence_msg = generate_advanced_predictions(history_data)
+    predictions, confidence_rank, confidence_msg, top_nums_str = generate_advanced_predictions(history_data)
     
     history_record = manage_history(latest_data, predictions)
     

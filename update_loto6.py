@@ -111,6 +111,11 @@ def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_
         pred_nums.sort()
         predictions.append([str(n).zfill(2) for n in pred_nums])
 
+    # ▼▼▼ 追加：AIが最も確率が高いと判断した3つの数字を抽出 ▼▼▼
+        top3_indices = np.argsort(final_prob)[::-1]
+        top_nums = [str(i).zfill(2) for i in top3_indices if 1 <= i <= 43][:3]
+        top_nums_str = "、".join(top_nums)
+        # ▲▲▲ ここまで ▲▲▲
     return predictions, rank, msg
 
 import time # リトライの待機用に追加
@@ -1184,9 +1189,9 @@ def generate_advanced_predictions(history_data):
 
     # 2. 新しいAIを呼び出す（next_features を渡す）
     global global_confidence_rank, global_confidence_msg
-    predictions, global_confidence_rank, global_confidence_msg = generate_hybrid_predictions(X, y, next_features)
+    predictions, global_confidence_rank, global_confidence_msg, top_nums_str = generate_hybrid_predictions(X, y, next_features)
 
-    return predictions, global_confidence_rank, global_confidence_msg
+    return predictions, global_confidence_rank, global_confidence_msg, top_nums_str
     # =========================================================
     # ▲▲▲ ここまで ▲▲▲
 
@@ -1374,7 +1379,7 @@ def build_html():
     hot, cold = analyze_trends(history_data)
     
     # ★新設した高度な複合分析ロジックを使用
-    predictions, confidence_rank, confidence_msg = generate_advanced_predictions(history_data)
+    predictions, confidence_rank, confidence_msg, top_nums_str = generate_advanced_predictions(history_data)
     
     history_record = manage_history(latest_data, predictions)
     
@@ -1534,13 +1539,15 @@ def build_html():
                 <div style="background-color: #eff6ff; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #bfdbfe;">
                     <strong style="color: #1e40af; font-size: 16px;">🎯 AI総合判定：{confidence_rank}</strong><br>
                     <span style="color: #1e3a8a; font-weight: bold;">{confidence_msg}</span>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #bfdbfe;">
+                        <strong style="color: #e11d48; font-size: 15px;">🔥 AI特注HOT数字：【 {top_nums_str} 】</strong><br>
+                        <span style="color: #475569; font-size: 14px;">※上記を軸に構成された<strong>【予想A】</strong>が当サイトの最もおすすめな本命予想です！</span>
+                    </div>
                 </div>
                 <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 0;">
-                    当サイトのAIは、単純な出現回数（HOT/COLD）だけでなく、数字同士の「共起性（一緒に選ばれやすい組み合わせ）」や、出目のトレンドの波を複合的にスコアリングしています。特に【予想A】は、3つの独立したAIが最も強い根拠を見出した、期待値の高い組み合わせとなっています。
+                    当サイトのAIは、単純な出現回数（HOT/COLD）だけでなく、数字同士の「共起性（一緒に選ばれやすい組み合わせ）」や、出目のトレンドの波を複合的にスコアリングしています。
                 </p>
             </div>
-
-        </div>
 
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
