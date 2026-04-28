@@ -1386,7 +1386,7 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ナンバーズ4 予想</h2>
-            <p>直近の傾向からHOT数字とCOLD数字を掛け合わせたアルゴリズム予想です。</p>
+            <p>直近約3年間の傾向を3つのAIが分析する独自のアルゴリズム予想です。</p>
             <div class="prediction-box">
 """
     # ★予想A〜Eの5つに対応するため、配列の要素数を拡張

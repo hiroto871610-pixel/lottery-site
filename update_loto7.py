@@ -1459,7 +1459,7 @@ def build_html():
         
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト7の予想</h2>
-            <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
+            <p>直近約3年間の傾向を3つのAIが分析する独自のアルゴリズム予想です。</p>
             {carryover_html}
             <div class="prediction-box">
 """

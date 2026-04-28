@@ -1,108 +1,85 @@
 import os
 import datetime
-import requests
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urljoin
+from playwright.sync_api import sync_playwright
 
-# --- 新規追加：みずほ銀行からジャンボの結果を2段階で確実取得 ---
+# --- 突破版：みずほ銀行からPlaywrightを使ってジャンボの結果を取得 ---
 def fetch_latest_jumbo_result():
-    print("☁️ 最新のジャンボ宝くじ抽選結果を取得中...")
-    
-    # URLの候補（みずほ銀行のサイト構成変更に備える）
-    url_candidates = [
-        "https://www.mizuhobank.co.jp/retail/takarakuji/check/tsujyo/index.html",
-        "https://www.mizuhobank.co.jp/takarakuji/check/tsujyo/index.html"
-    ]
-    
-    # セキュリティでBotとして弾かれないよう、一般的なブラウザに完全に偽装する
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3'
-    }
+    print("☁️ みずほ銀行のサイトをブラウザで開いて取得中（Playwright稼働）...")
+    base_url = "https://www.mizuhobank.co.jp/retail/takarakuji/check/tsujyo/index.html"
     
     result_data = {
-        "title": "最新のジャンボ宝くじ",
+        "title": "最新ジャンボ宝くじ",
         "date": "取得中...",
         "prizes": []
     }
     
     try:
-        list_url = None
-        res = None
-        
-        # 1. 一覧ページから「ジャンボ」が含まれる最新リンクを探す
-        for url in url_candidates:
-            temp_res = requests.get(url, headers=headers, timeout=10)
-            if temp_res.status_code == 200:
-                res = temp_res
-                list_url = url
-                break
-                
-        if not res:
-            print("❌ 一覧ページへのアクセスにすべて失敗しました（海外IPブロック等の可能性）。")
-            return None
+        # ブラウザを裏側（ヘッドレス）で起動して人間のアクセスを完全に再現
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+            )
+            page = context.new_page()
             
-        res.encoding = res.apparent_encoding
-        soup = BeautifulSoup(res.content, 'html.parser')
-        target_link = None
-        
-        # リンク(aタグ)の中から「ジャンボ」または「type=jumbo」を含むものを抽出
-        for a in soup.find_all('a', href=True):
-            href = a['href']
-            text = a.get_text()
-            if 'ジャンボ' in text or 'type=jumbo' in href:
-                target_link = href
-                break
-                
-        if not target_link:
-            print("❌ ジャンボ宝くじの最新リンクが見つかりませんでした。")
-            return None
+            # 1. みずほ銀行の通常宝くじページへアクセス
+            page.goto(base_url, wait_until="domcontentloaded", timeout=20000)
+            html_content = page.content()
+            soup = BeautifulSoup(html_content, 'html.parser')
             
-        # 2. 見つけた個別結果ページへアクセスしてテーブルを取得
-        detail_url = urljoin(list_url, target_link)
-        print(f"🔗 取得先URL: {detail_url}")
-        
-        res_detail = requests.get(detail_url, headers=headers, timeout=10)
-        res_detail.encoding = res_detail.apparent_encoding
-        soup_detail = BeautifulSoup(res_detail.content, 'html.parser')
-        
-        # タイトルの取得
-        title_tag = soup_detail.find(['h2', 'h1', 'h3'])
-        if title_tag:
-            result_data["title"] = title_tag.get_text(strip=True)
-            
-        # 抽選日の取得
-        date_text = soup_detail.get_text()
-        date_match = re.search(r'(令和\d+年\d+月\d+日)', date_text)
-        if date_match:
-            result_data["date"] = f"抽選日：{date_match.group(1)}"
-        else:
-            result_data["date"] = "抽選日：公式サイトでご確認ください"
-            
-        # テーブルから当せん番号を抽出
-        table = soup_detail.find('table')
-        if table:
-            for tr in table.find_all('tr'):
-                cells = tr.find_all(['th', 'td'])
-                if len(cells) >= 2:
-                    grade = cells[0].get_text(strip=True)
-                    # 2番目以降のセル（金額や組、番号など）をスペースで繋げる
-                    number = " ".join([cell.get_text(strip=True).replace('\n', ' ') for cell in cells[1:]])
+            target_link = None
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                text = a.get_text()
+                if 'ジャンボ' in text or 'type=jumbo' in href:
+                    target_link = href
+                    break
                     
-                    if grade and ('等' in grade or '賞' in grade):
-                        result_data["prizes"].append({
-                            "grade": grade,
-                            "number": number
-                        })
-                        
-        if result_data["prizes"]:
-            print(f"✅ ジャンボ結果の取得に成功！: {result_data['title']}")
-            return result_data
-
+            if not target_link:
+                print("❌ ジャンボのリンクが見つかりませんでした。")
+                browser.close()
+                return None
+                
+            detail_url = urljoin(base_url, target_link)
+            print(f"🔗 取得先URLへアクセス: {detail_url}")
+            
+            # 2. 詳細ページ（結果ページ）へ遷移
+            page.goto(detail_url, wait_until="domcontentloaded", timeout=20000)
+            detail_html = page.content()
+            browser.close()
+            
+            # 3. 取得したページを解析
+            soup_detail = BeautifulSoup(detail_html, 'html.parser')
+            
+            title_tag = soup_detail.find(['h2', 'h1', 'h3'])
+            if title_tag:
+                result_data["title"] = title_tag.get_text(strip=True)
+                
+            date_match = re.search(r'(令和\d+年\d+月\d+日)', soup_detail.get_text())
+            if date_match:
+                result_data["date"] = f"抽選日：{date_match.group(1)}"
+            else:
+                result_data["date"] = "抽選日：公式サイトでご確認ください"
+                
+            table = soup_detail.find('table')
+            if table:
+                for tr in table.find_all('tr'):
+                    cells = tr.find_all(['th', 'td'])
+                    if len(cells) >= 2:
+                        grade = cells[0].get_text(strip=True)
+                        number = " ".join([cell.get_text(strip=True).replace('\n', ' ') for cell in cells[1:]])
+                        if grade and ('等' in grade or '賞' in grade):
+                            result_data["prizes"].append({"grade": grade, "number": number})
+            
+            if result_data["prizes"]:
+                print(f"✅ ジャンボ結果の取得に成功！: {result_data['title']}")
+                return result_data
+                
     except Exception as e:
-        print(f"❌ ジャンボ結果取得エラー: {e}")
+        print(f"❌ Playwright取得エラー: {e}")
         
     return None
 
@@ -145,8 +122,7 @@ def build_html():
                 
             jumbo_trs += f"<tr><th style='width: 35%;'>{prize['grade']}</th><td style='{val_style}'>{prize['number']}</td></tr>\n"
     else:
-        # 万が一みずほ銀行のアクセスブロック等で取得に失敗した場合のエラー回避用
-        # 以前と同じ綺麗な「バレンタインジャンボ」の表をデフォルトで表示し、画面崩れを防ぎます
+        # 万が一アクセスできなかった場合の安全装置
         jumbo_title = "バレンタインジャンボ宝くじ (第1000回)"
         jumbo_date = "抽選日：2026年3月13日"
         jumbo_trs = """
