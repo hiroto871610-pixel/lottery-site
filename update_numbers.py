@@ -1393,7 +1393,27 @@ def build_html():
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div>{tags3[i]}</div>\n'
     
+    # ▼▼▼ 修正箇所：ナンバーズ3の予想が終わった直後に、解説ブロックを挿入します ▼▼▼
     html += f"""            </div>
+            
+            <div style="background-color: #f8fafc; border-left: 5px solid #16a34a; padding: 20px; border-radius: 8px; margin-top: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h3 style="color: #15803d; margin-top: 0; font-size: 18px; display: flex; align-items: center;">
+                    <span style="font-size: 22px; margin-right: 8px;">🤖</span> AI予測ロジック解説（当サイト独自）
+                </h3>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 12px;">
+                    今回の予測は、過去の膨大なデータを基に、<strong>「Random Forest」「XGBoost」「LSTM（ディープラーニング）」</strong>という3つの異なる最先端AIモデルを用いて、各桁ごとの出現確率と数字同士の共起性を多角的に算出しました。
+                </p>
+                <div style="background-color: #f0fdf4; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #bbf7d0;">
+                    <strong style="color: #16a34a; font-size: 16px;">🎯 ナンバーズ4 AI判定：{n4_rank}</strong><br>
+                    <span style="color: #15803d; font-weight: bold; display: block; margin-bottom: 8px;">{n4_msg}</span>
+                    <strong style="color: #ea580c; font-size: 16px;">🎯 ナンバーズ3 AI判定：{n3_rank}</strong><br>
+                    <span style="color: #c2410c; font-weight: bold;">{n3_msg}</span>
+                </div>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 0;">
+                    当サイトのAIは、単純な出現回数だけでなく、各桁ごとのトレンドの波を複合的にスコアリングしています。AIの判定ランクを参考に、ストレートやボックスなど最適な買い方を検討してみてください。
+                </p>
+            </div>
+
         </div>
 
         <div class="section-card">
@@ -1478,7 +1498,7 @@ def build_html():
         </div>
     </div>
 
-<div style="text-align: center; margin: 20px 0;">
+    <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
 <img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
