@@ -1654,9 +1654,9 @@ def build_html():
     # --- ⭐️ 自動ポスト・LINE配信用のメッセージを作成して実行 ⭐️ ---
     import datetime
     
-    now = datetime.datetime.now()
-    today_weekday = now.weekday() # 0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日
-    current_hour = now.hour       # 現在の「時間」を取得
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    today_weekday = now.weekday()
+    current_hour = now.hour
     
     next_kai = history_record[0]['target_kai']
     site_url = "https://loto-yosou-ai.com/loto6.html" 
@@ -1725,82 +1725,78 @@ def build_html():
     else:
         send_flag = False
 
-    # 最後に送信処理をまとめる
+    # ▼▼▼ 追加：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
+    sns_send_flag = False
+    sns_msg = msg  # 基本はLINEと同じメッセージを使う
+
+    # 1. 抽選日当日 の 夜（月曜・木曜 の 19時以降）
+    if today_weekday in [0, 3] and current_hour >= 19:
+        sns_send_flag = True
+    
+    # 2. 抽選日の前日 の 夜（日曜・水曜 の 19時以降）
+    elif today_weekday in [2, 6] and current_hour >= 19:
+        sns_send_flag = True
+        # LINE送信用メッセージが空の場合（日曜など）は、SNS専用の告知メッセージを作成
+        if not sns_msg:
+            sns_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
+            if carryover_text:
+                sns_msg += f"現在、{carryover_text}\n"
+            sns_msg += f"\n過去の傾向からAIが導き出した最新予想はこちら👇\n{site_url}"
+    # ▲▲▲ ここまで ▲▲▲
+
+    # --- 配信の実行（LINEとSNSを完全に分離） ---
+    
+    # ① LINEの送信処理（条件は一切変更なし）
     if send_flag and msg:
-        # post_to_x(msg)
         post_to_line(msg)
-        # --- InstagramとThreadsの配信曜日判定 ---
-        # 日本時間の現在時刻を取得
-        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-        current_weekday = now.weekday() # 1:火曜, 4:金曜
+        print("✅ LINEへの自動配信を実行しました。")
+    else:
+        print("💤 ロト6：LINE配信対象外のためスキップしました。")
 
-        if current_weekday in [1, 4]:
-            print(f"📅 本日は火曜または金曜（{current_weekday}）のため、SNSへ投稿します。")
-            post_to_threads(msg)
-            
-            # 画像をアップロードしてInstagramに投稿
-            image_url = upload_image_to_server(output_image_path)
-            if image_url:
-                post_to_instagram(image_url, msg)
-        else:
-            print(f"💤 本日はSNS投稿日ではないため、LINE配信のみで終了します。")
-
-        # ----------------------------------------------------
-        # ★ ここからInstagramの自動投稿処理＆動画生成を追加！
-        # ----------------------------------------------------
+    # ② SNS（動画・画像・Threads）の送信処理
+    if sns_send_flag and sns_msg:
+        print(f"📅 本日はSNS投稿タイミング（曜日:{today_weekday}、{current_hour}時台）のため、SNSへ投稿します。")
+        post_to_threads(sns_msg)
+        
+        yosou_a_list = history_record[0]['predictions'][0]
+        caption = f"🎯最新のロト6 AI予想です！\n\n{sns_msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        
         base_image = "base_image.png"     
         image_path = "loto6_result.jpg"
         
-        # ▼▼▼ 数字リストとキャリーオーバー情報をそのまま取り出す ▼▼▼
-        # ※カンマで繋がず、配列（リスト）のまま職人に渡します！
-        yosou_a_list = history_record[0]['predictions'][0]
-        
-        caption = f"🎯最新のロト6 AI予想です！\n\n{msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
-        
-        # ① 今までの職人に「静止画」を作成してもらう
+        # 🌟 静止画の生成
         is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=global_confidence_rank)
 
-        # ====================================================
-        # 🎬 新機能：ここでリール動画の職人も呼び出して自動作成する！
-        # ====================================================
+        # 🌟 動画の生成と各SNSへの投稿
         try:
             from create_reel import generate_loto6_reel
-            
             is_carryover = "0円" not in carryover_text and "なし" not in carryover_text
             generate_loto6_reel(numbers=yosou_a_list, carryover=carryover_text, has_carryover=is_carryover, target_kai=next_kai, target_date=next_date_str)
             print("✅ 最新の予想データでリール動画(reel_loto6.mp4)の自動生成が完了しました！")
             
-            # ▼▼▼ ロト6版 リール自動投稿ロジック ▼▼▼
-            video_url = upload_video_to_cloudinary("reel_loto6.mp4") # ★ ファイル名をロト6用に変更
+            video_url = upload_video_to_cloudinary("reel_loto6.mp4")
             if video_url:
                 post_reel_to_instagram(video_url, caption)
-            # ▲▲▲ ここまで ▲▲▲
-            # ▼▼▼ 追加：YouTube Shortsへの投稿 ▼▼▼
-                yt_title = "🎯 明日のロト6激アツAI予想！ #shorts"
-                yt_tags = ["ロト6", "宝くじ", "AI予想", "ショート"]
-                upload_to_youtube_shorts("reel_loto6.mp4", yt_title, caption, yt_tags)
-                # ▲▲▲ ここまで ▲▲▲
+                
+            yt_title = "🎯 明日のロト6激アツAI予想！ #shorts"
+            yt_tags = ["ロト6", "宝くじ", "AI予想", "ショート"]
+            upload_to_youtube_shorts("reel_loto6.mp4", yt_title, caption, yt_tags)
 
-                # ▼▼▼ 新規追加：TikTokへの投稿 ▼▼▼
             post_to_tiktok("reel_loto6.mp4", caption)
-            # ▲▲▲ ここまで ▲▲▲
             
         except Exception as e:
             print(f"❌ 動画の自動生成・投稿エラー: {e}")
-        # ====================================================
         
-        # ② 画像が無事に作れたら、アップロードしてインスタに投稿する！（今までの処理）
+        # 🌟 画像のInstagram投稿
         if is_created:
             public_image_url = upload_image_to_server(image_path)
             if public_image_url:
                 post_to_instagram(public_image_url, caption)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
-        # ----------------------------------------------------
     else:
-        print(f"💤 ロト6：配信対象外（キャリーオーバー無し、または対象外の曜日・時間）のためスキップしました。")
+        print("💤 ロト6：SNS動画配信対象外のためスキップしました。")
 
-    # --------------------------------------------------------
     return html
 
 # --- 最後にファイルを書き出す ---

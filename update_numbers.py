@@ -1535,8 +1535,8 @@ def build_html():
     # --- ⭐️ 【改良版】自動ポスト・LINE配信ロジック ⭐️ ---
     import datetime
     
-    now = datetime.datetime.now()
-    today_weekday = now.weekday() # 0:月, 1:火, 2:水, 3:木, 4:金, 5:土, 6:日
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    today_weekday = now.weekday()
     current_hour = now.hour
     
     next_kai = history_record[0]['target_kai']
@@ -1545,104 +1545,100 @@ def build_html():
     send_flag = False
     msg = ""
 
-    # ■ 平日 (月〜金) の処理
+    # ■ 平日 (月〜金) の処理（LINE用）
     if today_weekday < 5:
-        # 朝の予告はスキップ (何もしない)
         if current_hour < 19:
             pass 
-        
-        # 夜の結果確認
         else:
             finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
             finished_kai = finished_record['target_kai']
-            n3_res = finished_record.get('result_n3', '')  # ⭕️ 正しい名前に修正
-            n4_res = finished_record.get('result_n4', '')  # ⭕️ 正しい名前に修正
+            n3_res = finished_record.get('result_n3', '')  
+            n4_res = finished_record.get('result_n4', '')  
             
-            # 「的中」という言葉が含まれている場合のみフラグを立てる
+            # 「的中」という言葉が含まれている場合のみLINEフラグを立てる
             if "的中" in n3_res or "的中" in n4_res:
                 send_flag = True
                 msg = f"【#ナンバーズ 的中速報🎯】\n第 {finished_kai} 回でAI予想が的中しました！\n"
                 msg += f"・ナンバーズ3：{n3_res}\n・ナンバーズ4：{n4_res}\n"
                 msg += f"\n的中した具体的な数字と、明日({next_kai})の最新予想はこちら👇\n{site_url}"
 
-    # ■ 土曜日 (5) の夜に週末通知を送る
+    # ■ 土曜日 (5) の夜に週末通知（LINE用）
     elif today_weekday == 5:
         if current_hour >= 19:
             send_flag = True
             msg = f"【#ナンバーズ 週末の予想更新🎯】\n来週、 {next_kai} 回からの最新AI予想を公開しました！\n"
             msg += f"\n週末の間に最新の出現傾向データをチェックして、次回の戦略を立てましょう👇\n{site_url}"
 
-    # ■ 日曜日 (6) は何もしない (土曜に送っているため)
+    # ■ 日曜日 (6) はLINE送付なし
     else:
         pass
 
-    # 配信フラグが立っている場合のみ送信
-    if send_flag and msg:
-        # post_to_x(msg)
-        post_to_line(msg)
-        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-        current_weekday = now.weekday() # 6:日曜, 2:水曜
+    # ▼▼▼ 追加：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
+    sns_send_flag = False
+    sns_msg = msg  
 
-        if current_weekday in [6, 2]:
-            print(f"📅 本日は日曜または水曜（{current_weekday}）のため、SNSへ投稿します。")
-            post_to_threads(msg)
-            
-            image_url = upload_image_to_server(output_image_path)
-            if image_url:
-                post_to_instagram(image_url, msg)
-        else:
-            print(f"💤 本日はSNS投稿日ではないため、LINE配信のみで終了します。")
-        # ----------------------------------------------------
-        # ★ ここからInstagramの自動投稿処理＆動画生成を追加！
-        # ----------------------------------------------------
+    # 抽選日は月〜金。SNS投稿はその「前日の夜（日・月・火・水・木）」に行う
+    if today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
+        sns_send_flag = True
+        # LINE送信用メッセージが空の場合は、SNS専用の告知メッセージを作成
+        if not sns_msg:
+            sns_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"
+    # ▲▲▲ ここまで ▲▲▲
+
+    # --- 配信の実行（LINEとSNSを完全に分離） ---
+    
+    # ① LINEの送信処理（条件は一切変更なし）
+    if send_flag and msg:
+        post_to_line(msg)
+        print("✅ LINEへの自動配信を実行しました。")
+    else:
+        print("💤 ナンバーズ：LINE配信対象外のためスキップしました。")
+
+    # ② SNS（動画・画像・Threads・TikTok）の送信処理
+    if sns_send_flag and sns_msg:
+        print(f"📅 本日はSNS投稿タイミング（曜日:{today_weekday}、{current_hour}時台）のため、SNSへ投稿します。")
+        post_to_threads(sns_msg)
+        
         base_image = "base_image.png"     
         image_path = "numbers_result.jpg"
         
-        # ▼▼▼ 数字を職人に渡すために取り出す ▼▼▼
+        # 数字を職人に渡すために取り出す
         n4_yosou_a = history_record[0]['n4_preds'][0]
         n3_yosou_a = history_record[0]['n3_preds'][0]
         
-        caption = f"🎯最新のナンバーズ AI予想です！\n\n{msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        caption = f"🎯最新のナンバーズ AI予想です！\n\n{sns_msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # ① 今までの職人に「静止画」を作成してもらう
-        is_created = create_result_image(yosou_n4_list, yosou_n3_list, base_image, image_path, target_kai=next_kai, target_date=next_date_str, n4_rank=n4_rank, n3_rank=n3_rank)
+        # 🌟 静止画の生成
+        is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path, target_kai=next_kai, target_date=next_date_str, n4_rank=n4_rank, n3_rank=n3_rank)
 
-        # ====================================================
-        # 🎬 ここで動画職人を呼び出し、本物の数字を渡す！
-        # ====================================================
+        # 🌟 動画の生成と各SNSへの投稿
         try:
-                from create_reel import generate_numbers_reel
-                generate_numbers_reel(n4_yosou=n4_yosou_a, n3_yosou=n3_yosou_a, target_kai=next_kai, target_date=next_date_str)
-                print(f"✅ 本物のデータでリール生成完了！")
+            from create_reel import generate_numbers_reel
+            generate_numbers_reel(n4_yosou=n4_yosou_a, n3_yosou=n3_yosou_a, target_kai=next_kai, target_date=next_date_str)
+            print(f"✅ 本物のデータでリール生成完了！")
+            
+            video_url = upload_video_to_cloudinary("reel_numbers.mp4")
+            if video_url:
+                post_reel_to_instagram(video_url, caption)
                 
-                # ▼▼▼ いよいよリール自動投稿の最終ロジック！ ▼▼▼
-                video_url = upload_video_to_cloudinary("reel_numbers.mp4")
-                if video_url:
-                    post_reel_to_instagram(video_url, caption)
-                # ▲▲▲ ここまで ▲▲▲
-                # ▼▼▼ 追加：YouTube Shortsへの投稿 ▼▼▼
-                yt_title = "🎯 明日のナンバーズ激アツAI予想！ #shorts"
-                yt_tags = ["ナンバーズ", "宝くじ", "AI予想", "ショート"]
-                upload_to_youtube_shorts("reel_numbers.mp4", yt_title, caption, yt_tags)
-                # ▲▲▲ ここまで ▲▲▲
+            yt_title = "🎯 明日のナンバーズ激アツAI予想！ #shorts"
+            yt_tags = ["ナンバーズ", "宝くじ", "AI予想", "ショート"]
+            upload_to_youtube_shorts("reel_numbers.mp4", yt_title, caption, yt_tags)
 
-                # ▼▼▼ 新規追加：TikTokへの投稿 ▼▼▼
-                post_to_tiktok("reel_numbers.mp4", caption)
-                # ▲▲▲ ここまで ▲▲▲
-                
+            post_to_tiktok("reel_numbers.mp4", caption)
+            
         except Exception as e:
-                print(f"❌ 動画の自動生成・投稿エラー: {e}")
-        # ====================================================
-        # ====================================================
-
-        # ② 画像が無事に作れたら、アップロードしてインスタに投稿する！（今までの処理）
+            print(f"❌ 動画の自動生成・投稿エラー: {e}")
+            
+        # 🌟 画像のInstagram投稿
         if is_created:
             public_image_url = upload_image_to_server(image_path)
             if public_image_url:
                 post_to_instagram(public_image_url, caption)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
-        # ----------------------------------------------------
+    else:
+        print("💤 ナンバーズ：SNS動画配信対象外のためスキップしました。")
 
     return html
 

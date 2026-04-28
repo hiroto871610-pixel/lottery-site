@@ -19,6 +19,7 @@ if not os.path.exists(FONT_PATH):
 FONT_TITLE = ImageFont.truetype(FONT_PATH, 90)
 FONT_NUM = ImageFont.truetype(FONT_PATH, 110)
 FONT_SUB = ImageFont.truetype(FONT_PATH, 50)
+FONT_PROMO = ImageFont.truetype(FONT_PATH, 55)
 
 # ==========================================
 # 共通描画エンジン（最新Pillow対応版）
@@ -116,6 +117,23 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg", target_
                     y_off = int(50 * (1.0 - progress))
                     draw_sphere_ball(draw, 200 + i * 210, 1230 + y_off, ball_r, num, (217, 119, 6))
 
+                    # ▼▼▼ 追加：すべてのボールが出た後にプロフ誘導テキストをフワッと表示 ▼▼▼
+        if t > 4.5:
+            promo_text = "予想B～Eはプロフィールのリンクをチェック！"
+            bbox = draw.textbbox((0, 0), promo_text, font=FONT_PROMO)
+            promo_x = (1080 - (bbox[2] - bbox[0])) / 2
+            
+            # フェードイン＆少し下から上に上がるアニメーション
+            progress = min(1.0, (t - 4.5) * 2.0)
+            alpha = int(255 * progress)
+            y_off = int(20 * (1.0 - progress))
+            promo_y = 1550 + y_off
+            
+            # 影と本体（目立つイエロー）
+            draw.text((promo_x + 4, promo_y + 4), promo_text, font=FONT_PROMO, fill=(0, 0, 0, alpha))
+            draw.text((promo_x, promo_y), promo_text, font=FONT_PROMO, fill=(253, 224, 71, alpha))
+        # ▲▲▲ ここまで ▲▲▲
+
         return np.array(img.convert('RGB'))
 
     create_stylish_video(make_frame, "reel_numbers.mp4")
@@ -154,6 +172,23 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
                 col = i % 3
                 base_y = 900 if has_carryover else 750
                 draw_sphere_ball(draw, 150 + col * 260, base_y + row * 230 + y_off, ball_r, num, (14, 165, 233))
+
+                # ▼▼▼ 追加：すべてのボールが出た後にプロフ誘導テキストをフワッと表示 ▼▼▼
+        if t > 2.8:
+            promo_text = "予想B～Eはプロフィールのリンクをチェック！"
+            bbox = draw.textbbox((0, 0), promo_text, font=FONT_PROMO)
+            promo_x = (1080 - (bbox[2] - bbox[0])) / 2
+            
+            base_y = 900 if has_carryover else 750
+            
+            progress = min(1.0, (t - 2.8) * 2.0)
+            alpha = int(255 * progress)
+            y_off = int(20 * (1.0 - progress))
+            promo_y = base_y + 480 + y_off
+            
+            draw.text((promo_x + 4, promo_y + 4), promo_text, font=FONT_PROMO, fill=(0, 0, 0, alpha))
+            draw.text((promo_x, promo_y), promo_text, font=FONT_PROMO, fill=(253, 224, 71, alpha))
+        # ▲▲▲ ここまで ▲▲▲
 
         return np.array(img.convert('RGB'))
 
@@ -194,6 +229,23 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
                     draw_sphere_ball(draw, 100 + i * 220, base_y + y_off, ball_r, num, (217, 119, 6))
                 else:
                     draw_sphere_ball(draw, 210 + (i-4) * 220, base_y + 200 + y_off, ball_r, num, (217, 119, 6))
+
+                    # ▼▼▼ 追加：すべてのボールが出た後にプロフ誘導テキストをフワッと表示 ▼▼▼
+        if t > 2.5:
+            promo_text = "予想B～Eはプロフィールのリンクをチェック！"
+            bbox = draw.textbbox((0, 0), promo_text, font=FONT_PROMO)
+            promo_x = (1080 - (bbox[2] - bbox[0])) / 2
+            
+            base_y = 850 if has_carryover else 700
+            
+            progress = min(1.0, (t - 2.5) * 2.0)
+            alpha = int(255 * progress)
+            y_off = int(20 * (1.0 - progress))
+            promo_y = base_y + 420 + y_off
+            
+            draw.text((promo_x + 4, promo_y + 4), promo_text, font=FONT_PROMO, fill=(0, 0, 0, alpha))
+            draw.text((promo_x, promo_y), promo_text, font=FONT_PROMO, fill=(253, 224, 71, alpha))
+        # ▲▲▲ ここまで ▲▲▲
 
         return np.array(img.convert('RGB'))
 
