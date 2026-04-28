@@ -171,7 +171,7 @@ def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_
         top_nums = [str(i).zfill(2) for i in top3_indices if 1 <= i <= 37][:3]
         top_nums_str = "、".join(top_nums)
         # ▲▲▲ ここまで ▲▲▲
-    return predictions, confidence_rank, confidence_msg
+    return predictions, confidence_rank, confidence_msg, top_nums_str
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

@@ -112,11 +112,12 @@ def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_
         predictions.append([str(n).zfill(2) for n in pred_nums])
 
     # ▼▼▼ 追加：AIが最も確率が高いと判断した3つの数字を抽出 ▼▼▼
-        top3_indices = np.argsort(final_prob)[::-1]
-        top_nums = [str(i).zfill(2) for i in top3_indices if 1 <= i <= 43][:3]
-        top_nums_str = "、".join(top_nums)
-        # ▲▲▲ ここまで ▲▲▲
-    return predictions, rank, msg
+    top3_indices = np.argsort(final_prob)[::-1]
+    top_nums = [str(i).zfill(2) for i in top3_indices if 1 <= i <= 43][:3]
+    top_nums_str = "、".join(top_nums)
+    # ▲▲▲ ここまで ▲▲▲
+
+    return predictions, rank, msg, top_nums_str
 
 import time # リトライの待機用に追加
 
