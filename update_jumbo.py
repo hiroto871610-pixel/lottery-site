@@ -1,5 +1,70 @@
 import os
 import datetime
+import requests
+from bs4 import BeautifulSoup
+import re
+
+# --- 新規追加：みずほ銀行（または最新結果サイト）からジャンボの結果を取得 ---
+def fetch_latest_jumbo_result():
+    print("☁️ 最新のジャンボ宝くじ抽選結果を取得中...")
+    url = "https://www.mizuhobank.co.jp/retail/takarakuji/check/tsujyo/index.html"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    
+    result_data = {
+        "title": "最新ジャンボ宝くじ",
+        "date": "取得中...",
+        "prizes": []
+    }
+    
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        res.encoding = res.apparent_encoding # 文字化け防止
+        
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.content, 'html.parser')
+            
+            # ジャンボ宝くじのテーブルを探す
+            tables = soup.find_all('table')
+            for table in tables:
+                text = table.get_text()
+                # ジャンボ特有のキーワードが含まれているテーブルを特定
+                if '組違い' in text or '前後賞' in text:
+                    # タイトルと回号の取得（テーブルの直前の見出しなど）
+                    prev_h = table.find_previous(['h2', 'h3', 'h4'])
+                    if prev_h:
+                        result_data["title"] = prev_h.get_text(strip=True)
+                    
+                    # 抽選日の取得
+                    date_elem = table.find_previous(string=re.compile(r'支払開始日|抽せん日'))
+                    if date_elem:
+                        # 不要な空白などを消して整形
+                        result_data["date"] = date_elem.strip()
+                    
+                    # 当選番号の抽出
+                    for tr in table.find_all('tr'):
+                        ths = tr.find_all('th')
+                        tds = tr.find_all('td')
+                        if ths and tds:
+                            grade = ths[0].get_text(strip=True)
+                            number = tds[-1].get_text(strip=True).replace('\n', ' ')
+                            
+                            # 空でなければ追加
+                            if grade and number:
+                                result_data["prizes"].append({
+                                    "grade": grade,
+                                    "number": number
+                                })
+                    break # 最初のジャンボテーブルを見つけたら終了
+            
+            if result_data["prizes"]:
+                print(f"✅ ジャンボ結果の取得に成功！: {result_data['title']}")
+                return result_data
+                
+    except Exception as e:
+        print(f"❌ ジャンボ結果取得エラー: {e}")
+    
+    # 取得に失敗した場合の安全策（フォールバック）
+    return None
 
 # --- 1. 季節に合わせて「次回のジャンボ」を自動判定する機能 ---
 def get_next_jumbo():
