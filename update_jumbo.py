@@ -87,6 +87,27 @@ def build_html():
     
     next_name, next_prize, next_date = get_next_jumbo()
     
+    # ▼▼▼ 追加：スクレイピングしたデータを取得し、HTMLのテーブル行を作成 ▼▼▼
+    latest_jumbo = fetch_latest_jumbo_result()
+    
+    jumbo_trs = ""
+    jumbo_title = "最新のジャンボ宝くじ結果"
+    jumbo_date = "公式サイトでご確認ください"
+    
+    if latest_jumbo and latest_jumbo["prizes"]:
+        jumbo_title = latest_jumbo["title"]
+        jumbo_date = latest_jumbo["date"]
+        for prize in latest_jumbo["prizes"]:
+            if "1等" in prize["grade"] and "前後賞" not in prize["grade"] and "組違い" not in prize["grade"]:
+                val_style = "font-weight: bold; color: #e11d48; font-size: 18px;"
+            else:
+                val_style = "font-weight: bold; color: #0f172a;"
+                
+            jumbo_trs += f"<tr><th style='width: 35%;'>{prize['grade']}</th><td style='{val_style}'>{prize['number']}</td></tr>\n"
+    else:
+        jumbo_trs = "<tr><td colspan='2'>現在、最新のデータを取得中です。みずほ銀行の公式サイトをご確認ください。</td></tr>"
+    # ▲▲▲ ここまで ▲▲▲
+    
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -268,19 +289,12 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header"><span>📢</span> 直近のジャンボ抽選結果</h2>
-            <p style="font-size: 14px; color: #64748b;">※最新の確定情報はみずほ銀行または楽天宝くじ公式サイトを必ずご確認ください。</p>
+            <p style="font-size: 14px; color: #64748b;">※最新の確定情報はみずほ銀行の公式サイトを必ずご確認ください。</p>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px;">
-                <h3 style="margin-top: 0; color: #1e3a8a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">バレンタインジャンボ宝くじ (第1000回)</h3>
-                <p style="font-size: 14px; margin-bottom: 15px;">抽選日：2026年3月13日</p>
+                <h3 style="margin-top: 0; color: #1e3a8a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">{jumbo_title}</h3>
+                <p style="font-size: 14px; margin-bottom: 15px;">{jumbo_date}</p>
                 <table style="margin-top: 0;">
-                    <tr><th style="width: 30%;">1等 (2億円)</th><td style="font-weight: bold; color: #e11d48; font-size: 18px;">16組 123456番</td></tr>
-                    <tr><th>1等の前後賞 (5000万円)</th><td>1等の前後の番号</td></tr>
-                    <tr><th>1等の組違い賞 (10万円)</th><td>1等の組違い同番号</td></tr>
-                    <tr><th>2等 (1000万円)</th><td>45組 112233番</td></tr>
-                    <tr><th>3等 (100万円)</th><td>各組共通 987654番</td></tr>
-                    <tr><th>4等 (1万円)</th><td>下3ケタ 789番</td></tr>
-                    <tr><th>5等 (3000円)</th><td>下2ケタ 55番</td></tr>
-                    <tr><th>6等 (300円)</th><td>下1ケタ 7番</td></tr>
+                    {jumbo_trs}
                 </table>
             </div>
         </div>
