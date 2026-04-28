@@ -1520,6 +1520,7 @@ def build_html():
             <table>
                 <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
                 <tbody>
+
 """
     for record in history_record:
         res_class = "result-win" if "等" in record.get('best_result', '') else "result-lose"
@@ -1573,6 +1574,7 @@ def build_html():
 
     <footer>
         <div class="footer-links">
+            <a href="about.html">運営者情報</a> |
             <a href="privacy.html">プライバシーポリシー</a> | 
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
