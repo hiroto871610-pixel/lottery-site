@@ -1031,6 +1031,7 @@ def generate_loto6_detail_page(result_data):
 
     <footer>
         <div class="footer-links">
+            <a href="about.html">運営者情報</a> |
             <a href="privacy.html">プライバシーポリシー</a> | 
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
@@ -1610,6 +1611,7 @@ def build_html():
 
     <footer>
         <div class="footer-links">
+            <a href="about.html">運営者情報</a> |
             <a href="privacy.html">プライバシーポリシー</a> | 
             <a href="disclaimer.html">免責事項</a> | 
             <a href="contact.html">お問い合わせ</a>
