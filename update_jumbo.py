@@ -3,67 +3,86 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
+from urllib.parse import urljoin
 
-# --- 新規追加：みずほ銀行（または最新結果サイト）からジャンボの結果を取得 ---
+# --- 新規追加：みずほ銀行からジャンボの結果を2段階で確実取得 ---
 def fetch_latest_jumbo_result():
     print("☁️ 最新のジャンボ宝くじ抽選結果を取得中...")
-    url = "https://www.mizuhobank.co.jp/retail/takarakuji/check/tsujyo/index.html"
+    # みずほ銀行の通常宝くじ一覧のベースURL
+    base_url = "https://www.mizuhobank.co.jp/takarakuji/check/tsujyo/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     
     result_data = {
-        "title": "最新ジャンボ宝くじ",
+        "title": "最新のジャンボ宝くじ",
         "date": "取得中...",
         "prizes": []
     }
     
     try:
-        res = requests.get(url, headers=headers, timeout=10)
-        res.encoding = res.apparent_encoding # 文字化け防止
+        # 1. 一覧ページから「ジャンボ」が含まれる最新リンクを探す
+        res = requests.get(base_url, headers=headers, timeout=10)
+        res.encoding = res.apparent_encoding
+        if res.status_code != 200:
+            print("❌ 一覧ページへのアクセスに失敗しました。")
+            return None
+            
+        soup = BeautifulSoup(res.content, 'html.parser')
+        target_link = None
         
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.content, 'html.parser')
-            
-            # ジャンボ宝くじのテーブルを探す
-            tables = soup.find_all('table')
-            for table in tables:
-                text = table.get_text()
-                # ジャンボ特有のキーワードが含まれているテーブルを特定
-                if '組違い' in text or '前後賞' in text:
-                    # タイトルと回号の取得（テーブルの直前の見出しなど）
-                    prev_h = table.find_previous(['h2', 'h3', 'h4'])
-                    if prev_h:
-                        result_data["title"] = prev_h.get_text(strip=True)
-                    
-                    # 抽選日の取得
-                    date_elem = table.find_previous(string=re.compile(r'支払開始日|抽せん日'))
-                    if date_elem:
-                        # 不要な空白などを消して整形
-                        result_data["date"] = date_elem.strip()
-                    
-                    # 当選番号の抽出
-                    for tr in table.find_all('tr'):
-                        ths = tr.find_all('th')
-                        tds = tr.find_all('td')
-                        if ths and tds:
-                            grade = ths[0].get_text(strip=True)
-                            number = tds[-1].get_text(strip=True).replace('\n', ' ')
-                            
-                            # 空でなければ追加
-                            if grade and number:
-                                result_data["prizes"].append({
-                                    "grade": grade,
-                                    "number": number
-                                })
-                    break # 最初のジャンボテーブルを見つけたら終了
-            
-            if result_data["prizes"]:
-                print(f"✅ ジャンボ結果の取得に成功！: {result_data['title']}")
-                return result_data
+        # リンク(aタグ)の中から「ジャンボ」の文字を含むものを抽出
+        for a in soup.find_all('a', href=True):
+            if 'ジャンボ' in a.get_text():
+                target_link = a['href']
+                break
                 
+        if not target_link:
+            print("❌ ジャンボ宝くじの最新リンクが見つかりませんでした。")
+            return None
+            
+        # 2. 見つけた個別結果ページへアクセスしてテーブルを取得
+        detail_url = urljoin(base_url, target_link)
+        print(f"🔗 取得先URL: {detail_url}")
+        
+        res_detail = requests.get(detail_url, headers=headers, timeout=10)
+        res_detail.encoding = res_detail.apparent_encoding
+        soup_detail = BeautifulSoup(res_detail.content, 'html.parser')
+        
+        # タイトルの取得
+        title_tag = soup_detail.find(['h2', 'h1'])
+        if title_tag:
+            result_data["title"] = title_tag.get_text(strip=True)
+            
+        # 抽選日の取得
+        date_match = re.search(r'抽せん日\s*[：:]\s*(令和\d+年\d+月\d+日)', soup_detail.get_text())
+        if date_match:
+            result_data["date"] = f"抽選日：{date_match.group(1)}"
+        else:
+            result_data["date"] = "抽選日：公式サイトでご確認ください"
+            
+        # テーブルから当せん番号を抽出
+        table = soup_detail.find('table')
+        if table:
+            for tr in table.find_all('tr'):
+                # th(見出し) と td(データ) をまとめて取得して結合
+                cells = tr.find_all(['th', 'td'])
+                if len(cells) >= 2:
+                    grade = cells[0].get_text(strip=True)
+                    # 2番目以降のセル（金額や組、番号など）をスペースで繋げる
+                    number = " ".join([cell.get_text(strip=True).replace('\n', ' ') for cell in cells[1:]])
+                    
+                    if grade and ('等' in grade or '賞' in grade):
+                        result_data["prizes"].append({
+                            "grade": grade,
+                            "number": number
+                        })
+                        
+        if result_data["prizes"]:
+            print(f"✅ ジャンボ結果の取得に成功！: {result_data['title']}")
+            return result_data
+
     except Exception as e:
         print(f"❌ ジャンボ結果取得エラー: {e}")
-    
-    # 取得に失敗した場合の安全策（フォールバック）
+        
     return None
 
 # --- 1. 季節に合わせて「次回のジャンボ」を自動判定する機能 ---
@@ -87,7 +106,7 @@ def build_html():
     
     next_name, next_prize, next_date = get_next_jumbo()
     
-    # ▼▼▼ 追加：スクレイピングしたデータを取得し、HTMLのテーブル行を作成 ▼▼▼
+    # スクレイピングしたデータを取得し、HTMLのテーブル行を作成
     latest_jumbo = fetch_latest_jumbo_result()
     
     jumbo_trs = ""
@@ -98,6 +117,7 @@ def build_html():
         jumbo_title = latest_jumbo["title"]
         jumbo_date = latest_jumbo["date"]
         for prize in latest_jumbo["prizes"]:
+            # 1等だけは赤くて大きな文字で強調する演出
             if "1等" in prize["grade"] and "前後賞" not in prize["grade"] and "組違い" not in prize["grade"]:
                 val_style = "font-weight: bold; color: #e11d48; font-size: 18px;"
             else:
@@ -105,8 +125,14 @@ def build_html():
                 
             jumbo_trs += f"<tr><th style='width: 35%;'>{prize['grade']}</th><td style='{val_style}'>{prize['number']}</td></tr>\n"
     else:
-        jumbo_trs = "<tr><td colspan='2'>現在、最新のデータを取得中です。みずほ銀行の公式サイトをご確認ください。</td></tr>"
-    # ▲▲▲ ここまで ▲▲▲
+        # 万が一スクレイピングに失敗したときのエラー回避用（画面が崩れないようにする）
+        jumbo_title = "直近のジャンボ宝くじ（最新データ確認中）"
+        jumbo_date = "※みずほ銀行の公式サイトをご確認ください"
+        jumbo_trs = """
+        <tr><th style='width: 35%;'>1等</th><td style='font-weight: bold; color: #e11d48; font-size: 18px;'>公式サイトでご確認ください</td></tr>
+        <tr><th>1等の前後賞</th><td style='font-weight: bold; color: #0f172a;'>公式サイトでご確認ください</td></tr>
+        <tr><th>2等以下</th><td style='font-weight: bold; color: #0f172a;'>公式サイトでご確認ください</td></tr>
+        """
     
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -146,7 +172,6 @@ def build_html():
         .result-label {{ font-size: 12px; color: #64748b; margin-bottom: 5px; }}
         .result-value {{ font-size: 20px; font-weight: bold; color: #0f172a; }}
 
-        /* ★青いボタンのデザイン設定★ */
         .search-btn {{ 
             display: block; 
             width: 100%; 
@@ -168,7 +193,6 @@ def build_html():
             background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
         }}
 
-        /* 5大ジャンボ一覧のカードデザイン */
         .grid-container {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }}
         .jumbo-card {{ border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; border-left: 4px solid #be123c; }}
         .jumbo-card h3 {{ margin: 0 0 10px 0; color: #0f172a; font-size: 18px; }}
@@ -217,16 +241,17 @@ def build_html():
     <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
-        </div>
+    </div>
 
     <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
-<img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
+        <img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1"></a>
+        <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
     </div>
 
-    <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f0fdf4); border: 2px solid #22c55e; margin-bottom: 30px;">
+    <div class="container">
+        <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f0fdf4); border: 2px solid #22c55e; margin-bottom: 30px;">
             <h3 style="color: #15803d; margin-top: 0; font-size: 20px;">📱 最新のAI予想をLINEでお届け！</h3>
             <p style="font-size: 15px; color: #475569; margin-bottom: 20px;">
                 抽選日の朝に「今日の予想」を直接スマホにお知らせします。<br>
@@ -279,13 +304,12 @@ def build_html():
             </div>
         </div>
 
-        
-<div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
-<img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www11.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" alt="">
-    </div>
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
+            <img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
+            <img border="0" width="1" height="1" src="https://www11.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" alt="">
+        </div>
 
         <div class="section-card">
             <h2 class="section-header"><span>📢</span> 直近のジャンボ抽選結果</h2>
