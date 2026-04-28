@@ -1186,7 +1186,7 @@ def generate_advanced_predictions(history_data):
     global global_confidence_rank, global_confidence_msg
     predictions, global_confidence_rank, global_confidence_msg = generate_hybrid_predictions(X, y, next_features)
 
-    return predictions
+    return predictions, global_confidence_rank, global_confidence_msg
     # =========================================================
     # ▲▲▲ ここまで ▲▲▲
 
@@ -1374,7 +1374,7 @@ def build_html():
     hot, cold = analyze_trends(history_data)
     
     # ★新設した高度な複合分析ロジックを使用
-    predictions = generate_advanced_predictions(history_data)
+    predictions, confidence_rank, confidence_msg = generate_advanced_predictions(history_data)
     
     history_record = manage_history(latest_data, predictions)
     
@@ -1521,7 +1521,25 @@ def build_html():
         balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
         html += f'                <div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
     
+    # ▼▼▼ 修正箇所：予想A〜Eが終わった直後に、解説ブロックを挿入します ▼▼▼
     html += f"""            </div>
+            
+            <div style="background-color: #f8fafc; border-left: 5px solid #3b82f6; padding: 20px; border-radius: 8px; margin-top: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h3 style="color: #1e3a8a; margin-top: 0; font-size: 18px; display: flex; align-items: center;">
+                    <span style="font-size: 22px; margin-right: 8px;">🤖</span> AI予測ロジック解説（当サイト独自）
+                </h3>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 12px;">
+                    今回の予測は、過去の膨大なデータを基に、<strong>「Random Forest」「XGBoost」「LSTM（ディープラーニング）」</strong>という3つの異なる最先端AIモデルを用いて多角的に算出されました。
+                </p>
+                <div style="background-color: #eff6ff; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #bfdbfe;">
+                    <strong style="color: #1e40af; font-size: 16px;">🎯 AI総合判定：{confidence_rank}</strong><br>
+                    <span style="color: #1e3a8a; font-weight: bold;">{confidence_msg}</span>
+                </div>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 0;">
+                    当サイトのAIは、単純な出現回数（HOT/COLD）だけでなく、数字同士の「共起性（一緒に選ばれやすい組み合わせ）」や、出目のトレンドの波を複合的にスコアリングしています。特に【予想A】は、3つの独立したAIが最も強い根拠を見出した、期待値の高い組み合わせとなっています。
+                </p>
+            </div>
+
         </div>
 
         <div class="section-card">
@@ -1541,8 +1559,6 @@ def build_html():
                 </div>
             </div>
         </div>
-
-        
 
         <div class="section-card">
             <h2 class="section-header">📊 直近の出現傾向 (ホット＆コールド)</h2>
@@ -1568,12 +1584,14 @@ def build_html():
                         <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{record.get('actual_main', '----')}</span><br><span style="color:#888; font-size:12px;">{record.get('actual_bonus', '')}</span></td>
                         <td><span class="{res_class}">{record.get('best_result', '----')}</span></td>
                     </tr>\n"""
+                    
+    # ▼▼▼ 途切れていた文字列をここから繋ぎ直しました ▼▼▼
     html += """                </tbody>
             </table>
             </div>
         </div>
 
-<div style="text-align: center; margin-bottom: 40px;">
+        <div style="text-align: center; margin-bottom: 40px;">
     <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
     <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
     <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
@@ -1596,16 +1614,17 @@ def build_html():
                             <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">{", ".join(row['main'])}</span></td>
                             <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: {", ".join(row['bonus'])})</span></td>
                         </tr>\n"""
+                        
     html += """                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-<div style="text-align: center; margin: 20px 0;">
+    <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
         <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
-<img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
+        <img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
 <img border="0" width="1" height="1" src="https://www11.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" alt="">
     </div>
 
