@@ -364,6 +364,8 @@ def build_html(date_str, daily_data):
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
     </style>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
+     crossorigin="anonymous"></script>
 </head>
 <body>
     <header>
