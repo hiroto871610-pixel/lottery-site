@@ -371,6 +371,7 @@ def build_html(date_str, daily_data):
         <a href="loto6.html">ロト6</a>
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html" class="active">占い🔮</a>
     </nav>
 
