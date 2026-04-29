@@ -761,7 +761,15 @@ def generate_numbers_detail_page(result_data):
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
         nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
-        nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
+        nav a {{ 
+    color: #1e3a8a; 
+    padding: 12px 12px; /* 👈 上下の余白を12px、左右の余白を12pxに縮小 */
+    font-size: 14px;    /* 👈 文字サイズを少し小さく指定（元は未指定＝16px相当） */
+    text-decoration: none; 
+    font-weight: bold; 
+    border-bottom: 3px solid transparent; 
+    transition: all 0.3s; 
+}}
         nav a.active {{ border-bottom: 3px solid #16a34a; color: #16a34a; }}
         nav a:hover {{ background-color: #f0f4f8; }}
         .container {{ max-width: 900px; margin: 30px auto; padding: 0 20px; }}
@@ -1279,7 +1287,15 @@ def build_html():
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
         nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
-        nav a {{ color: #1e3a8a; padding: 15px 20px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; }}
+        nav a {{ 
+    color: #1e3a8a; 
+    padding: 12px 12px; /* 👈 上下の余白を12px、左右の余白を12pxに縮小 */
+    font-size: 14px;    /* 👈 文字サイズを少し小さく指定（元は未指定＝16px相当） */
+    text-decoration: none; 
+    font-weight: bold; 
+    border-bottom: 3px solid transparent; 
+    transition: all 0.3s; 
+}}
         nav a.active {{ border-bottom: 3px solid #16a34a; color: #16a34a; }}
         nav a:hover {{ background-color: #f0f4f8; }}
         .container {{ max-width: 900px; margin: 30px auto; padding: 0 20px; }}
