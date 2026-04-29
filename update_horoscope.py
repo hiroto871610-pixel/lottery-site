@@ -363,6 +363,7 @@ def build_html(date_str, daily_data):
         .stat-item {{ font-weight: bold; }}
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; }}
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
      crossorigin="anonymous"></script>
@@ -453,6 +454,13 @@ def build_html(date_str, daily_data):
     </div>
 
     <footer>
+        <div class="footer-links">
+            <a href="about.html">運営者情報</a> |
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
         <p>&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
