@@ -96,26 +96,52 @@ def fetch_latest_numbers_for_top():
         if r4.status_code == 200:
             r4.encoding = 'euc-jp'
             s4 = BeautifulSoup(r4.content, 'html.parser')
-            t4 = s4.get_text(separator=' ')
-            m4 = re.search(r'第\s*(\d+)\s*回[^第]*?当せん番号\D*(\d{4})', t4)
-            if m4:
-                result['target_kai'] = f"第{m4.group(1)}回"
-                result['actual_n4'] = m4.group(2)
+            
+            # ★修正：ページ内のすべての「第〇〇回」から、一番大きい数字（最新回）を確実に見つける
+            kais = re.findall(r'第\s*(\d+)\s*回', s4.get_text())
+            if kais:
+                latest_kai_num = max([int(k) for k in kais]) # 最大の数字を取得
+                result['target_kai'] = f"第{latest_kai_num}回"
+            
+            # 当せん番号の確実な取得（表のマス目から直接狙い撃ち）
+            for th in s4.find_all(['th', 'td']):
+                if '抽せん数字' in th.get_text() or '当せん番号' in th.get_text():
+                    tr = th.find_parent('tr')
+                    if tr:
+                        for td in tr.find_all('td'):
+                            # 4桁の数字だけを抽出
+                            nums = re.findall(r'(?<!\d)\d{4}(?!\d)', td.get_text())
+                            if nums:
+                                result['actual_n4'] = nums[0]
+                                break
+                    if 'actual_n4' in result:
+                        break
         
         # N3
         r3 = requests.get("https://takarakuji.rakuten.co.jp/backnumber/numbers3/lastresults/", headers=headers, timeout=10)
         if r3.status_code == 200:
             r3.encoding = 'euc-jp'
             s3 = BeautifulSoup(r3.content, 'html.parser')
-            t3 = s3.get_text(separator=' ')
-            m3 = re.search(r'第\s*(\d+)\s*回[^第]*?当せん番号\D*(\d{3})', t3)
-            if m3:
-                result['actual_n3'] = m3.group(2)
-                
+            
+            for th in s3.find_all(['th', 'td']):
+                if '抽せん数字' in th.get_text() or '当せん番号' in th.get_text():
+                    tr = th.find_parent('tr')
+                    if tr:
+                        for td in tr.find_all('td'):
+                            # 3桁の数字だけを抽出
+                            nums = re.findall(r'(?<!\d)\d{3}(?!\d)', td.get_text())
+                            if nums:
+                                result['actual_n3'] = nums[0]
+                                break
+                    if 'actual_n3' in result:
+                        break
+                        
         if 'actual_n4' in result and 'actual_n3' in result:
             return result
+            
     except Exception as e:
         print(f"トップページ用データ取得エラー (Numbers): {e}")
+        
     return None
 # -------------------------------------------------------------
 
