@@ -584,7 +584,7 @@ def create_story_image(date_str, daily_data):
         y_offset += 350
 
     promo_text = "4位以降のランキングと\n本格タロット宝くじ診断は\nプロフィールのリンクから！"
-    draw.multiline_text((width/2, 1650), promo_text, font=font_title, fill=(253, 224, 71), align="center", anchor="ma")
+    draw.multiline_text((width/2, 1500), promo_text, font=font_title, fill=(253, 224, 71), align="center", anchor="ma")
     
     output_path = "story_horoscope.jpg"
     img.save(output_path, "JPEG", quality=95)
