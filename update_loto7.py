@@ -920,6 +920,7 @@ def generate_loto7_detail_page(result_data):
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
     </nav>
 
     <div class="container">
@@ -1415,6 +1416,7 @@ def build_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
     </nav>
 
 <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #fff7ed); border: 2px solid #f97316; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">

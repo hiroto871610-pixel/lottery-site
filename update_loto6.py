@@ -963,6 +963,7 @@ def generate_loto6_detail_page(result_data):
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
     </nav>
 
     <div class="container">
@@ -1475,6 +1476,7 @@ def build_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
     </nav>
 
 <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #eff6ff); border: 2px solid #3b82f6; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">
@@ -1519,7 +1521,7 @@ def build_html():
         
         <div class="section-card">
             <h2 class="section-header">🎯 次回 ({history_record[0]['target_kai']}) ロト6の予想</h2>
-            <p>直近約1年間の傾向からHOT数字とCOLD数字を掛け合わせた独自のアルゴリズム予想です。</p>
+            <p>直近約3年間の傾向を3つのAIが分析する独自のアルゴリズム予想です。</p>
             {carryover_html}
             <div class="prediction-box">
 """

@@ -222,6 +222,7 @@ def build_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html" class="active">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
     </nav>
 
     <div style="text-align: center; margin: 20px 0;">

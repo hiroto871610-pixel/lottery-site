@@ -304,6 +304,7 @@ def build_index_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
     </nav>
 
     {badge_html}
