@@ -760,7 +760,7 @@ def generate_weekly_video():
     l6_hist = l6_hist_all[:2]
 
     v_db_n = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_NUMBERS"))
-    v_db_l6 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO6"))
+    v_db_l6 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO") or os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO6"))
     v_db_l7 = fetch_video_db_safe(os.environ.get("JSONBIN_BIN_ID_VIDEO_LOTO7"))
 
     for rec in n_hist:
@@ -847,10 +847,6 @@ def generate_weekly_video():
     if "LOTO7" in rakuten_hc_data:
         hc_clip = create_hot_cold_clip("ロト7", rakuten_hc_data["LOTO7"]["hot"], rakuten_hc_data["LOTO7"]["cold"], (251, 191, 36))
         if hc_clip: all_clips.append(hc_clip)
-
-    if len(l6_hist_all) >= 2:
-        graph_clip = create_trend_graph_clip(l6_hist_all) 
-        if graph_clip: all_clips.append(graph_clip)
 
     ed_clip = create_ending_clip()
     if ed_clip: all_clips.append(ed_clip)
