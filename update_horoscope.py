@@ -384,6 +384,7 @@ def build_html(date_str, daily_data):
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html" class="active">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
     <div class="container">

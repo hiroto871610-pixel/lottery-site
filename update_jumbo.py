@@ -231,6 +231,7 @@ def build_html():
         <a href="jumbo.html" class="active">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
     <div style="text-align: center; margin: 20px 0;">

@@ -339,6 +339,7 @@ def build_index_html():
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
     {badge_html}

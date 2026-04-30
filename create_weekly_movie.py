@@ -84,29 +84,44 @@ def update_archive_html(video_id, title, date_str):
     with open(file_path, "r", encoding="utf-8") as f:
         html = f.read()
         
-    # 挿入する新しい動画ブロック（デザインそのまま）
-    new_block = f"""
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
+        grid = soup.find('div', class_='video-grid')
+        
+        if grid:
+            # 新しいブロックを作成 (loading="lazy" を追加してページの読み込みを高速化)
+            new_block_html = f"""
             <div class="video-card">
                 <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/{video_id}" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    <iframe src="https://www.youtube.com/embed/{video_id}" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
                 </div>
                 <div class="video-info">
                     <h3 class="video-title">{title}</h3>
                     <span class="video-date">{date_str}</span>
                 </div>
-            </div>"""
-        
-    # 目印となるタグの直後に新しいブロックを割り込ませる
-    target_tag = '<div class="video-grid">'
-    if target_tag in html:
-        parts = html.split(target_tag, 1)
-        updated_html = parts[0] + target_tag + new_block + parts[1]
-        
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(updated_html)
-        print("✅ archive.html の一番上に新しい動画を追加しました！")
-    else:
-        print("❌ archive.html 内に <div class=\"video-grid\"> が見つかりませんでした。")
+            </div>
+            """
+            new_card = BeautifulSoup(new_block_html, 'html.parser')
+            
+            # gridの一番上に新しい動画を挿入
+            grid.insert(0, new_card)
+            
+            # 古い動画を削除（最新12個＝約3ヶ月分だけ残す設定）
+            MAX_VIDEOS = 12
+            cards = grid.find_all('div', class_='video-card')
+            if len(cards) > MAX_VIDEOS:
+                for old_card in cards[MAX_VIDEOS:]:
+                    old_card.decompose() # 13個目以降の古いブロックをHTMLから消去
+                    
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(str(soup))
+            print(f"✅ archive.html を更新し、最新{MAX_VIDEOS}件に整理しました！")
+        else:
+            print("❌ archive.html 内に <div class=\"video-grid\"> が見つかりませんでした。")
+            
+    except Exception as e:
+        print(f"❌ archive.htmlの更新中にエラーが発生しました: {e}")
 
 # ==========================================
 # 🎵 背景動画とBGM・SEのパス

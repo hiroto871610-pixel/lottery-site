@@ -972,6 +972,7 @@ def generate_loto6_detail_page(result_data):
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
     <div class="container">
@@ -1493,6 +1494,7 @@ def build_html():
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
 <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #eff6ff); border: 2px solid #3b82f6; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">
