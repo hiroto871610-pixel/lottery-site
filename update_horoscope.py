@@ -364,6 +364,15 @@ def build_html(date_str, daily_data):
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; }}
+        /* PC用とスマホ用の広告を自動で切り替える魔法のCSS */
+.ad-pc {{ display: block; }}
+.ad-sp {{ display: none; }}
+
+/* スマホ（画面幅600px以下）で見た時だけルールを逆転させる */
+@media (max-width: 600px) {{
+    .ad-pc {{ display: none; }}
+    .ad-sp {{ display: block; }}
+}}
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
      crossorigin="anonymous"></script>
@@ -389,12 +398,22 @@ def build_html(date_str, daily_data):
 
     <div style="text-align: center; margin: 20px 0;">
     <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-    <!-- i-mobile 広告ここから -->
-    <div id="im-0694f637fa4444e78734107e195415d7">
-      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
+    
+    <!-- ▼ PCで見ている時だけ表示されるタグ1 ▼ -->
+    <div class="ad-pc">
+        <div id="im-839c9bd971c54d348a71dcbfed7984d3">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929932,type:"banner",display:"inline",elementid:"im-839c9bd971c54d348a71dcbfed7984d3"})</script>
+</div>
     </div>
-    <!-- i-mobile 広告ここまで -->
+    
+    <!-- ▼ スマホで見ている時だけ表示されるタグ1 ▼ -->
+    <div class="ad-sp">
+        <div id="im-4b18f7a610e54053ae1a96fafd113652">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929934,type:"banner",display:"inline",elementid:"im-4b18f7a610e54053ae1a96fafd113652"})</script>
+</div>
+    </div>
 </div>
 
     <div class="container">
@@ -461,12 +480,22 @@ def build_html(date_str, daily_data):
 
     <div style="text-align: center; margin: 20px 0;">
     <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-    <!-- i-mobile 広告ここから -->
-    <div id="im-0694f637fa4444e78734107e195415d7">
-      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
+    
+    <!-- ▼ PCで見ている時だけ表示されるタグ2 ▼ -->
+    <div class="ad-pc">
+        <div id="im-d34f87828c9740a7b9a62172425cfcfd">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"})</script>
+</div>
     </div>
-    <!-- i-mobile 広告ここまで -->
+    
+    <!-- ▼ スマホで見ている時だけ表示されるタグ2 ▼ -->
+    <div class="ad-sp">
+        <div id="im-c4e1d905d99e4087b6a8d79bcd575552">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"})</script>
+</div>
+    </div>
 </div>
 
     <footer>
@@ -480,16 +509,16 @@ def build_html(date_str, daily_data):
         <p>&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-    <!-- i-mobile オーバーレイ広告ここから -->
-    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
-        <div style="margin:auto;z-index:99999;" >
-            <div id="im-169b327736164198bdae8ecfabb40447">
-              <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-              <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-169b327736164198bdae8ecfabb40447"}})</script>
-            </div>
-        </div>
+    <!-- ▼ スマホで見ている時だけ表示されるオーバーレイ ▼ -->
+    <div class="ad-sp">
+        <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);"><div style="margin:auto;z-index:99999;" >
+<div id="im-6d4249806e284e54896bb6614d5ca6f5">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+</div>
+</div></div>
     </div>
-    <!-- i-mobile オーバーレイ広告ここまで -->
+
 
     <script>
         // Pythonから渡された本格タロットデータ（全22枚×2位置）
