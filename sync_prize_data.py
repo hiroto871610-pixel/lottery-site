@@ -18,7 +18,7 @@ def get_video_db(bin_id):
     """動画専用DBを取得（サイレント上書き防止の安全装置付き）"""
     if not bin_id or not API_KEY: return None
     try:
-        res = requests.get(f"https://api.jsonbin.io/v3/b/{bin_id}", headers={"X-Master-Key": API_KEY}, timeout=10)
+        res = requests.get(f"https://api.jsonbin.io/v3/b/{bin_id}", headers={"X-Master-Key": API_KEY}, timeout=60)
         if res.status_code != 200:
             print(f"⚠️ [警告] 過去データの取得に失敗しました (Status: {res.status_code})")
             return None
