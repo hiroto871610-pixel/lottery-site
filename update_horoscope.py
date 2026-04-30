@@ -403,7 +403,7 @@ def build_html(date_str, daily_data):
     <div class="ad-pc">
         <div id="im-839c9bd971c54d348a71dcbfed7984d3">
   <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929932,type:"banner",display:"inline",elementid:"im-839c9bd971c54d348a71dcbfed7984d3"})</script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592459,asid:1929932,type:"banner",display:"inline",elementid:"im-839c9bd971c54d348a71dcbfed7984d3"}})</script>
 </div>
     </div>
     
@@ -411,7 +411,7 @@ def build_html(date_str, daily_data):
     <div class="ad-sp">
         <div id="im-4b18f7a610e54053ae1a96fafd113652">
   <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929934,type:"banner",display:"inline",elementid:"im-4b18f7a610e54053ae1a96fafd113652"})</script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929934,type:"banner",display:"inline",elementid:"im-4b18f7a610e54053ae1a96fafd113652"}})</script>
 </div>
     </div>
 </div>
@@ -485,7 +485,7 @@ def build_html(date_str, daily_data):
     <div class="ad-pc">
         <div id="im-d34f87828c9740a7b9a62172425cfcfd">
   <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"})</script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"}})</script>
 </div>
     </div>
     
@@ -493,7 +493,7 @@ def build_html(date_str, daily_data):
     <div class="ad-sp">
         <div id="im-c4e1d905d99e4087b6a8d79bcd575552">
   <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"})</script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"}})</script>
 </div>
     </div>
 </div>
@@ -514,7 +514,7 @@ def build_html(date_str, daily_data):
         <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);"><div style="margin:auto;z-index:99999;" >
 <div id="im-6d4249806e284e54896bb6614d5ca6f5">
   <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"}})</script>
 </div>
 </div></div>
     </div>
