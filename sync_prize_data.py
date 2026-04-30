@@ -62,7 +62,7 @@ def fetch_loto_details(loto_type):
     headers = {'User-Agent': 'Mozilla/5.0'}
     result = {"round": "", "date": "", "prizes": [], "carryover": "0円"}
     try:
-        res = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=60)
         res.encoding = 'euc-jp'
         soup = BeautifulSoup(res.content, 'html.parser')
 
