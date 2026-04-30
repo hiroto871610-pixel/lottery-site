@@ -24,6 +24,91 @@ if not hasattr(PIL.Image, 'ANTIALIAS'):
 load_dotenv()
 
 # ==========================================
+# 📺 まとめ動画専用：YouTubeアップロード機能
+# ==========================================
+def upload_weekly_to_youtube(video_path, title, description, tags):
+    print("🎥 YouTubeへまとめ動画をアップロード中...")
+    token_str = os.environ.get("YOUTUBE_TOKEN_JSON")
+    if not token_str:
+        print("❌ YOUTUBE_TOKEN_JSONが設定されていません。")
+        return None
+        
+    try:
+        import json
+        from google.oauth2.credentials import Credentials
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        
+        token_info = json.loads(token_str)
+        creds = Credentials.from_authorized_user_info(token_info)
+        youtube = build('youtube', 'v3', credentials=creds)
+        
+        body = {
+            'snippet': {
+                'title': title,
+                'description': description,
+                'tags': tags,
+                'categoryId': '24' # エンターテイメント
+            },
+            'status': {
+                'privacyStatus': 'public', 
+                'selfDeclaredMadeForKids': False
+            }
+        }
+        
+        media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype='video/mp4')
+        request = youtube.videos().insert(
+            part=",".join(body.keys()),
+            body=body,
+            media_body=media
+        )
+        response = request.execute()
+        video_id = response.get('id')
+        print(f"🎉🎉🎉 YouTubeへのアップロードが完了しました！ URL: https://youtu.be/{video_id}")
+        return video_id
+    except Exception as e:
+        print(f"❌ YouTubeアップロードエラー: {e}")
+        return None
+
+# ==========================================
+# 📝 archive.html 自動更新機能
+# ==========================================
+def update_archive_html(video_id, title, date_str):
+    print("🔄 archive.html を最新の動画で更新中...")
+    file_path = "archive.html"
+    
+    if not os.path.exists(file_path):
+        print(f"❌ {file_path} が見つからないため、更新をスキップします。")
+        return
+        
+    with open(file_path, "r", encoding="utf-8") as f:
+        html = f.read()
+        
+    # 挿入する新しい動画ブロック（デザインそのまま）
+    new_block = f"""
+            <div class="video-card">
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/{video_id}" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">{title}</h3>
+                    <span class="video-date">{date_str}</span>
+                </div>
+            </div>"""
+        
+    # 目印となるタグの直後に新しいブロックを割り込ませる
+    target_tag = '<div class="video-grid">'
+    if target_tag in html:
+        parts = html.split(target_tag, 1)
+        updated_html = parts[0] + target_tag + new_block + parts[1]
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(updated_html)
+        print("✅ archive.html の一番上に新しい動画を追加しました！")
+    else:
+        print("❌ archive.html 内に <div class=\"video-grid\"> が見つかりませんでした。")
+
+# ==========================================
 # 🎵 背景動画とBGM・SEのパス
 # ==========================================
 BG_VIDEO_PATH = os.path.join("assets", "create_weekly.mp4")
@@ -790,6 +875,21 @@ def generate_weekly_video():
     
     if os.path.exists("temp_graph.png"): os.remove("temp_graph.png")
     print(f"\n🎉🎉🎉 究極版 1週間まとめ動画が完成しました！ => {output_filename} 🎉🎉🎉")
+
+    # ==========================================
+    # 🚀 YouTubeへのアップロードとサイト自動更新の実行
+    # ==========================================
+    yt_title = f"【1週間まとめ】ロト＆ナンバーズ AI予想結果と最新トレンド ({op_end_date} 最新版)"
+    yt_desc = "今週のロト6、ロト7、ナンバーズのAI予想と実際の抽選結果の答え合わせ動画です！\n\n🎯完全無料のAI予想サイトはこちら\n👉 https://loto-yosou-ai.com/"
+    yt_tags = ["ロト6", "ロト7", "ナンバーズ", "宝くじ", "AI予想"]
+    
+    # YouTubeにアップロードして、動画のIDを取得
+    video_id = upload_weekly_to_youtube(output_filename, yt_title, yt_desc, yt_tags)
+    
+    # アップロードに成功したら、archive.html を書き換える
+    if video_id:
+        display_date = f"📅 {op_start_date} 〜 {op_end_date}"
+        update_archive_html(video_id, yt_title, display_date)
 
 if __name__ == "__main__":
     generate_weekly_video()
