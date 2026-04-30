@@ -823,17 +823,14 @@ def generate_numbers_detail_page(result_data):
         </h1>
 
         <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
-        </div>
-
-        <div style="text-align: center; margin: 20px 0;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
-                <img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1">
-            </a>
-            <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
-        </div>
+    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+    <!-- i-mobile 広告ここから -->
+    <div id="im-0694f637fa4444e78734107e195415d7">
+      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
+    </div>
+    <!-- i-mobile 広告ここまで -->
+</div>
 
         <div class="section-card">
             <h2 class="section-header">🎯 ナンバーズ4 抽選結果</h2>
@@ -888,13 +885,15 @@ def generate_numbers_detail_page(result_data):
     </a>
 </div>
 
-        <div style="text-align: center; margin-bottom: 40px;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
-                <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1">
-            </a>
-            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
-        </div>
+        <div style="text-align: center; margin: 20px 0;">
+    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+    <!-- i-mobile 広告ここから -->
+    <div id="im-0694f637fa4444e78734107e195415d7">
+      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
+    </div>
+    <!-- i-mobile 広告ここまで -->
+</div>
 
     </div>
 
@@ -908,6 +907,19 @@ def generate_numbers_detail_page(result_data):
         <p>※当サイトのデータは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
+
+    <!-- i-mobile オーバーレイ広告ここから -->
+    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+        <div style="margin:auto;z-index:99999;" >
+            <div id="im-169b327736164198bdae8ecfabb40447">
+              <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+              <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-169b327736164198bdae8ecfabb40447"}})</script>
+            </div>
+        </div>
+    </div>
+    <!-- i-mobile オーバーレイ広告ここまで -->
+
+
 </body>
 </html>"""
 
@@ -1368,20 +1380,18 @@ def build_html():
             🔍 詳細ページを確認する
         </a>
     </div>
-    
-    <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <script src="https://adm.shinobi.jp/s/4275e4a786993be6d30206e03ec2de0f"></script>
-        </div>
 
     <div class="container">
     
         <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" rel="nofollow">
-<img border="0" width="320" height="auto" alt="" src="https://www29.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001007000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+5ZU29" alt="">
+    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+    <!-- i-mobile 広告ここから -->
+    <div id="im-0694f637fa4444e78734107e195415d7">
+      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
     </div>
+    <!-- i-mobile 広告ここまで -->
+</div>
 
         <div class="section-card" style="background: linear-gradient(to right, #ffffff, #f0fdf4); border-left: 5px solid #16a34a; padding: 20px;">
             <div style="font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">⏰ 次回抽選日と購入期限</div>
@@ -1504,12 +1514,15 @@ def build_html():
             </div>
         </div>
 
-        <div style="text-align: center; margin-bottom: 40px;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" rel="nofollow">
-            <img border="0" width="300" height="250" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146293&wid=002&eno=01&mid=s00000017265001015000&mc=1"></a>
-            <img border="0" width="1" height="1" src="https://www14.a8.net/0.gif?a8mat=4AZSSQ+4UG1SQ+3P7U+61JSH" alt="">
-        </div>
+        <div style="text-align: center; margin: 20px 0;">
+    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+    <!-- i-mobile 広告ここから -->
+    <div id="im-0694f637fa4444e78734107e195415d7">
+      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
+    </div>
+    <!-- i-mobile 広告ここまで -->
+</div>
 
         <div class="section-card">
             <h2 class="section-header">📅 過去の当選番号一覧 (実際のデータ)</h2>
@@ -1533,11 +1546,14 @@ def build_html():
     </div>
 
     <div style="text-align: center; margin: 20px 0;">
-        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" rel="nofollow">
-<img border="0" width="340" height="auto" alt="" src="https://www22.a8.net/svt/bgt?aid=260331146288&wid=002&eno=01&mid=s00000020813001035000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www11.a8.net/0.gif?a8mat=4AZSSQ+4RGVRU+4GLE+65U41" alt="">
+    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+    <!-- i-mobile 広告ここから -->
+    <div id="im-0694f637fa4444e78734107e195415d7">
+      <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+      <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929925,type:"banner",display:"inline",elementid:"im-0694f637fa4444e78734107e195415d7"})</script>
     </div>
+    <!-- i-mobile 広告ここまで -->
+</div>
 
     <footer>
         <div class="footer-links">
@@ -1549,6 +1565,18 @@ def build_html():
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
+
+    <!-- i-mobile オーバーレイ広告ここから -->
+    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+        <div style="margin:auto;z-index:99999;" >
+            <div id="im-169b327736164198bdae8ecfabb40447">
+              <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+              <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-169b327736164198bdae8ecfabb40447"}})</script>
+            </div>
+        </div>
+    </div>
+    <!-- i-mobile オーバーレイ広告ここまで -->
+
 </body>
 </html>"""
 
