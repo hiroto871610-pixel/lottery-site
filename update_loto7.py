@@ -1820,7 +1820,7 @@ def build_html():
     
     # ① LINEの送信処理（条件は一切変更なし）
     if send_flag and msg:
-        post_to_line(msg)
+        # post_to_line(msg)
         print("✅ LINEへの自動配信を実行しました。")
     else:
         print("💤 ロト7：LINE配信対象外のためスキップしました。")
@@ -1865,19 +1865,21 @@ def build_html():
                 post_to_instagram(public_image_url, caption)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
-        else:
-                print("💤 ロト7：SNS動画配信対象外のためスキップしました。")
+    else:
+        print("💤 ロト7：SNS動画配信対象外のためスキップしました。")
 
-    # ▼ ここ！一番左端から「半角スペース4つ」に合わせます ▼
-        return html
+    # 🌟🌟🌟 ここが一番重要！左端から「半角スペース4つ」に置く 🌟🌟🌟
+    return html
 
-# 最終実行部分（ここは関数の外側に戻します）
+# 最終実行部分（ここは一番左端の壁にピッタリくっつけます）
 if __name__ == "__main__":
     final_html = build_html()
     with open('loto7.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
-        real_data = get_loto7_full_detail()
+        
+    real_data = get_loto7_full_detail()
     generate_loto7_detail_page(real_data)
+    
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ロト7版)
     # ==========================================
@@ -1894,7 +1896,7 @@ if __name__ == "__main__":
             "round": real_data.get("round", ""),
             "date": real_data.get("date", ""),
             "main_nums": real_data.get("numbers", []),
-            "bonus": ", ".join(real_data.get("bonuses", [])), # ロト7はボーナスが2個あるため結合
+            "bonus": ", ".join(real_data.get("bonuses", [])),
             "carryover": real_data.get("carryover", "0円"),
             "prizes": real_data.get("prizes", []),
             "predictions": [
