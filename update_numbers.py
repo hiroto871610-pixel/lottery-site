@@ -946,9 +946,6 @@ def generate_numbers_detail_page(result_data):
         ◀ ナンバーズ AI予想トップに戻る
     </a>
 </div>
-
-        <div style="text-align: center; margin: 20px 0;">
-    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
     
     <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">
@@ -963,8 +960,6 @@ def generate_numbers_detail_page(result_data):
             </div>
         </div>
 </div>
-
-    </div>
 
     <footer>
         <div class="footer-links">
@@ -1455,18 +1450,24 @@ def build_html():
 
     <div class="container">
     
-        <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            
-            <div class="ad-pc">
-                {imobile_ad2_pc}
-            </div>
-            
-            <div class="ad-sp">
-                {imobile_ad2_sp}
-            </div>
-        </div>
+    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+    
+    <!-- ▼ PCで見ている時だけ表示されるタグ1 ▼ -->
+    <div class="ad-pc">
+        <div id="im-839c9bd971c54d348a71dcbfed7984d3">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592459,asid:1929932,type:"banner",display:"inline",elementid:"im-839c9bd971c54d348a71dcbfed7984d3"}})</script>
+</div>
+    </div>
+    
+    <!-- ▼ スマホで見ている時だけ表示されるタグ1 ▼ -->
+    <div class="ad-sp">
+        <div id="im-4b18f7a610e54053ae1a96fafd113652">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929934,type:"banner",display:"inline",elementid:"im-4b18f7a610e54053ae1a96fafd113652"}})</script>
+</div>
+    </div>
 </div>
 
         <div class="section-card" style="background: linear-gradient(to right, #ffffff, #f0fdf4); border-left: 5px solid #16a34a; padding: 20px;">
