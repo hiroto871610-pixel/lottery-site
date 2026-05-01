@@ -1090,7 +1090,7 @@ def generate_advanced_predictions(history_data, length, win_key):
 
     print(f"🧠 ナンバーズ{length} ハイブリッドAI（RF + XGB + LSTM）予測を開始します...")
     if not history_data or len(history_data) < 20:
-        return [], "Bランク", "データ不足のため基本予想"
+        return [], "Bランク", "データ不足のため基本予想", ""
 
     draws = [[int(n) for n in d[win_key]] for d in reversed(history_data)]
     
@@ -1104,6 +1104,11 @@ def generate_advanced_predictions(history_data, length, win_key):
     pos_ml_scores = []
     window_size = 10 
     
+    # ★追加：全桁の中で一番確率が高い数字を記憶する変数
+    best_overall_pos = 0
+    best_overall_digit = 0
+    best_overall_score = -1
+
     for pos in range(length):
         features = []
         labels = []
@@ -1125,45 +1130,50 @@ def generate_advanced_predictions(history_data, length, win_key):
         latest_counts = Counter(latest_window)
         X_latest = np.array([[latest_counts.get(num, 0)] for num in range(10)])
 
-        # 万が一データが偏りすぎている場合のエラー回避フラグ
         can_train = len(np.unique(y)) > 1
 
-        # ① Random Forest
-        rf_model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
         prob_rf = np.zeros(10)
         if can_train:
+            rf_model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
             rf_model.fit(X, y)
             rf_preds = rf_model.predict_proba(X_latest)
             if rf_preds.shape[1] > 1:
                 for i in range(10): prob_rf[i] = rf_preds[i, 1]
 
-        # ② XGBoost
-        xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
         prob_xgb = np.zeros(10)
         if can_train:
+            xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
             xgb_model.fit(X, y)
             xgb_preds = xgb_model.predict_proba(X_latest)
             if xgb_preds.shape[1] > 1:
                 for i in range(10): prob_xgb[i] = xgb_preds[i, 1]
 
-        # ③ LSTM
-        X_3d = X.reshape((X.shape[0], 1, X.shape[1]))
-        X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
-        lstm_model = Sequential([
-            LSTM(32, activation='relu', input_shape=(1, X.shape[1])),
-            Dense(1, activation='sigmoid')
-        ])
-        lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
         prob_lstm = np.zeros(10)
         if can_train:
+            X_3d = X.reshape((X.shape[0], 1, X.shape[1]))
+            X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
+            lstm_model = Sequential([
+                LSTM(32, activation='relu', input_shape=(1, X.shape[1])),
+                Dense(1, activation='sigmoid')
+            ])
+            lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
             lstm_model.fit(X_3d, y, epochs=5, verbose=0)
             lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
             for i in range(10): prob_lstm[i] = lstm_preds[i]
 
-        # 3つのAIの予測を統合
         final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
         ml_scores = {num: prob for num, prob in enumerate(final_prob)}
         pos_ml_scores.append(ml_scores)
+        
+        # ★ここで「この桁で一番強い数字」をチェックし、全体ベストを更新する
+        for num, prob in ml_scores.items():
+            if prob > best_overall_score:
+                best_overall_score = prob
+                best_overall_pos = pos
+                best_overall_digit = num
+
+    # ★特注HOT数字のテキストを作成
+    top_nums_str = f"{best_overall_pos+1}桁目の「{best_overall_digit}」"
 
     # --- 4. ハイブリッド選定 ---
     predictions = []
@@ -1171,20 +1181,30 @@ def generate_advanced_predictions(history_data, length, win_key):
     digits = list(range(10))
     candidates = []
 
-    for _ in range(5000): 
+    # ★修正：予想生成時に、本命(一番最初)の予想には必ずHOT数字を組み込む！
+    for i in range(5000): 
         cand = []
         for pos in range(length):
-            weights = [pos_ml_scores[pos][n] for n in digits]
-            if sum(weights) > 0:
-                cand.append(random.choices(digits, weights=weights)[0])
+            # 本命(0番目)の生成時は、ベストな桁を強制的に固定する
+            if i < 100 and pos == best_overall_pos:
+                cand.append(best_overall_digit)
             else:
-                cand.append(random.choice(digits))
+                weights = [pos_ml_scores[pos][n] for n in digits]
+                if sum(weights) > 0:
+                    cand.append(random.choices(digits, weights=weights)[0])
+                else:
+                    cand.append(random.choice(digits))
         candidates.append(cand)
 
     valid_candidates = []
     for cand in candidates:
         base_score = sum(pos_ml_scores[pos][cand[pos]] for pos in range(length))
         pair_bonus = sum(pair_counts.get(pair, 0) for pair in itertools.combinations(sorted(cand), 2))
+        
+        # 本命予想(HOT数字入り)を優先的に採用するため、スコアに強力なボーナスを与える
+        if cand[best_overall_pos] == best_overall_digit:
+            base_score += 10.0 # 圧倒的ボーナス
+            
         final_score = base_score + (pair_bonus * 0.05)
         
         counts = Counter(cand)
@@ -1193,13 +1213,15 @@ def generate_advanced_predictions(history_data, length, win_key):
             
         valid_candidates.append((final_score, cand))
 
+    # スコアが高い順（HOT数字入りが必ず上位に来る）にソート
     valid_candidates.sort(key=lambda x: x[0], reverse=True)
     
     for score, cand in valid_candidates:
         cand_str = "".join(map(str, cand))
         box_str = "".join(sorted(cand_str))
         if cand_str not in seen and box_str not in seen_box:
-            seen.add(cand_str), seen_box.add(box_str)
+            seen.add(cand_str)
+            seen_box.add(box_str)
             predictions.append(cand_str)
         if len(predictions) == 5: break
 
@@ -1209,7 +1231,7 @@ def generate_advanced_predictions(history_data, length, win_key):
             seen.add(cand_str)
             predictions.append(cand_str)
 
-    # 自信度の判定（ナンバーズ特有：各桁のスコアの平均で判定）
+    # 自信度の判定
     avg_max_score = np.mean([max(pos_ml_scores[pos].values()) for pos in range(length)])
     if avg_max_score > 0.4:
         rank, msg = "Sランク", f"🔥 激アツ！AIがナンバーズ{length}の強い偏りを検知！"
@@ -1218,19 +1240,8 @@ def generate_advanced_predictions(history_data, length, win_key):
     else:
         rank, msg = "Bランク", f"⚠️ 過去データが分散。波乱の可能性があります。"
     
-    # ▼▼▼ 追加：全桁の中で一番確率が高い数字を抽出 ▼▼▼
-    best_pos, best_digit, best_score = 0, 0, -1
-    for pos in range(length):
-        for num, prob in pos_ml_scores[pos].items():
-            if prob > best_score:
-                best_score = prob
-                best_pos = pos
-                best_digit = num
-    
-    top_nums_str = f"【{best_pos+1}桁目】の「{best_digit}」"
-    # ▲▲▲ ここまで ▲▲▲
     return predictions, rank, msg, top_nums_str
-
+    
 # --- 4. 履歴の保存と成績の自動照合 ---
 def manage_history(latest_data, n4_preds, n3_preds):
     # ▼▼▼ 変更①：ファイルの読み込みを削除し、JSONBinから取得 ▼▼▼
