@@ -1585,7 +1585,7 @@ def build_html():
                         <td>実績: <span style="font-weight:bold;">{record.get('actual_n4', '----')}</span><br><span class="{r4_class}">{record.get('result_n4', '----')}</span></td>
                         <td>実績: <span style="font-weight:bold;">{record.get('actual_n3', '---')}</span><br><span class="{r3_class}">{record.get('result_n3', '----')}</span></td>
                     </tr>\n"""
-    html += """                </tbody>
+    html += f"""                </tbody>
             </table>
             </div>
         </div>

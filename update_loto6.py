@@ -1703,7 +1703,7 @@ def build_html():
                     </tr>\n"""
                     
     # ▼▼▼ 途切れていた文字列をここから繋ぎ直しました ▼▼▼
-    html += """                </tbody>
+    html += f"""                </tbody>
             </table>
             </div>
         </div>

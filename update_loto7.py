@@ -1647,7 +1647,7 @@ def build_html():
                         <td><span class="{res_class}">{record.get('best_result', '----')}</span></td>
                     </tr>\n"""
 
-    html += """                </tbody>
+    html += f"""                </tbody>
             </table>
             </div>
         </div>
