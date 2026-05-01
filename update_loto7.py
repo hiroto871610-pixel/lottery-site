@@ -1880,7 +1880,7 @@ imobile_overlay = """
         print("💤 ロト7：SNS動画配信対象外のためスキップしました。")
 
     # ▼ ここ！一番左端から「半角スペース4つ」に合わせます ▼
-    return html
+        return html
 
 # 最終実行部分（ここは関数の外側に戻します）
 if __name__ == "__main__":
