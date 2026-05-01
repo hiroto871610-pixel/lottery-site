@@ -16,7 +16,10 @@ from collections import Counter
 import tweepy
 import urllib3
 
-# ▼▼▼ .envファイルの読み込み ▼▼▼
+# ▼ SSLの警告文を非表示にする
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# ▼ .envファイルの読み込み
 from dotenv import load_dotenv
 load_dotenv()
 import base64
@@ -32,7 +35,7 @@ from googleapiclient.http import MediaFileUpload
 # =========================================================
 # JSONBin API設定 (ビンゴ5専用)
 # =========================================================
-JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID_BINGO5") # ビンゴ5用のIDを設定してください
+JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID_BINGO5") 
 JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
 JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
 
@@ -45,20 +48,22 @@ def load_history_from_jsonbin():
         try:
             res = requests.get(JSONBIN_URL, headers=headers, timeout=60)
             if res.status_code == 200:
-                return res.json().get('record', [])
+                data = res.json().get('record', [])
+                if not isinstance(data, list): return []
+                return [r for r in data if isinstance(r, dict)]
             else:
                 print(f"⚠️ JSONBin取得エラー: {res.status_code}")
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                     continue
                 else:
-                    raise SystemExit(f"🚨 JSONBin強制終了: {res.text}")
+                    return []
         except Exception as e:
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
             else:
-                raise SystemExit("🚨 通信エラー強制終了")
+                return []
     return []
 
 def save_history_to_jsonbin(data):
@@ -109,9 +114,6 @@ imobile_ad3_sp = """
   <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929936,type:"banner",display:"inline",elementid:"im-111a4112bae54171b8c129433281c73c"})</script>
 </div>
 """
-# =========================================================
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # =========================================================
 # 𝕏, Threads, Instagram API等設定
@@ -249,64 +251,99 @@ def post_to_tiktok(video_path, caption):
 # =========================================================
 
 def fetch_history_data():
-    """楽天宝くじからビンゴ5の過去データを取得（過去1年分）"""
-    base_url = "https://takarakuji.rakuten.co.jp/backnumber/bingo5/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    """複数の宝くじデータサイトから過去データを一斉探索する最強の冗長化版"""
+    print("☁️ 複数の宝くじサイトからビンゴ5のデータを一斉探索中...")
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+    }
     history_data = []
+    seen_kais = set()
     
-    today = datetime.date.today()
-    target_urls = [f"{base_url}lastresults/"]
-    for i in range(12): 
-        y = today.year
-        m = today.month - i
-        if m <= 0:
-            m += 12
-            y -= 1
-        target_urls.append(f"{base_url}{y}{m:02d}/")
-    
-    for url in target_urls:
+    # 1つのサイトがブロックされても、他のサイトでカバーする最強のリスト
+    urls_to_try = [
+        "https://www.hpfree.com/bingo5/",
+        "https://loto.e-shinkou.com/bingo5/",
+        "https://www.takarakujinet.co.jp/bingo5/",
+        "https://www.takarakujinet.co.jp/bingo5/past1.html",
+        "https://sougaku.com/bingo5/data/"
+    ]
+
+    for url in urls_to_try:
         try:
-            res = requests.get(url, headers=headers, timeout=10)
+            res = requests.get(url, headers=headers, timeout=8, verify=False)
             if res.status_code != 200: continue
-            res.encoding = 'euc-jp'
+            res.encoding = res.apparent_encoding
             soup = BeautifulSoup(res.content, 'html.parser')
-            
-            # 楽天宝くじのビンゴ5は、1回の結果が1つの<table>にまとまっている
-            for table in soup.find_all('table'):
-                text = table.get_text(separator=' ', strip=True)
-                if '第' in text and '回' in text and '1等' in text:
-                    m_round = re.search(r'第\s*(\d+)\s*回', text)
-                    m_date = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
-                    
-                    if m_round and m_date:
-                        kai_str = f"第{m_round.group(1).zfill(4)}回"
-                        date_str = f"{m_date.group(1)}/{m_date.group(2).zfill(2)}/{m_date.group(3).zfill(2)}"
+
+            # 画像数字のテキスト化
+            for img in soup.find_all('img'):
+                alt = img.get('alt', '')
+                if alt.isdigit() or 'FREE' in alt.upper():
+                    img.replace_with(f" {alt} ")
+
+            # HTMLタグを全て破壊し、純粋なテキストにする
+            text = soup.get_text(separator=' ', strip=True)
+            text = re.sub(r'\s+', ' ', text)
+
+            # 「第〇〇回」という文字を起点に解析
+            for m in re.finditer(r'第\s*(\d{1,4})\s*回', text):
+                kai_num = int(m.group(1))
+                kai_str = f"第{kai_num:04d}回"
+                
+                # 回号の後ろのテキストから日付を探す
+                chunk = text[m.end():m.end()+300]
+                date_m = re.search(r'(\d{4})\s*[年./]\s*(\d{1,2})\s*[月./]\s*(\d{1,2})', chunk)
+                if not date_m: continue
+                
+                date_str = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
+                
+                # 日付の後ろから賞金の文字が出る前までを切り出す
+                num_chunk = chunk[date_m.end():]
+                stop_m = re.search(r'(1等|当せん金|売上|販売実績|等級|賞金)', num_chunk)
+                if stop_m: num_chunk = num_chunk[:stop_m.start()]
+                
+                # 残ったテキストから1〜40の数字だけを全抽出
+                digits = re.findall(r'(?<!\d)([0-4]?\d)(?!\d)', num_chunk)
+                valid_nums = [str(int(n)).zfill(2) for n in digits if 1 <= int(n) <= 40]
+                
+                # ビンゴ5は必ず8個の数字
+                if len(valid_nums) >= 8:
+                    if kai_str not in seen_kais:
+                        history_data.append({"kai": kai_str, "date": date_str, "main": valid_nums[:8]})
+                        seen_kais.add(kai_str)
                         
-                        # 日付の直後から、"1等"の前までを切り出して数字を探す
-                        start_idx = m_date.end()
-                        end_idx = text.find('1等', start_idx)
-                        if end_idx == -1: end_idx = len(text)
-                        
-                        num_chunk = text[start_idx:end_idx]
-                        
-                        # 残ったテキストから数字だけを抽出
-                        digits = re.findall(r'(?<!\d)\d{1,2}(?!\d)', num_chunk)
-                        valid_nums = [str(n).zfill(2) for n in digits if 1 <= int(n) <= 40]
-                        
-                        # ビンゴ5は必ず8個の数字
-                        if len(valid_nums) >= 8:
-                            main_nums = valid_nums[:8]
-                            if not any(d['kai'] == kai_str for d in history_data):
-                                history_data.append({"kai": kai_str, "date": date_str, "main": main_nums})
+            # 1つのサイトから十分なデータ（10件以上）が取れれば、他のサイトはスキップ
+            if len(history_data) >= 10:
+                print(f"✅ {url.split('/')[2]} からデータの取得に成功しました！")
+                break
+                
         except Exception:
-            pass 
-            
+            pass
+
     if not history_data:
         print("⚠️ 過去データが取得できなかったためフェイルセーフを発動しました。")
         history_data.append({"kai": "第0000回", "date": "2026/01/01", "main": ["01","06","11","16","21","26","31","36"]})
-        
+    else:
+        print(f"✅ 過去データ({len(history_data)}件)の取得に成功しました！")
+
     history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
     return history_data
+
+def get_next_bingo5_date():
+    """次回抽選日(水曜)を計算（復活！）"""
+    now = datetime.datetime.now()
+    if now.hour >= 19 or (now.hour == 18 and now.minute >= 30):
+        base_date = now.date() + datetime.timedelta(days=1)
+    else:
+        base_date = now.date()
+    n_days = 0
+    while (base_date + datetime.timedelta(days=n_days)).weekday() != 2: # 2 = 水曜
+        n_days += 1
+    next_date = base_date + datetime.timedelta(days=n_days)
+    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
 
 def analyze_trends(history_data):
     all_nums = []
@@ -321,10 +358,8 @@ def analyze_trends(history_data):
     return hot, cold
 
 def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_predictions=5):
-    import numpy as np
     print("🧠 ハイブリッドAI（RF + XGB + LSTM）による予測を開始します...")
 
-    # 1〜40の数字の確率を算出
     rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
     rf_model.fit(X_train, y_train)
     rf_preds = rf_model.predict_proba(X_latest)
@@ -365,7 +400,6 @@ def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_
 
     final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
     
-    # ランク判定
     avg_max_score = np.mean(np.sort(final_prob)[-8:])
     if avg_max_score > 0.3:
         confidence_rank, confidence_msg = "Sランク", "🔥 激アツ！3つの最先端AIの予測が強く一致しました！"
@@ -374,7 +408,6 @@ def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_
     else:
         confidence_rank, confidence_msg = "Bランク", "⚠️ 波乱含み。AI間で意見が分かれており、荒れる可能性があります。"
 
-    # ビンゴ5独自の8枠ルールを適用した予測生成
     bingo_bins = [
         list(range(1, 6)), list(range(6, 11)), list(range(11, 16)), list(range(16, 21)),
         list(range(21, 26)), list(range(26, 31)), list(range(31, 36)), list(range(36, 41))
@@ -457,11 +490,9 @@ def manage_history(latest_data, new_predictions):
     print("☁️ JSONBin(Bingo5)から履歴を取得中...")
     history_record = load_history_from_jsonbin()
             
-    # ▼▼▼ 追加：JSONBinが初期状態（文字列や空）の場合のエラー防止策 ▼▼▼
     if not isinstance(history_record, list):
         history_record = []
     history_record = [r for r in history_record if isinstance(r, dict)]
-    # ▲▲▲ ここまで ▲▲▲
 
     latest_kai = latest_data['kai']
     latest_kai_num = int(re.search(r'\d+', latest_kai).group())
@@ -512,75 +543,76 @@ def manage_history(latest_data, new_predictions):
     save_history_to_jsonbin(history_record)
     return history_record
 
-def get_next_bingo5_date():
-    """次回抽選日(水曜)を計算"""
-    now = datetime.datetime.now()
-    if now.hour >= 19 or (now.hour == 18 and now.minute >= 30):
-        base_date = now.date() + datetime.timedelta(days=1)
-    else:
-        base_date = now.date()
-    n_days = 0
-    while (base_date + datetime.timedelta(days=n_days)).weekday() != 2: # 2 = 水曜
-        n_days += 1
-    next_date = base_date + datetime.timedelta(days=n_days)
-    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
-    return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
-
 def get_bingo5_full_detail():
-    print("☁️ 楽天宝くじからビンゴ5の詳細データを抽出中...")
-    url = "https://takarakuji.rakuten.co.jp/backnumber/bingo5/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    print("☁️ 複数のサイトからビンゴ5の詳細データを抽出中...")
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    }
     result_data = {"round": "", "date": "", "numbers": [], "prizes": []}
 
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200:
-            res.encoding = 'euc-jp'
+    urls_to_try = [
+        "https://www.hpfree.com/bingo5/",
+        "https://loto.e-shinkou.com/bingo5/",
+        "https://www.takarakujinet.co.jp/bingo5/",
+        "https://sougaku.com/bingo5/"
+    ]
+
+    for url in urls_to_try:
+        try:
+            res = requests.get(url, headers=headers, timeout=8, verify=False)
+            if res.status_code != 200: continue
+            res.encoding = res.apparent_encoding
             soup = BeautifulSoup(res.content, 'html.parser')
 
-            target_table = None
-            for table in soup.find_all('table'):
-                text = table.get_text()
-                if '1等' in text and '7等' in text: # ビンゴ5は7等まである
-                    target_table = table
-                    break
-            
-            if not target_table: return None
+            text = soup.get_text(separator=' ', strip=True)
+            text = re.sub(r'\s+', ' ', text)
 
-            # テーブル全体のテキストから回号と日付、番号を取得
-            text = target_table.get_text(separator=' ', strip=True)
-            m_round = re.search(r'第\s*(\d+)\s*回', text)
-            m_date = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
-            if m_round: result_data["round"] = f"第{m_round.group(1).zfill(4)}回"
-            if m_date: result_data["date"] = f"{m_date.group(1)}/{m_date.group(2).zfill(2)}/{m_date.group(3).zfill(2)}"
-            
-            # 数字の取得
-            start_idx = m_date.end() if m_date else 0
-            end_idx = text.find('1等')
-            if end_idx == -1: end_idx = len(text)
-            
-            num_chunk = text[start_idx:end_idx]
-            digits = re.findall(r'(?<!\d)\d{1,2}(?!\d)', num_chunk)
-            valid_nums = [str(n).zfill(2) for n in digits if 1 <= int(n) <= 40]
-            if len(valid_nums) >= 8: 
-                result_data["numbers"] = valid_nums[:8]
+            if not result_data["round"]:
+                m_round = re.search(r'第\s*(\d+)\s*回', text)
+                if m_round:
+                    result_data["round"] = f"第{m_round.group(1).zfill(4)}回"
+                    
+                    chunk = text[m_round.end():m_round.end()+300]
+                    m_date = re.search(r'(\d{4})\s*[年./]\s*(\d{1,2})\s*[月./]\s*(\d{1,2})', chunk)
+                    if m_date:
+                        result_data["date"] = f"{m_date.group(1)}/{m_date.group(2).zfill(2)}/{m_date.group(3).zfill(2)}"
+                        
+                        num_chunk = chunk[m_date.end():]
+                        stop = re.search(r'(1等|当せん金|賞金)', num_chunk)
+                        if stop: num_chunk = num_chunk[:stop.start()]
+                        
+                        digits = re.findall(r'(?<!\d)([0-4]?\d)(?!\d)', num_chunk)
+                        valid_nums = [str(int(n)).zfill(2) for n in digits if 1 <= int(n) <= 40]
+                        if len(valid_nums) >= 8:
+                            result_data["numbers"] = valid_nums[:8]
 
-            # 賞金の取得
-            for tr in target_table.find_all('tr'):
-                header_cell = tr.find(['th', 'td'])
-                if not header_cell: continue
-                header_text = header_cell.get_text(strip=True)
-                
+            # 賞金データの抽出
+            if result_data["round"] and not result_data["prizes"]:
                 for i in range(1, 8):
-                    if f'{i}等' in header_text:
-                        tds = tr.find_all('td')
-                        if len(tds) >= 2:
-                            result_data["prizes"].append({"grade": f"{i}等", "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)})
+                    # 「金額」と「口数」の順番がサイトによって違うため、両方を網羅
+                    m_prize1 = re.search(rf'{i}等\D+?([\d,]+)\s*円\D+?([\d,]+)\s*口', text)
+                    m_prize2 = re.search(rf'{i}等\D+?([\d,]+)\s*口\D+?([\d,]+)\s*円', text)
+                    
+                    if m_prize1:
+                        result_data["prizes"].append({"grade": f"{i}等", "winners": f"{m_prize1.group(2)}口", "prize": f"{m_prize1.group(1)}円"})
+                    elif m_prize2:
+                        result_data["prizes"].append({"grade": f"{i}等", "winners": f"{m_prize2.group(1)}口", "prize": f"{m_prize2.group(2)}円"})
+                    elif re.search(rf'{i}等\D+(該当なし|なし)', text):
+                        result_data["prizes"].append({"grade": f"{i}等", "winners": "0口", "prize": "0円"})
+                
+            if result_data["round"] and result_data["numbers"] and len(result_data["prizes"]) >= 7:
+                print(f"✅ 詳細データの完全抽出に成功しました！({url.split('/')[2]})")
+                return result_data
 
-            return result_data
-    except Exception as e:
-        print(f"❌ ビンゴ5データ解析エラー: {e}")
-        return None
+        except Exception:
+            pass
+
+    print("⚠️ 詳細データが取得できなかったため、基本データのみを返します。")
+    hist = fetch_history_data()
+    if hist and hist[0]['kai'] != "第0000回":
+        return {"round": hist[0]['kai'], "date": hist[0]['date'], "numbers": hist[0]['main'], "prizes": []}
+    return None
 
 def create_result_image(bingo5_nums, base_image_path, output_image_path, target_kai="", target_date="", confidence_rank="Aランク"):
     print("🎨 ビンゴ5専用の予想画像を生成中（ピンクテーマ・2段組）...")
@@ -596,7 +628,7 @@ def create_result_image(bingo5_nums, base_image_path, output_image_path, target_
     shadow_color = (100, 100, 100)
     white = (255, 255, 255)
     title_color = white          
-    ball_color = (219, 39, 119) # ピンク #db2777
+    ball_color = (219, 39, 119) 
 
     ball_dia = 200  
     ball_space_x = 40 
@@ -719,7 +751,6 @@ def build_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
-        <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
@@ -824,7 +855,7 @@ def build_html():
 
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
-            <p style="font-size: 14px; color: #64748b;">※楽天宝くじのアーカイブデータより抽出（過去1年分）</p>
+            <p style="font-size: 14px; color: #64748b;">※専門サイトのアーカイブデータより抽出（過去1年分）</p>
             <div class="scroll-table-container">
                 <table>
                     <thead>
@@ -861,7 +892,7 @@ def build_html():
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-        {imobile_overlay}
+    {imobile_overlay}
 
 </body>
 </html>"""
@@ -988,7 +1019,6 @@ def generate_bingo5_detail_page(result_data):
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
-        <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
@@ -1040,9 +1070,7 @@ def generate_bingo5_detail_page(result_data):
         <p>※当サイトのデータは当選を保証するものではありません。</p>
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
-
-{imobile_overlay}
-    
+    {imobile_overlay}
 </body>
 </html>"""
     with open("bingo5_detail.html", "w", encoding="utf-8") as f:
@@ -1055,10 +1083,10 @@ if __name__ == "__main__":
         f.write(final_html)
         
     real_data = get_bingo5_full_detail()
-    # ▼▼▼ ここを追加 ▼▼▼
+    
     if not real_data:
         real_data = {"round": "第----回", "date": "----/--/--", "numbers": ["-","-","-","-","-","-","-","-"], "prizes": []}
-    # ▲▲▲ ここまで ▲▲▲
+        
     generate_bingo5_detail_page(real_data)
     
     try:
