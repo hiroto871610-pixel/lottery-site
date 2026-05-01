@@ -1820,7 +1820,7 @@ def build_html():
     
     # ① LINEの送信処理（条件は一切変更なし）
     if send_flag and msg:
-        # post_to_line(msg)
+        post_to_line(msg)
         print("✅ LINEへの自動配信を実行しました。")
     else:
         print("💤 ロト7：LINE配信対象外のためスキップしました。")
