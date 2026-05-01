@@ -1126,7 +1126,6 @@ def generate_loto6_detail_page(result_data):
         {imobile_overlay}
     </div>
 
-
 </body>
 </html>"""
 

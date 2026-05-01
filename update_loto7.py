@@ -1082,10 +1082,6 @@ def generate_loto7_detail_page(result_data):
     <div class="ad-sp">
         {imobile_overlay}
     </div>
-<<<<<<< HEAD
-
-=======
->>>>>>> 6747b75a6dcb3576cd014c55e99d748dd73ac169
 
 </body>
 </html>"""
