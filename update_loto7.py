@@ -902,7 +902,16 @@ def generate_loto7_detail_page(result_data):
             <span style="font-size: 26px; display: inline-block; margin-top: 5px; letter-spacing: 1px;">{result_data.get('carryover', '0円')}</span>
         </div>
         """
-
+imobile_overlay = """
+    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+        <div style="margin:auto;z-index:99999;" >
+            <div id="im-6d4249806e284e54896bb6614d5ca6f5">
+                <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+                <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+            </div>
+        </div>
+    </div>
+    """
     # HTMLの組み立て（※CSSの波括弧は {{ }} と2つ重ねています）
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -1083,7 +1092,10 @@ def generate_loto7_detail_page(result_data):
     <div class="ad-sp">
         {imobile_overlay}
     </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6747b75a6dcb3576cd014c55e99d748dd73ac169
 
 </body>
 </html>"""
@@ -1422,7 +1434,18 @@ def build_html():
     carryover_html = f'<div class="carryover-badge">{carryover_text}</div>' if carryover_text else ''
 
     next_date_str = get_next_loto7_date()
-    
+
+imobile_overlay = """
+    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+        <div style="margin:auto;z-index:99999;" >
+            <div id="im-6d4249806e284e54896bb6614d5ca6f5">
+                <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+                <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+            </div>
+        </div>
+    </div>
+    """
+
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1710,7 +1733,11 @@ def build_html():
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
+<<<<<<< HEAD
     <div class="ad-sp">
+=======
+<div class="ad-sp">
+>>>>>>> 6747b75a6dcb3576cd014c55e99d748dd73ac169
         {imobile_overlay}
     </div>
 
