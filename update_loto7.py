@@ -902,17 +902,7 @@ def generate_loto7_detail_page(result_data):
             <span style="font-size: 26px; display: inline-block; margin-top: 5px; letter-spacing: 1px;">{result_data.get('carryover', '0円')}</span>
         </div>
         """
-imobile_overlay = """
-    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
-        <div style="margin:auto;z-index:99999;" >
-            <div id="im-6d4249806e284e54896bb6614d5ca6f5">
-                <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-                <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
-            </div>
-        </div>
-    </div>
-    """
-    # HTMLの組み立て（※CSSの波括弧は {{ }} と2つ重ねています）
+    # ▼ ここ！左端から「半角スペース4つ」の位置に合わせます！ ▼
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1886,9 +1876,10 @@ imobile_overlay = """
                 post_to_instagram(public_image_url, caption)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
-    else:
+        else:
         print("💤 ロト7：SNS動画配信対象外のためスキップしました。")
 
+    # ▼ ここ！一番左端から「半角スペース4つ」に合わせます ▼
     return html
 
 # 最終実行部分（ここは関数の外側に戻します）
