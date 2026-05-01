@@ -1708,17 +1708,18 @@ def build_html():
             </div>
         </div>
 
-<div style="text-align: center; margin: 20px 0;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            
-            <div class="ad-pc">
-                {imobile_ad2_pc}
-            </div>
-            
-            <div class="ad-sp">
-                {imobile_ad2_sp}
-            </div>
+# 👇広告の表示部分👇
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+
+        <div class="ad-pc">
+            {imobile_ad2_pc}  # ← ここが完全に一致しているか！
         </div>
+
+        <div class="ad-sp">
+            {imobile_ad2_sp}  # ← ここが完全に一致しているか！
+        </div>
+    </div>
 
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
