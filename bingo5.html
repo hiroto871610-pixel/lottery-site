@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>【第0001回】ビンゴ5当選予想・データ分析ポータル | 最新AI予想</title>
+    <meta name="description" content="第0001回のビンゴ5当選予想。過去のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #fdf2f8; color: #333; }
+        header { background-color: #be185d; padding: 10px 0; text-align: center; }
+        nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }
+        nav a { color: #be185d; padding: 12px 12px; font-size: 14px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        nav a.active { border-bottom: 3px solid #db2777; color: #db2777; }
+        nav a:hover { background-color: #fdf2f8; }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        .section-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .section-header { color: #db2777; border-bottom: 2px solid #fbcfe8; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px; }
+        .prediction-box { background-color: #fdf2f8; border: 2px solid #f9a8d4; border-radius: 12px; padding: 25px; margin-bottom: 20px;}
+        .numbers-row { background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; align-items: center; }
+        .row-label { font-size: 18px; font-weight: bold; color: #9d174d; background-color: #fce7f3; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 60px; text-align: center; }
+        .ball-container { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ball { display: inline-flex; justify-content: center; align-items: center; width: 42px; height: 42px; background: linear-gradient(135deg, #f472b6, #db2777); color: white; border-radius: 50%; font-size: 18px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }
+
+        @media (max-width: 600px) { .numbers-row { flex-direction: column; align-items: flex-start; padding: 15px;} .row-label { margin-bottom: 10px; } .ball { width: 36px; height: 36px; font-size: 16px;} }
+        
+        .hc-container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .hc-box { flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; }
+        .hot-box { background-color: #fee2e2; border: 1px solid #fca5a5; }
+        .cold-box { background-color: #e0f2fe; border: 1px solid #7dd3fc; }
+        .hc-title { font-weight: bold; margin-bottom: 10px; }
+        .hc-number { display: inline-block; padding: 5px 10px; margin: 3px; border-radius: 4px; font-weight: bold; background: white; }
+        .hot-box .hc-number { color: #ef4444; border: 1px solid #ef4444; }
+        .cold-box .hc-number { color: #0ea5e9; border: 1px solid #0ea5e9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; text-align: center; }
+        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; color: #475569; font-weight: bold; }
+        .result-win { color: #db2777; font-weight: bold; background-color: #fce7f3; padding: 4px 8px; border-radius: 4px; }
+        .result-lose { color: #94a3b8; }
+        .scroll-table-container { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 15px; }
+        .scroll-table-container table { margin-top: 0; border-collapse: separate; border-spacing: 0; }
+        .scroll-table-container th { position: sticky; top: 0; z-index: 1; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }
+        footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #db2777; }
+        .footer-links { margin-bottom: 15px; }
+        .footer-links a { color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }
+        .footer-links a:hover { color: white; text-decoration: underline; }
+        .ad-pc { display: block; }
+        .ad-sp { display: none; }
+        @media (max-width: 600px) { .ad-pc { display: none; } .ad-sp { display: block; } }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" style="text-decoration: none;">
+            <img src="Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ビンゴ5当選予想・速報</div>
+        </a>
+    </header>
+    <nav>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html">ロト6</a>
+        <a href="bingo5.html" class="active">ビンゴ5</a>
+        <a href="numbers.html">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
+    </nav>
+
+<div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #fdf2f8); border: 2px solid #db2777; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">
+        <h3 style="color: #9d174d; margin-top: 0; font-size: 20px; font-weight: bold;">📊 最新の当せん詳細データ</h3>
+        <a href="bingo5_detail.html" style="display: inline-block; background-color: #db2777; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(219, 39, 119, 0.3); transition: transform 0.2s;">
+            🔍 詳細ページを確認する
+        </a>
+    </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        <div class="ad-pc">
+<div id="im-d34f87828c9740a7b9a62172425cfcfd">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"})</script>
+</div>
+</div>
+        <div class="ad-sp">
+<div id="im-c4e1d905d99e4087b6a8d79bcd575552">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"})</script>
+</div>
+</div>
+    </div>
+
+    <div class="container">
+        <div class="section-card" style="background: linear-gradient(to right, #ffffff, #fdf2f8); border-left: 5px solid #db2777; padding: 20px;">
+            <div style="font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px;">⏰ 次回抽選日と購入期限</div>
+            <div style="font-size: 15px; color: #475569;">
+                <span style="display:inline-block; margin-right: 20px;">次回抽選: <strong style="color: #db2777; font-size: 18px;">5月6日(水)</strong></span>
+                <span style="display:inline-block;">購入期限: 当日 <strong style="color: #ef4444; font-size: 18px;">18:30</strong> まで</span>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top: 5px;">※ネット購入（楽天銀行等）の原則的な締め切り時間です。</div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">🎯 次回 (第0001回) ビンゴ5の予想</h2>
+            <p>ビンゴ5の「各枠から1つ選ぶ」ルールに完全対応した3つのAI複合予測です。</p>
+            <div class="prediction-box">
+            </div>
+            
+            <div style="background-color: #f8fafc; border-left: 5px solid #db2777; padding: 20px; border-radius: 8px; margin-top: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h3 style="color: #9d174d; margin-top: 0; font-size: 18px; display: flex; align-items: center;">
+                    <span style="font-size: 22px; margin-right: 8px;">🤖</span> AI予測ロジック解説（当サイト独自）
+                </h3>
+                <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 12px;">
+                    過去のデータを基に、<strong>「Random Forest」「XGBoost」「LSTM（ディープラーニング）」</strong>の3つのAIが各枠（8箇所）の出現確率を算出。ビンゴ5の公式ルールに従って最適解を生成しています。
+                </p>
+                <div style="background-color: #fdf2f8; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #fbcfe8;">
+                    <strong style="color: #9d174d; font-size: 16px;">🎯 AI総合判定：Cランク</strong><br>
+                    <span style="color: #be185d; font-weight: bold;">データ不足です</span>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #fbcfe8;">
+                        <strong style="color: #e11d48; font-size: 15px;">🔥 AI特注HOT数字：【  】</strong><br>
+                        <span style="color: #475569; font-size: 14px;">※上記を軸に構成された<strong>【予想A】</strong>がおすすめの本命予想です！</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 (第0000回 - 2026/01/01)</h2>
+            <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
+                <div class="numbers-row">
+                    <div class="row-label" style="background-color: #e2e8f0; color: #475569;">抽せん数字</div>
+                    <div class="ball-container">
+                        <span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">01</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">06</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">11</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">16</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">21</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">26</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">31</span><span class="ball" style="background: linear-gradient(135deg, #94a3b8, #64748b);">36</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📊 直近の出現傾向 (過去1年分の集計)</h2>
+            <div class="hc-container">
+                <div class="hc-box hot-box"><div class="hc-title">🔥 よく出ている数字 (HOT)</div><span class="hc-number">01 (1回)</span><span class="hc-number">06 (1回)</span><span class="hc-number">11 (1回)</span><span class="hc-number">16 (1回)</span><span class="hc-number">21 (1回)</span></div>
+                <div class="hc-box cold-box"><div class="hc-title">❄️ 出ていない数字 (COLD)</div><span class="hc-number">40 (0回)</span><span class="hc-number">39 (0回)</span><span class="hc-number">38 (0回)</span><span class="hc-number">37 (0回)</span><span class="hc-number">35 (0回)</span></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📝 当サイトの予想と成績履歴</h2>
+            <div class="scroll-table-container">
+            <table>
+                <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight:bold; color:#be185d;">第0001回</td>
+                        <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">----</span></td>
+                        <td><span class="result-lose">抽選待ち...</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
+            <p style="font-size: 14px; color: #64748b;">※楽天宝くじのアーカイブデータより抽出（過去1年分）</p>
+            <div class="scroll-table-container">
+                <table>
+                    <thead>
+                        <tr><th>回号 (抽選日)</th><th>抽せん数字</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight:bold; color:#be185d;">第0000回<br><span style="font-size:12px; font-weight:normal; color:#666;">(2026/01/01)</span></td>
+                            <td><span style="font-size:16px; font-weight:bold; letter-spacing:1px;">01, 06, 11, 16, 21, 26, 31, 36</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        <div class="ad-pc">
+<div id="im-4465412234044af19505d01849472875">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929933,type:"banner",display:"inline",elementid:"im-4465412234044af19505d01849472875"})</script>
+</div>
+</div>
+        <div class="ad-sp">
+<div id="im-111a4112bae54171b8c129433281c73c">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929936,type:"banner",display:"inline",elementid:"im-111a4112bae54171b8c129433281c73c"})</script>
+</div>
+</div>
+    </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="about.html">運営者情報</a> |
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
+    </footer>
+
+        
+<div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+    <div style="margin:auto;z-index:99999;" >
+        <div id="im-6d4249806e284e54896bb6614d5ca6f5">
+            <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+            <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>

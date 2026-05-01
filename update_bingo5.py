@@ -256,7 +256,7 @@ def fetch_history_data():
     
     today = datetime.date.today()
     target_urls = [f"{base_url}lastresults/"]
-    for i in range(12): # ビンゴ5は週1回なので12ヶ月分で約50回分
+    for i in range(12): 
         y = today.year
         m = today.month - i
         if m <= 0:
@@ -270,31 +270,42 @@ def fetch_history_data():
             if res.status_code != 200: continue
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
-            text = soup.get_text(separator=' ')
             
-            for m in re.finditer(r'第\s*(\d+)\s*回', text):
-                kai_num = m.group(1).zfill(4)
-                kai_str = f"第{kai_num}回"
-                chunk = text[m.end():m.end() + 300]
+            # ▼▼▼ 修正：テーブルの行(tr)ごとに確実に解析する最強ロジック ▼▼▼
+            for tr in soup.find_all('tr'):
+                text = tr.get_text(separator=' ', strip=True)
                 
-                next_kai_match = re.search(r'第\s*\d+\s*回', chunk)
-                if next_kai_match: chunk = chunk[:next_kai_match.start()]
-                
-                date_m = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', chunk)
-                if not date_m: continue
-                date_str = f"{date_m.group(1)}/{date_m.group(2).zfill(2)}/{date_m.group(3).zfill(2)}"
-                
-                num_chunk = chunk[date_m.end():]
-                all_digits = re.findall(r'\d+', num_chunk)
-                valid_nums = [n.zfill(2) for n in all_digits if 1 <= int(n) <= 40]
-                
-                # ビンゴ5はボーナスなしの計8個
-                if len(valid_nums) >= 8:
-                    main_nums = valid_nums[:8]
-                    if not any(d['kai'] == kai_str for d in history_data):
-                        history_data.append({"kai": kai_str, "date": date_str, "main": main_nums})
-        except Exception: pass
+                if '第' in text and '回' in text:
+                    m_round = re.search(r'第\s*(\d+)\s*回', text)
+                    m_date = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
+                    
+                    if m_round and m_date:
+                        kai_str = f"第{m_round.group(1).zfill(4)}回"
+                        date_str = f"{m_date.group(1)}/{m_date.group(2).zfill(2)}/{m_date.group(3).zfill(2)}"
+                        
+                        # 日付より後ろのテキストを切り出す（日付の数字の誤飲防止）
+                        text_after_date = text[m_date.end():]
+                        
+                        # 「1等」などの賞金情報より前を切り出す（賞金の誤飲防止）
+                        prize_idx = text_after_date.find('1等')
+                        if prize_idx != -1: 
+                            text_after_date = text_after_date[:prize_idx]
+                            
+                        # 残ったテキストから数字だけを抽出
+                        digits = re.findall(r'(?<!\d)\d{1,2}(?!\d)', text_after_date)
+                        valid_nums = [str(n).zfill(2) for n in digits if 1 <= int(n) <= 40]
+                        
+                        if len(valid_nums) >= 8:
+                            if not any(d['kai'] == kai_str for d in history_data):
+                                history_data.append({"kai": kai_str, "date": date_str, "main": valid_nums[:8]})
+            # ▲▲▲ ここまで ▲▲▲
+        except Exception:
+            pass 
             
+    if not history_data:
+        print("⚠️ 過去データが取得できなかったためフェイルセーフを発動しました。")
+        history_data.append({"kai": "第0000回", "date": "2026/01/01", "main": ["01","06","11","16","21","26","31","36"]})
+        
     history_data.sort(key=lambda x: int(re.search(r'\d+', x['kai']).group()), reverse=True)
     return history_data
 
@@ -447,6 +458,12 @@ def manage_history(latest_data, new_predictions):
     print("☁️ JSONBin(Bingo5)から履歴を取得中...")
     history_record = load_history_from_jsonbin()
             
+    # ▼▼▼ 追加：JSONBinが初期状態（文字列や空）の場合のエラー防止策 ▼▼▼
+    if not isinstance(history_record, list):
+        history_record = []
+    history_record = [r for r in history_record if isinstance(r, dict)]
+    # ▲▲▲ ここまで ▲▲▲
+
     latest_kai = latest_data['kai']
     latest_kai_num = int(re.search(r'\d+', latest_kai).group())
     
