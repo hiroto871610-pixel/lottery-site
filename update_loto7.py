@@ -1395,7 +1395,18 @@ def build_html():
     carryover_html = f'<div class="carryover-badge">{carryover_text}</div>' if carryover_text else ''
 
     next_date_str = get_next_loto7_date()
-    
+
+imobile_overlay = """
+    <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+        <div style="margin:auto;z-index:99999;" >
+            <div id="im-6d4249806e284e54896bb6614d5ca6f5">
+                <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+                <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+            </div>
+        </div>
+    </div>
+    """
+
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
