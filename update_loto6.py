@@ -1708,7 +1708,6 @@ def build_html():
             </div>
         </div>
 
-# 👇広告の表示部分👇
     <div style="text-align: center; margin: 20px 0;">
         <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
 
