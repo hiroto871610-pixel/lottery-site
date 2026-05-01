@@ -837,9 +837,7 @@ def build_html():
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-    <div class="ad-sp">
         {imobile_overlay}
-    </div>
 
 </body>
 </html>"""
@@ -1017,7 +1015,9 @@ def generate_bingo5_detail_page(result_data):
         <p>※当サイトのデータは当選を保証するものではありません。</p>
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
-    <div class="ad-sp">{imobile_overlay}</div>
+
+{imobile_overlay}
+    
 </body>
 </html>"""
     with open("bingo5_detail.html", "w", encoding="utf-8") as f:

@@ -972,9 +972,7 @@ def generate_numbers_detail_page(result_data):
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
-    <div class="ad-sp">
         {imobile_overlay}
-    </div>
 
 </body>
 </html>"""
@@ -1647,9 +1645,7 @@ def build_html():
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
-    <div class="ad-sp">
         {imobile_overlay}
-    </div>
 
 </body>
 </html>"""

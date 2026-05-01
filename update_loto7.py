@@ -1079,9 +1079,7 @@ def generate_loto7_detail_page(result_data):
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-    <div class="ad-sp">
         {imobile_overlay}
-    </div>
 
 </body>
 </html>"""
@@ -1707,13 +1705,7 @@ def build_html():
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-<<<<<<< HEAD
-    <div class="ad-sp">
-=======
-<div class="ad-sp">
->>>>>>> 6747b75a6dcb3576cd014c55e99d748dd73ac169
         {imobile_overlay}
-    </div>
 
 </body>
 </html>"""
