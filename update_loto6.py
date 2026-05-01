@@ -177,6 +177,49 @@ def save_history_to_jsonbin(data):
 load_dotenv()
 # ▲▲▲ ここまで追加 ▲▲▲
 
+# =========================================================
+# 💰 i-mobile 広告共通パーツ（ここなら全ての関数から使えます！）
+# =========================================================
+imobile_overlay = """
+<div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
+    <div style="margin:auto;z-index:99999;" >
+        <div id="im-6d4249806e284e54896bb6614d5ca6f5">
+            <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+            <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
+        </div>
+    </div>
+</div>
+"""
+
+imobile_ad2_pc = """
+<div id="im-d34f87828c9740a7b9a62172425cfcfd">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"})</script>
+</div>
+"""
+
+imobile_ad2_sp = """
+<div id="im-c4e1d905d99e4087b6a8d79bcd575552">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"})</script>
+</div>
+"""
+
+imobile_ad3_pc = """
+<div id="im-4465412234044af19505d01849472875">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929933,type:"banner",display:"inline",elementid:"im-4465412234044af19505d01849472875"})</script>
+</div>
+"""
+
+imobile_ad3_sp = """
+<div id="im-111a4112bae54171b8c129433281c73c">
+  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929936,type:"banner",display:"inline",elementid:"im-111a4112bae54171b8c129433281c73c"})</script>
+</div>
+"""
+# =========================================================
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HISTORY_FILE = 'history_loto6.json'
@@ -1053,25 +1096,18 @@ def generate_loto6_detail_page(result_data):
     </a>
 </div>
 
+        <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">
-    <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-    
-    <!-- ▼ PCで見ている時だけ表示されるタグ2 ▼ -->
-    <div class="ad-pc">
-        <div id="im-d34f87828c9740a7b9a62172425cfcfd">
-  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"}})</script>
-</div>
-    </div>
-    
-    <!-- ▼ スマホで見ている時だけ表示されるタグ2 ▼ -->
-    <div class="ad-sp">
-        <div id="im-c4e1d905d99e4087b6a8d79bcd575552">
-  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({{pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"}})</script>
-</div>
-    </div>
-</div>
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            
+            <div class="ad-pc">
+                {imobile_ad2_pc}
+            </div>
+            
+            <div class="ad-sp">
+                {imobile_ad2_sp}
+            </div>
+        </div>
 
     </div>
 
@@ -1086,27 +1122,9 @@ def generate_loto6_detail_page(result_data):
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
-    # ▼▼▼ i-mobile オーバーレイ広告用のスクリプト文字列（fをつけない！） ▼▼▼
-
-imobile_overlay = """
-
-<div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
-
-<div style="margin:auto;z-index:99999;" >
-
-<div id="im-6d4249806e284e54896bb6614d5ca6f5">
-
-<script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-
-<script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
-
-</div>
-
-</div>
-
-</div>
-
-"""# ▲▲▲ ここまで ▲▲▲
+    <div class="ad-sp">
+        {imobile_overlay}
+    </div>
 
 
 </body>
@@ -1690,20 +1708,17 @@ def build_html():
             </div>
         </div>
 
-        imobile_ad2_pc = """
-<div id="im-d34f87828c9740a7b9a62172425cfcfd">
-  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929931,type:"banner",display:"inline",elementid:"im-d34f87828c9740a7b9a62172425cfcfd"})</script>
-</div>
-"""
-
-# 広告2（スマホ用）
-imobile_ad2_sp = """
-<div id="im-c4e1d905d99e4087b6a8d79bcd575552">
-  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929935,type:"banner",display:"inline",elementid:"im-c4e1d905d99e4087b6a8d79bcd575552"})</script>
-</div>
-"""
+<div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            
+            <div class="ad-pc">
+                {imobile_ad2_pc}
+            </div>
+            
+            <div class="ad-sp">
+                {imobile_ad2_sp}
+            </div>
+        </div>
 
         <div class="section-card">
             <h2 class="section-header">📅 過去1年間の当選番号 (実際のデータ)</h2>
@@ -1722,27 +1737,24 @@ imobile_ad2_sp = """
                             <td><span style="color:#16a34a; font-size:14px; font-weight:bold;">(B: {", ".join(row['bonus'])})</span></td>
                         </tr>\n"""
                         
-    html += """                    </tbody>
+    html += f"""                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    # 広告3（PC用）
-imobile_ad3_pc = """
-<div id="im-4465412234044af19505d01849472875">
-  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592459,asid:1929933,type:"banner",display:"inline",elementid:"im-4465412234044af19505d01849472875"})</script>
-</div>
-"""
-
-# 広告3（スマホ用）
-imobile_ad3_sp = """
-<div id="im-111a4112bae54171b8c129433281c73c">
-  <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-  <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929936,type:"banner",display:"inline",elementid:"im-111a4112bae54171b8c129433281c73c"})</script>
-</div>
-"""
+    <!-- 👇広告の表示部分👇 -->
+    <div style="text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+        
+        <div class="ad-pc">
+            {imobile_ad3_pc}
+        </div>
+        
+        <div class="ad-sp">
+            {imobile_ad3_sp}
+        </div>
+    </div>
 
     <footer>
         <div class="footer-links">
@@ -1752,31 +1764,12 @@ imobile_ad3_sp = """
             <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-    # ▼▼▼ i-mobile オーバーレイ広告用のスクリプト文字列（fをつけない！） ▼▼▼
-
-imobile_overlay = """
-
-<div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
-
-<div style="margin:auto;z-index:99999;" >
-
-<div id="im-6d4249806e284e54896bb6614d5ca6f5">
-
-<script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
-
-<script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84847,mid:592460,asid:1929926,type:"banner",display:"inline",elementid:"im-6d4249806e284e54896bb6614d5ca6f5"})</script>
-
-</div>
-
-</div>
-
-</div>
-
-"""# ▲▲▲ ここまで ▲▲▲
-
+    <div class="ad-sp">
+        {imobile_overlay}
+    </div>
 
 </body>
 </html>"""
