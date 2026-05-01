@@ -271,11 +271,10 @@ def fetch_history_data():
             res.encoding = 'euc-jp'
             soup = BeautifulSoup(res.content, 'html.parser')
             
-            # ▼▼▼ 修正：テーブルの行(tr)ごとに確実に解析する最強ロジック ▼▼▼
-            for tr in soup.find_all('tr'):
-                text = tr.get_text(separator=' ', strip=True)
-                
-                if '第' in text and '回' in text:
+            # 楽天宝くじのビンゴ5は、1回の結果が1つの<table>にまとまっている
+            for table in soup.find_all('table'):
+                text = table.get_text(separator=' ', strip=True)
+                if '第' in text and '回' in text and '1等' in text:
                     m_round = re.search(r'第\s*(\d+)\s*回', text)
                     m_date = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
                     
@@ -283,22 +282,22 @@ def fetch_history_data():
                         kai_str = f"第{m_round.group(1).zfill(4)}回"
                         date_str = f"{m_date.group(1)}/{m_date.group(2).zfill(2)}/{m_date.group(3).zfill(2)}"
                         
-                        # 日付より後ろのテキストを切り出す（日付の数字の誤飲防止）
-                        text_after_date = text[m_date.end():]
+                        # 日付の直後から、"1等"の前までを切り出して数字を探す
+                        start_idx = m_date.end()
+                        end_idx = text.find('1等', start_idx)
+                        if end_idx == -1: end_idx = len(text)
                         
-                        # 「1等」などの賞金情報より前を切り出す（賞金の誤飲防止）
-                        prize_idx = text_after_date.find('1等')
-                        if prize_idx != -1: 
-                            text_after_date = text_after_date[:prize_idx]
-                            
+                        num_chunk = text[start_idx:end_idx]
+                        
                         # 残ったテキストから数字だけを抽出
-                        digits = re.findall(r'(?<!\d)\d{1,2}(?!\d)', text_after_date)
+                        digits = re.findall(r'(?<!\d)\d{1,2}(?!\d)', num_chunk)
                         valid_nums = [str(n).zfill(2) for n in digits if 1 <= int(n) <= 40]
                         
+                        # ビンゴ5は必ず8個の数字
                         if len(valid_nums) >= 8:
+                            main_nums = valid_nums[:8]
                             if not any(d['kai'] == kai_str for d in history_data):
-                                history_data.append({"kai": kai_str, "date": date_str, "main": valid_nums[:8]})
-            # ▲▲▲ ここまで ▲▲▲
+                                history_data.append({"kai": kai_str, "date": date_str, "main": main_nums})
         except Exception:
             pass 
             
@@ -542,34 +541,41 @@ def get_bingo5_full_detail():
             target_table = None
             for table in soup.find_all('table'):
                 text = table.get_text()
-                if '1等' in text and '2等' in text:
+                if '1等' in text and '7等' in text: # ビンゴ5は7等まである
                     target_table = table
                     break
             
             if not target_table: return None
 
+            # テーブル全体のテキストから回号と日付、番号を取得
+            text = target_table.get_text(separator=' ', strip=True)
+            m_round = re.search(r'第\s*(\d+)\s*回', text)
+            m_date = re.search(r'(\d{4})[/年]\s*(\d{1,2})\s*[/月]\s*(\d{1,2})', text)
+            if m_round: result_data["round"] = f"第{m_round.group(1).zfill(4)}回"
+            if m_date: result_data["date"] = f"{m_date.group(1)}/{m_date.group(2).zfill(2)}/{m_date.group(3).zfill(2)}"
+            
+            # 数字の取得
+            start_idx = m_date.end() if m_date else 0
+            end_idx = text.find('1等')
+            if end_idx == -1: end_idx = len(text)
+            
+            num_chunk = text[start_idx:end_idx]
+            digits = re.findall(r'(?<!\d)\d{1,2}(?!\d)', num_chunk)
+            valid_nums = [str(n).zfill(2) for n in digits if 1 <= int(n) <= 40]
+            if len(valid_nums) >= 8: 
+                result_data["numbers"] = valid_nums[:8]
+
+            # 賞金の取得
             for tr in target_table.find_all('tr'):
                 header_cell = tr.find(['th', 'td'])
                 if not header_cell: continue
                 header_text = header_cell.get_text(strip=True)
-                
-                if '数字' in header_text or '当せん' in header_text:
-                    row_text = tr.get_text(separator=' ')
-                    nums = re.findall(r'(?<!\d)\d{1,2}(?!\d)', row_text)
-                    valid_n = [str(n).zfill(2) for n in nums if 1 <= int(n) <= 40]
-                    if len(valid_n) >= 8: result_data["numbers"] = valid_n[:8]
                 
                 for i in range(1, 8):
                     if f'{i}等' in header_text:
                         tds = tr.find_all('td')
                         if len(tds) >= 2:
                             result_data["prizes"].append({"grade": f"{i}等", "winners": tds[-2].get_text(strip=True), "prize": tds[-1].get_text(strip=True)})
-
-            table_text = target_table.get_text(separator=' ', strip=True)
-            m_round = re.search(r'第\s*\d+\s*回', table_text)
-            m_date = re.search(r'\d{4}[年/]\d{1,2}[月/]\d{1,2}日?', table_text)
-            if m_round: result_data["round"] = m_round.group().replace(' ', '')
-            if m_date: result_data["date"] = m_date.group()
 
             return result_data
     except Exception as e:
@@ -713,6 +719,7 @@ def build_html():
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
@@ -981,6 +988,7 @@ def generate_bingo5_detail_page(result_data):
         <a href="numbers.html">ナンバーズ</a>
         <a href="jumbo.html">ジャンボ</a>
         <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
     </nav>
 
@@ -1047,6 +1055,10 @@ if __name__ == "__main__":
         f.write(final_html)
         
     real_data = get_bingo5_full_detail()
+    # ▼▼▼ ここを追加 ▼▼▼
+    if not real_data:
+        real_data = {"round": "第----回", "date": "----/--/--", "numbers": ["-","-","-","-","-","-","-","-"], "prizes": []}
+    # ▲▲▲ ここまで ▲▲▲
     generate_bingo5_detail_page(real_data)
     
     try:
