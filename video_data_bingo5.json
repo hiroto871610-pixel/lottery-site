@@ -14,37 +14,37 @@
     "prizes": [
         {
             "grade": "1等",
-            "winners": "2口",
+            "winners": "37口",
             "prize": "8,961,800円"
         },
         {
             "grade": "2等",
-            "winners": "37口",
+            "winners": "100口",
             "prize": "426,100円"
         },
         {
             "grade": "3等",
-            "winners": "100口",
+            "winners": "530口",
             "prize": "71,000円"
         },
         {
             "grade": "4等",
-            "winners": "530口",
+            "winners": "3,445口",
             "prize": "21,600円"
         },
         {
             "grade": "5等",
-            "winners": "3,445口",
+            "winners": "19,453口",
             "prize": "3,000円"
         },
         {
             "grade": "6等",
-            "winners": "19,453口",
+            "winners": "175,700口",
             "prize": "800円"
         },
         {
             "grade": "7等",
-            "winners": "175,700口",
+            "winners": "6口",
             "prize": "200円"
         }
     ],
