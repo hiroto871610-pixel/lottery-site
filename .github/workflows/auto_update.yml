@@ -37,6 +37,7 @@ jobs:
           JSONBIN_BIN_ID: ${{ secrets.JSONBIN_BIN_ID }}
           JSONBIN_BIN_ID_LOTO7: ${{ secrets.JSONBIN_BIN_ID_LOTO7 }}
           JSONBIN_BIN_ID_NUMBERS: ${{ secrets.JSONBIN_BIN_ID_NUMBERS }}
+          JSONBIN_BIN_ID_BINGO5: ${{ secrets.JSONBIN_BIN_ID_BINGO5}}
           JSONBIN_API_KEY: ${{ secrets.JSONBIN_API_KEY }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
