@@ -12,8 +12,6 @@ from moviepy.video.fx.all import fadein, fadeout
 from dotenv import load_dotenv
 from collections import Counter
 from gtts import gTTS
-import cloudinary
-import cloudinary.uploader
 
 import matplotlib.pyplot as plt
 import matplotlib
@@ -87,13 +85,8 @@ def update_archive_html(video_id, title, date_str):
         html = f.read()
         
     try:
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(html, 'html.parser')
-        grid = soup.find('div', class_='video-grid')
-        
-        if grid:
-            # 新しいブロックを作成 (loading="lazy" を追加してページの読み込みを高速化)
-            new_block_html = f"""
+        # 新しいブロックを作成 (loading="lazy" を追加してページの読み込みを高速化)
+        new_block_html = f"""
             <div class="video-card">
                 <div class="video-wrapper">
                     <iframe src="https://www.youtube.com/embed/{video_id}" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
@@ -102,22 +95,26 @@ def update_archive_html(video_id, title, date_str):
                     <h3 class="video-title">{title}</h3>
                     <span class="video-date">{date_str}</span>
                 </div>
-            </div>
-            """
-            new_card = BeautifulSoup(new_block_html, 'html.parser')
-            
-            # gridの一番上に新しい動画を挿入
-            grid.insert(0, new_card)
+            </div>"""
+
+        # 目印となる <div class="video-grid"> を探す
+        target_tag = '<div class="video-grid">'
+        if target_tag in html:
+            # ターゲットタグの直後に新しい動画ブロックを挿入
+            new_html = html.replace(target_tag, target_tag + "\n" + new_block_html, 1)
             
             # 古い動画を削除（最新12個＝約3ヶ月分だけ残す設定）
+            # <div class="video-card"> の数を数えて、13個目以降を消す簡単な処理を追加
+            import re
+            cards = re.findall(r'<div class="video-card">.*?</div>\s*</div>\s*</div>', new_html, re.DOTALL)
             MAX_VIDEOS = 12
-            cards = grid.find_all('div', class_='video-card')
             if len(cards) > MAX_VIDEOS:
-                for old_card in cards[MAX_VIDEOS:]:
-                    old_card.decompose() # 13個目以降の古いブロックをHTMLから消去
-                    
+                 # 古いカードのHTMLを特定して削除
+                 for old_card in cards[MAX_VIDEOS:]:
+                     new_html = new_html.replace(old_card, "")
+
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(str(soup))
+                f.write(new_html)
             print(f"✅ archive.html を更新し、最新{MAX_VIDEOS}件に整理しました！")
         else:
             print("❌ archive.html 内に <div class=\"video-grid\"> が見つかりませんでした。")
@@ -125,6 +122,78 @@ def update_archive_html(video_id, title, date_str):
     except Exception as e:
         print(f"❌ archive.htmlの更新中にエラーが発生しました: {e}")
 
+# ==========================================
+# 📸 Instagram 告知画像アップロード＆投稿機能
+# ==========================================
+def upload_image_to_server(image_path):
+    url = "https://freeimage.host/api/1/upload"
+    print("☁️ 画像をアップロードサーバー(Freeimage.host)に送信中...")
+    try:
+        import base64
+        with open(image_path, "rb") as file:
+            b64_image = base64.b64encode(file.read()).decode('utf-8')
+            
+        payload = {
+            "key": "6d207e02198a847aa98d0a2a901485a5",
+            "action": "upload",
+            "source": b64_image,
+            "format": "json"
+        }
+        response = requests.post(url, data=payload)
+        result = response.json()
+        
+        if result.get("status_code") == 200:
+            image_url = result["image"]["url"]
+            print(f"✅ 画像のURL化成功: {image_url}")
+            return image_url
+        else:
+            print(f"❌ サーバーエラー: {response.text}")
+            return None
+    except Exception as e:
+        print(f"❌ 画像アップロードエラー: {e}")
+        return None
+
+def post_to_instagram(image_url, caption_text):
+    import time
+    ig_account_id = os.environ.get("IG_ACCOUNT_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    
+    if not ig_account_id or not access_token:
+        print("⚠️ IG_ACCOUNT_ID または IG_ACCESS_TOKEN が設定されていません。")
+        return
+
+    container_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
+    container_payload = {
+        'image_url': image_url,
+        'caption': caption_text,
+        'access_token': access_token
+    }
+    print("☁️ Instagramへ画像をリクエスト中...")
+    container_response = requests.post(container_url, data=container_payload)
+    container_data = container_response.json()
+    
+    if 'id' not in container_data:
+        print(f"❌ コンテナ作成エラー: {container_data}")
+        return
+        
+    creation_id = container_data['id']
+
+    print("⏳ Instagram側の画像処理完了を15秒待ちます...")
+    time.sleep(15) 
+    
+    publish_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
+    publish_payload = {
+        'creation_id': creation_id,
+        'access_token': access_token
+    }
+    print("☁️ Instagramへ投稿を公開中...")
+    publish_response = requests.post(publish_url, data=publish_payload)
+    publish_data = publish_response.json()
+    
+    if 'id' in publish_data:
+        print("🎉🎉🎉 Instagramへの告知画像投稿が完了しました！ 🎉🎉🎉")
+    else:
+        print(f"❌ 公開エラー: {publish_data}")
 # ==========================================
 # 🎵 背景動画とBGM・SEのパス
 # ==========================================
@@ -899,10 +968,27 @@ def generate_weekly_video():
     # YouTubeにアップロードして、動画のIDを取得
     video_id = upload_weekly_to_youtube(output_filename, yt_title, yt_desc, yt_tags)
     
-    # アップロードに成功したら、archive.html を書き換える
+    # アップロードに成功したら、archive.html を書き換え、Instagramにも投稿する
     if video_id:
         display_date = f"📅 {op_start_date} 〜 {op_end_date}"
         update_archive_html(video_id, yt_title, display_date)
+        
+        # --- ここから追加：Instagramへの告知画像投稿 ---
+        try:
+            thumbnail_path = "weekly_thumbnail.jpg"
+            
+            # 作成した動画の5秒目（タイトル画面）を切り取って画像として保存
+            final_video.save_frame(thumbnail_path, t=5.0)
+            
+            ig_caption = f"📺 今週のまとめ動画をYouTubeに公開しました！\n\n🎯 {op_start_date} 〜 {op_end_date} のロト＆ナンバーズ AI予想結果と最新トレンドを一挙公開中！\n\nプロフィールのリンク（またはYouTubeで「ロトナンバーズ攻略局」と検索）からフル動画をチェックしてください✨\n\n#ロト6 #ロト7 #ナンバーズ #宝くじ #AI予想"
+            
+            print("\n📸 Instagramへの告知画像投稿を開始します...")
+            image_url = upload_image_to_server(thumbnail_path)
+            if image_url:
+                post_to_instagram(image_url, ig_caption)
+        except Exception as e:
+            print(f"❌ Instagramへの告知投稿中にエラーが発生しました: {e}")
+        # --- 追加ここまで ---
 
 if __name__ == "__main__":
     generate_weekly_video()
