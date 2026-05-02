@@ -97,8 +97,7 @@ def add_pinned_comment(youtube, video_id, comment_text):
         comment_id = comment_res['snippet']['topLevelComment']['id']
         youtube.comments().setModerationStatus(
             id=comment_id,
-            moderationStatus="published",
-            ban=False
+            moderationStatus="published"
         ).execute()
         print("✅ 固定コメントの設置が完了しました！")
     except Exception as e:
@@ -420,18 +419,22 @@ def upload_long_video():
             f"#ロト6 #ロト7 #ナンバーズ #AI予想 #宝くじ #高額当選"
         )
 
+        # 1. LINEへの配信
         post_to_line(sns_message)
 
+        # 2. Instagramへの画像（通常投稿）の配信
         if os.path.exists(ig_feed_path):
             img_url = upload_image_to_server(ig_feed_path)
-            if img_url: post_to_instagram(img_url, sns_message)
+            if img_url: 
+                post_to_instagram(img_url, sns_message)
 
+        # 3. Instagramへの動画（リール投稿）の配信
         if os.path.exists(ig_reel_path):
             vid_url = upload_video_to_cloudinary(ig_reel_path)
-            if vid_url: post_reel_to_instagram(vid_url, sns_message)
-        # ▲▲▲ ここまで ▲▲▲
-        
-        print("🚀🚀🚀 YouTubeへの全自動投稿フローが完璧に完了しました！ 🚀🚀🚀")
+            if vid_url: 
+                post_reel_to_instagram(vid_url, sns_message)
+                
+        print("\n🚀🚀🚀 YouTubeへの全自動投稿フローが完璧に完了しました！ 🚀🚀🚀")
         
     except Exception as e:
         print(f"❌ YouTubeアップロード中にエラーが発生しました: {e}")
