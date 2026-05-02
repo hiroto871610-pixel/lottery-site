@@ -1410,27 +1410,13 @@ def manage_history(latest_data, new_predictions):
 # --- 追加：キャリーオーバー判定（確実・正確なWeb抽出に変更） ---
 def check_loto6_carryover():
     """
-    楽天宝くじのロト6トップページに直接アクセスし、
-    HTML構造（BeautifulSoup）から確実にキャリーオーバーの発生有無を判定します。
+    楽天宝くじの実際のデータ(get_loto6_full_detail)を取得し、
+    正確なキャリーオーバーの有無と実際の金額を判定します。
     """
-    url = "https://takarakuji.rakuten.co.jp/backnumber/loto6/"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200:
-            res.encoding = 'euc-jp'
-            soup = BeautifulSoup(res.content, 'html.parser')
-            
-            # HTML構造から「キャリーオーバー」を含む要素を探し、その行(tr)の中に「0円」がないかを判定
-            carry_element = soup.find(string=re.compile(r'キャリーオーバー'))
-            if carry_element:
-                parent_row = carry_element.find_parent('tr')
-                if parent_row:
-                    row_text = parent_row.get_text(strip=True)
-                    if "0円" not in row_text:
-                        return "💰 キャリーオーバー発生中！(最高6億円)"
-    except Exception as e:
-        print(f"キャリーオーバー判定エラー: {e}")
+    real_data = get_loto6_full_detail()
+    if real_data and real_data.get("has_carryover"):
+        # 実際のキャリーオーバー金額を表示させる
+        return f"💰 キャリーオーバー発生中！({real_data.get('carryover')})"
     return ""
 
 def get_next_loto6_date():
