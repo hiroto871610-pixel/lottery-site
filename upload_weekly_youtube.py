@@ -245,6 +245,51 @@ def post_reel_to_instagram(video_url, caption_text):
 # ▲▲▲ ここまで ▲▲▲
 
 # ==========================================
+# 📝 archive.html 自動更新機能
+# ==========================================
+def update_archive_html(video_id, title, date_str):
+    import os, re
+    print("🔄 archive.html を最新の動画で更新中...")
+    file_path = "archive.html"
+    
+    if not os.path.exists(file_path):
+        print(f"❌ {file_path} が見つからないため、更新をスキップします。")
+        return
+        
+    with open(file_path, "r", encoding="utf-8") as f:
+        html = f.read()
+        
+    try:
+        new_block_html = f"""
+            <div class="video-card">
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/{video_id}" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">{title}</h3>
+                    <span class="video-date">{date_str}</span>
+                </div>
+            </div>"""
+
+        target_tag = '<div class="video-grid">'
+        if target_tag in html:
+            new_html = html.replace(target_tag, target_tag + "\n" + new_block_html, 1)
+            
+            cards = re.findall(r'<div class="video-card">.*?</div>\s*</div>\s*</div>', new_html, re.DOTALL)
+            MAX_VIDEOS = 12
+            if len(cards) > MAX_VIDEOS:
+                 for old_card in cards[MAX_VIDEOS:]:
+                     new_html = new_html.replace(old_card, "")
+
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(new_html)
+            print(f"✅ archive.html を更新し、最新{MAX_VIDEOS}件に整理しました！")
+        else:
+            print("❌ archive.html 内に <div class=\"video-grid\"> が見つかりませんでした。")
+            
+    except Exception as e:
+        print(f"❌ archive.htmlの更新中にエラーが発生しました: {e}")
+# ==========================================
 # 🚀 YouTubeアップロード本処理
 # ==========================================
 def upload_long_video():
@@ -355,6 +400,11 @@ def upload_long_video():
             "次回の動画も見逃さないよう、チャンネル登録をお願いします✨"
         )
         add_pinned_comment(youtube, video_id, fixed_msg)
+        
+        # ▼▼▼ 追加：archive.html の更新 ▼▼▼
+        display_date = f"📅 {title_date}"
+        update_archive_html(video_id, title, display_date)
+        # ▲▲▲ ここまで ▲▲▲
         
         # ▼▼▼ 新規追加：SNSへ一斉告知！ ▼▼▼
         print("\n📢 続いて、LINEとInstagramへYouTube公開の告知を行います！")
