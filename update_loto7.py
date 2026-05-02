@@ -1370,15 +1370,13 @@ def manage_history(latest_data, new_predictions):
 # --- 追加：キャリーオーバー判定（内部データ利用） ---
 def check_loto7_carryover(history_record):
     """
-    history_loto7.json の最新の「確定」データから、
-    1等が出ているかどうかでキャリーオーバーの有無を判定します。
+    楽天宝くじの実際のデータ(get_loto7_full_detail)を取得し、
+    正確なキャリーオーバーの有無を判定します。
     """
-    for record in history_record:
-        if record.get('status') == 'finished':
-            best_res = record.get('best_result', '')
-            if '1等' not in best_res and best_res != '----':
-                return "💰 キャリーオーバー発生中！(最高12億円)"
-            break
+    real_data = get_loto7_full_detail()
+    if real_data and real_data.get("has_carryover"):
+        # 実際のキャリーオーバー金額も表示させる設定に変更
+        return f"💰 キャリーオーバー発生中！({real_data.get('carryover')})"
     return ""
 
 def get_next_loto7_date():
