@@ -12,6 +12,8 @@ from moviepy.video.fx.all import fadein, fadeout
 from dotenv import load_dotenv
 from collections import Counter
 from gtts import gTTS
+import cloudinary
+import cloudinary.uploader
 
 import matplotlib.pyplot as plt
 import matplotlib
