@@ -241,9 +241,11 @@ def build_index_html():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
     <title>ロト＆ナンバーズ攻略局🎯完全無料のAI予想 | ロト7・ロト6・ナンバーズ</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     
     <meta property="og:title" content="ロト＆ナンバーズ攻略局🎯完全無料のAI予想">
-    <meta property="og:description" content="過去1年分のデータから導き出したHOT数字・COLD数字と完全無料のAI予想を公開中！キャリーオーバー情報も毎日更新。">
+    <meta property="og:description" content="過去3年分のデータから導き出したHOT数字・COLD数字と完全無料のAI予想を公開中！キャリーオーバー情報も毎日更新。">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://loto-yosou-ai.com/index.html">
     <meta property="og:image" content="https://loto-yosou-ai.com/Lotologo001.png">

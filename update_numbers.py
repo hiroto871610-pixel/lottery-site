@@ -798,6 +798,8 @@ def generate_numbers_detail_page(result_data):
 <head>
     <meta charset="UTF-8">
     <title>【{result_data.get('round', '')}】ナンバーズ3＆4 抽選結果詳細データ</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="description" content="{result_data.get('round', '')}のナンバーズ3・ナンバーズ4の当せん金額・口数などの詳細データを公開しています。">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -1351,9 +1353,11 @@ def build_html():
 <head>
     <meta charset="UTF-8">
     <title>【{history_record[0]['target_kai']}】ナンバーズ3＆4当選予想・データ分析 | 最新AI予想</title>
-    <meta name="description" content="{history_record[0]['target_kai']}のナンバーズ3・ナンバーズ4当選予想。過去1年分の出現傾向（HOT/COLD）から導き出した完全無料のAI予想とストレート/ボックス推奨を公開中！">
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
+    <meta name="description" content="{history_record[0]['target_kai']}のナンバーズ3・ナンバーズ4当選予想。過去3年分の出現傾向（HOT/COLD）から導き出した完全無料のAI予想とストレート/ボックス推奨を公開中！">
     <meta property="og:title" content="【{history_record[0]['target_kai']}】ナンバーズ3＆4最新AI予想">
-    <meta property="og:description" content="過去1年分の出現傾向から導き出した完全無料のAI予想と推奨の買い方を公開中！">
+    <meta property="og:description" content="過去3年分の出現傾向から導き出した完全無料のAI予想と推奨の買い方を公開中！">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://loto-yosou-ai.com/numbers.html">
     <meta property="og:image" content="https://loto-yosou-ai.com/Lotologo001.png">

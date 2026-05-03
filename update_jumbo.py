@@ -124,6 +124,8 @@ def build_html():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ジャンボ宝くじ 攻略・吉日カレンダー | 宝くじ当選予想・データ分析ポータル</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     <link rel="canonical" href="https://loto-yosou-ai.com/jumbo.html">
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}

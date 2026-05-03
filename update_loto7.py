@@ -908,6 +908,8 @@ def generate_loto7_detail_page(result_data):
 <head>
     <meta charset="UTF-8">
     <title>【{result_data.get('round', '')}】ロト7 抽選結果詳細データ</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="description" content="{result_data.get('round', '')}のロト7当せん金額・口数、キャリーオーバーの最新詳細データを公開しています。">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -1423,9 +1425,11 @@ def build_html():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>【{history_record[0]['target_kai']}】ロト7当選予想・データ分析ポータル | 最新AI予想</title>
-    <meta name="description" content="{history_record[0]['target_kai']}のロト7当選予想。過去1年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！最高12億円のキャリーオーバー情報も。">
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
+    <meta name="description" content="{history_record[0]['target_kai']}のロト7当選予想。過去3年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！最高12億円のキャリーオーバー情報も。">
     <meta property="og:title" content="【{history_record[0]['target_kai']}】ロト7最新AI予想">
-    <meta property="og:description" content="過去1年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！">
+    <meta property="og:description" content="過去3年分のデータから導き出したHOT数字・COLD数字と完全無料のAIアルゴリズム予想を公開中！">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://loto-yosou-ai.com/loto7.html">
     <meta property="og:image" content="https://loto-yosou-ai.com/Lotologo001.png">
