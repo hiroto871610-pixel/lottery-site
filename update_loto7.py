@@ -1462,8 +1462,8 @@ def generate_archive_detail_pages(history_record):
             generated_urls.append(page_url)
             
             # すでにページが存在する場合はスキップ（※全出力してグラフを反映させたい場合は、ここの2行を一時的にコメントアウトするか、archiveフォルダを空にしてください）
-            if os.path.exists(filepath):
-                continue
+            # if os.path.exists(filepath):
+                # continue
 
             main_nums = record.get('actual_main', '----')
             bonus_nums = record.get('actual_bonus', '')
@@ -1531,7 +1531,7 @@ def generate_archive_detail_pages(history_record):
             for i, pred in enumerate(record.get('predictions', [])):
                 labels = ['予想A(本命)', '予想B', '予想C', '予想D', '予想E']
                 balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
-                preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0e7ff; padding:5px 15px; border-radius:4px; margin-right:20px;">{labels[i]}</div><div class="ball-container" style="display:flex; gap:8px;">{balls}</div></div>\n'
+                preds_html += f'<div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
 
             # ▼▼▼ 修正：HTMLの組み立て部分。 <head>内にChart.jsのCDNを追加し、末尾にグラフ描画JSを追加 ▼▼▼
             # ▼▼▼ 修正：HTMLの組み立て部分。ヘッダー・ナビ・フッターを追加 ▼▼▼
@@ -1566,6 +1566,12 @@ def generate_archive_detail_pages(history_record):
             nav {{ padding: 0 2px; }}
             nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
             .container {{ margin: 15px; padding: 20px; }}
+            /* ▼ スマホ用：ボールのサイズと間隔を調整 ▼ */
+            .ball {{ width: 32px; height: 32px; font-size: 14px; margin: 1px; }}
+            .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 10px; }}
+            .row-label {{ margin-bottom: 5px; font-size: 14px; padding: 3px 8px; }}
+            .ball-container {{ display: flex; flex-wrap: wrap; gap: 4px; }}
+            /* ▲ ここまで追加 ▲ */
         }}
     </style>
 </head>

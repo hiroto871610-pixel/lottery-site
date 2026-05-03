@@ -1510,8 +1510,8 @@ def generate_archive_detail_pages(history_record):
             generated_urls.append(page_url)
             
             # すでにページが存在する場合はスキップ（※全出力してグラフを反映させたい場合は一時的にコメントアウト）
-            if os.path.exists(filepath):
-                continue
+            # if os.path.exists(filepath):
+                # continue
 
             main_nums = record.get('actual_main', '----')
             bonus_nums = record.get('actual_bonus', '')
@@ -1579,7 +1579,7 @@ def generate_archive_detail_pages(history_record):
             for i, pred in enumerate(record.get('predictions', [])):
                 labels = ['予想A(本命)', '予想B', '予想C', '予想D', '予想E']
                 balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
-                preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0f2fe; padding:5px 15px; border-radius:4px; margin-right:20px;">{labels[i]}</div><div class="ball-container" style="display:flex; gap:8px;">{balls}</div></div>\n'
+                preds_html += f'<div class="numbers-row"><div class="row-label">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
 
             # ▼▼▼ 修正：HTMLの組み立て部分。 <head>内にChart.jsのCDNを追加し、末尾にグラフ描画JSを追加 ▼▼▼
             html_content = f"""<!DOCTYPE html>
@@ -1599,18 +1599,32 @@ def generate_archive_detail_pages(history_record):
         nav a.active {{ border-bottom: 3px solid #0284c7; color: #0284c7; }}
         nav a:hover {{ background-color: #f0f4f8; }}
         .container {{ max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
-        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-weight: bold; margin: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
         .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #0284c7; }}
+        
+        /* ▼ 追加：予想ボールの基本デザイン（直書きを避けるためここに集約） ▼ */
+        .numbers-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; flex-wrap: wrap; }}
+        .row-label {{ font-weight: bold; color: #1e3a8a; background-color: #e0f2fe; padding: 5px 15px; border-radius: 4px; margin-right: 20px; font-size: 16px; min-width: 90px; text-align: center; }}
+        .ball-container {{ display: flex; gap: 8px; flex-wrap: wrap; }}
+        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-weight: bold; margin: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
         .footer-links {{ margin-bottom: 15px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
         .footer-links a:hover {{ color: white; text-decoration: underline; }}
         .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        
         @media (max-width: 600px) {{ 
             .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
             nav {{ padding: 0 2px; }}
             nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
             .container {{ margin: 15px; padding: 20px; }}
+            
+            /* ▼ 追加：スマホの時は縦並びにしてボールを小さくする（ロト7と同じ修正） ▼ */
+            .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px; gap: 10px; }}
+            .row-label {{ margin-right: 0; margin-bottom: 5px; font-size: 14px; padding: 3px 8px; }}
+            .ball-container {{ margin-right: 0; gap: 6px; }}
+            .ball {{ width: 34px; height: 34px; font-size: 14px; margin: 1px; }}
+            /* ▲ ここまで追加 ▲ */
         }}
     </style>
 </head>
