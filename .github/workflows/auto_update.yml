@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: '30 23 * * *' # 毎日 朝8:30 (日本時間)
     - cron: '30 12 * * *' # 毎日 夜21:30 (日本時間)
-    - cron: '0 3 * * 5'   # 毎週金曜 昼12:00 (日本時間) ← 追加：ジャンボ更新用
+    - cron: '0 3 * * 5'   # 毎週金曜 昼12:00 (日本時間) ← ジャンボ更新用
   workflow_dispatch: # 手動でボタンを押して実行する機能
 
 jobs:
@@ -66,12 +66,15 @@ jobs:
           python update_index.py
           python sync_prize_data.py
 
+      # ▼▼▼ 修正箇所：変更されたファイル（アーカイブやサイトマップ含む）を確実に拾うように変更 ▼▼▼
       - name: 更新されたデータをGitHubに自動保存（コミット＆プッシュ）
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add .
-          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 自動更新: 最新の宝くじデータとAI予想を反映" && git push)
+          # -A オプションで新規追加されたフォルダ（archive/）やファイル（sitemap.xml）も強制的に追加
+          git add -A
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 自動更新: 最新データ・アーカイブ・サイトマップを反映" && git push)
+      # ▲▲▲ 修正ここまで ▲▲▲
 
       - name: Auto-Update Threads Token in Secrets
         if: env.NEW_THREADS_TOKEN != ''
