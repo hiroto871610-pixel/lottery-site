@@ -1804,14 +1804,14 @@ def generate_archive_index_page(history_record):
 
 
 def generate_sitemap(archive_urls):
-    """サイトマップを更新する（ロト6のアーカイブURLを追記）"""
+    """サイトマップを更新する（ロト7のアーカイブURLを追記）"""
     # 既存のサイトマップがある場合は読み込み、無ければ新規作成
     sitemap_path = "sitemap.xml"
     existing_content = ""
     if os.path.exists(sitemap_path):
         with open(sitemap_path, "r", encoding="utf-8") as f:
             existing_content = f.read()
-            
+
     """サイトマップをゼロから全自動生成する"""
     base_urls = [
         "https://loto-yosou-ai.com/index.html",
