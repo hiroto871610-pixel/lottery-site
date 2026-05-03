@@ -2323,7 +2323,6 @@ def build_html():
                 msg += f"長年のデータ分析がついに完全一致✨\n歴史的瞬間の詳細と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
 
                 # ------ トップページ表示用のメモを保存 ------
-                import json
                 achievement_data = {
                     "lottery_name": "ロト6",
                     "kai": finished_kai,

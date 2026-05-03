@@ -2261,7 +2261,6 @@ def build_html():
                 msg += f"最高12億円のロト7で歴史的快挙✨\n興奮の的中実績と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
 
                 # 実績バッジ用のメモ保存
-                import json
                 achievement_data = {
                     "lottery_name": "ロト7",
                     "kai": finished_kai,
