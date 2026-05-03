@@ -902,6 +902,21 @@ def generate_loto7_detail_page(result_data):
             <span style="font-size: 26px; display: inline-block; margin-top: 5px; letter-spacing: 1px;">{result_data.get('carryover', '0円')}</span>
         </div>
         """
+
+        # ▼▼▼ 追加：アーカイブ分析ページへのボタンHTMLを生成するロジック ▼▼▼
+    archive_link_html = ""
+    target_round_str = result_data.get('round', '')
+    round_match = re.search(r'\d+', target_round_str)
+    
+    if round_match:
+        kai_num = round_match.group().zfill(4)
+        archive_url = f"archive/loto7_{kai_num}.html"
+        archive_link_html = f"""
+        <a href="{archive_url}" style="display: inline-block; background-color: #f8fafc; color: #10b981; border: 2px solid #10b981; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s;">
+            📊 この回の出目分析とAI成績を見る ＞
+        </a>
+        """
+    # ▲▲▲ 追加ここまで ▲▲▲
     # ▼ ここ！左端から「半角スペース4つ」の位置に合わせます！ ▼
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -1049,11 +1064,14 @@ def generate_loto7_detail_page(result_data):
             </a>
         </div>
 
+        <!-- ▼▼▼ 修正：ここにアーカイブへのボタンが差し込まれます ▼▼▼ -->
         <div style="text-align: center; margin: 30px 0;">
-    <a href="loto7.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        ◀ ロト7 AI予想トップに戻る
-    </a>
-</div>
+            <a href="loto7.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                ◀ ロト7 AI予想トップへ
+            </a>
+            {archive_link_html}
+        </div>
+        <!-- ▲▲▲ 修正ここまで ▲▲▲ -->
 
     <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">
@@ -1399,6 +1417,256 @@ def get_next_loto7_date():
     weekdays = ["月", "火", "水", "木", "金", "土", "日"]
     return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
 
+# ==========================================
+# ▼▼▼ 新規追加：アーカイブとサイトマップ生成機能 ▼▼▼
+# ==========================================
+import os
+import re
+import datetime
+
+def generate_archive_detail_pages(history_record):
+    """過去の各回ごとの個別分析ページを /archive/ フォルダに生成する"""
+    os.makedirs("archive", exist_ok=True)
+    generated_urls = []
+    
+    # 連続出現（引っ張り数字）を計算するために、enumerateでインデックス(idx)を取得します
+    for idx, record in enumerate(history_record):
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_match = re.search(r'\d+', kai_str)
+            if not kai_match: continue
+            
+            kai_num = kai_match.group().zfill(4)
+            filename = f"loto7_{kai_num}.html"
+            filepath = os.path.join("archive", filename)
+            page_url = f"https://loto-yosou-ai.com/archive/{filename}"
+            generated_urls.append(page_url)
+            
+            if os.path.exists(filepath):
+                continue
+
+            main_nums = record.get('actual_main', '----')
+            bonus_nums = record.get('actual_bonus', '')
+            best_result = record.get('best_result', '----')
+            
+            # ▼▼▼ 新規追加：出目分析ロジック ▼▼▼
+            main_nums_list = [int(n) for n in re.findall(r'\d+', main_nums)]
+            analysis_html = ""
+            
+            if len(main_nums_list) == 7:
+                # 1. 奇数・偶数のバランス
+                odds = sum(1 for n in main_nums_list if n % 2 != 0)
+                evens = 7 - odds
+                balance_str = f"奇数 {odds}個 ： 偶数 {evens}個"
+                
+                # 2. 合計値（サム）
+                total_sum = sum(main_nums_list)
+                
+                # 3. 連続数字の有無
+                consecutives = []
+                sorted_nums = sorted(main_nums_list)
+                for i in range(len(sorted_nums) - 1):
+                    if sorted_nums[i+1] - sorted_nums[i] == 1:
+                        consecutives.append(f"{sorted_nums[i]:02d}・{sorted_nums[i+1]:02d}")
+                consec_str = "、".join(consecutives) if consecutives else "なし"
+                
+                # 4. 前回からの連続出現（引っ張り数字）
+                prev_overlap_str = "データなし"
+                if idx + 1 < len(history_record): # 1つ古い履歴が存在するか確認
+                    prev_record = history_record[idx + 1]
+                    if prev_record.get('status') == 'finished':
+                        prev_nums = [int(n) for n in re.findall(r'\d+', prev_record.get('actual_main', ''))]
+                        overlap = set(main_nums_list) & set(prev_nums)
+                        prev_overlap_str = "、".join([f"{n:02d}" for n in sorted(overlap)]) if overlap else "なし"
+
+                # 分析ブロックのHTMLを作成
+                analysis_html = f"""
+        <div class="result-box" style="border-left-color: #10b981; background: #ecfdf5;">
+            <h2 style="color:#047857; margin-top:0;">📊 {kai_str} の出目分析データ</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px; color: #334155;">
+                <tr><th style="text-align:left; padding:10px 0; border-bottom:1px solid #d1fae5; width:45%;">⚖️ 奇数・偶数比率</th><td style="padding:10px 0; border-bottom:1px solid #d1fae5; font-weight:bold;">{balance_str}</td></tr>
+                <tr><th style="text-align:left; padding:10px 0; border-bottom:1px solid #d1fae5;">∑ 合計値（サム）</th><td style="padding:10px 0; border-bottom:1px solid #d1fae5; font-weight:bold;">{total_sum}</td></tr>
+                <tr><th style="text-align:left; padding:10px 0; border-bottom:1px solid #d1fae5;">🔗 連続数字</th><td style="padding:10px 0; border-bottom:1px solid #d1fae5; font-weight:bold;">{consec_str}</td></tr>
+                <tr><th style="text-align:left; padding:10px 0;">🔁 前回からの連続出現</th><td style="padding:10px 0; font-weight:bold;">{prev_overlap_str}</td></tr>
+            </table>
+        </div>
+                """
+            # ▲▲▲ 追加ここまで ▲▲▲
+
+            # 予想A〜EのHTML化
+            preds_html = ""
+            for i, pred in enumerate(record.get('predictions', [])):
+                labels = ['予想A(本命)', '予想B', '予想C', '予想D', '予想E']
+                balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
+                preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0e7ff; padding:5px 15px; border-radius:4px; margin-right:20px;">{labels[i]}</div><div class="ball-container" style="display:flex; gap:8px;">{balls}</div></div>\n'
+
+            html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>【{kai_str}】ロト7 抽選結果とAI予想の分析・振り返り</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
+        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 50%; font-weight: bold; margin: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+        .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #1e3a8a; }}
+        /* PC用とスマホ用の広告を自動で切り替える魔法のCSS */
+        .ad-pc {{ display: block; }}
+        .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{
+            .ad-pc {{ display: none; }}
+            .ad-sp {{ display: block; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../archive_loto7.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ 過去の結果一覧に戻る</a>
+        <h1 style="color: #1e3a8a; font-size: 24px; margin-top: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">ロト7 {kai_str} 抽選結果とAI分析</h1>
+        
+        <!-- 広告エリア 上部 -->
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p>本ページは、<strong>ロト7 {kai_str}</strong> の実際の抽選結果と、当サイトのAIアルゴリズムが事前に算出した予想結果の照合レポートです。</p>
+        
+        <div class="result-box">
+            <h2 style="color:#d97706; margin-top:0;">🎯 実際の抽選結果</h2>
+            <p><strong>本数字：</strong> <span style="font-size: 20px; font-weight: bold; letter-spacing: 2px;">{main_nums}</span></p>
+            <p style="color: #16a34a;"><strong>ボーナス：</strong> {bonus_nums}</p>
+        </div>
+
+        <!-- 差し込んだ分析ブロック -->
+        {analysis_html}
+
+        <div class="result-box" style="border-left-color: #d97706; background: #fffbeb;">
+            <h2 style="color:#b45309; margin-top:0;">🤖 AI予想の成績：【 {best_result} 】</h2>
+            <p>当回のAIによる5パターンの予想は以下の通りでした。</p>
+            {preds_html}
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="../loto7.html" style="background: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);">最新のロト7 AI予想を見る ＞</a>
+        </div>
+
+        <!-- 広告エリア 下部 -->
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad3_pc}</div>
+            <div class="ad-sp">{imobile_ad3_sp}</div>
+        </div>
+    </div>
+    {imobile_overlay}
+</body>
+</html>"""
+            # 一度作成したHTMLファイルは上書きしない（再計算を防ぐ）
+            # もし全ページを作り直したい場合は、一度フォルダ内のHTMLを削除するか、ここを書き換えてください。
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(html_content)
+                
+    return generated_urls
+
+def generate_archive_index_page(history_record):
+    """全履歴へのリンクをまとめた一覧ページ (archive_loto7.html) を生成する"""
+    links_html = ""
+    for record in history_record:
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_match = re.search(r'\d+', kai_str)
+            if not kai_match: continue
+            
+            kai_num = kai_match.group().zfill(4)
+            main_nums = record.get('actual_main', '----')
+            best_res = record.get('best_result', '----')
+            
+            res_color = "#dc2626" if "等" in best_res else "#64748b"
+            
+            links_html += f"""
+            <a href="archive/loto7_{kai_num}.html" style="display: block; background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; text-decoration: none; color: #333; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: transform 0.2s;">
+                <div style="font-weight: bold; color: #1e3a8a; font-size: 18px;">{kai_str}</div>
+                <div style="font-size: 14px; color: #475569; margin: 5px 0;">結果: {main_nums}</div>
+                <div style="font-weight: bold; color: {res_color};">AI成績: {best_res}</div>
+            </a>
+            """
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ロト7 過去の当選番号とAI予想成績アーカイブ一覧</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
+        .container {{ max-width: 800px; margin: 0 auto; }}
+        /* PC用とスマホ用の広告を自動で切り替える魔法のCSS */
+        .ad-pc {{ display: block; }}
+        .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{
+            .ad-pc {{ display: none; }}
+            .ad-sp {{ display: block; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #1e3a8a; text-align: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px;">📊 ロト7 過去データ＆AI分析一覧</h1>
+        
+        <!-- 広告エリア 上部 -->
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p style="text-align: center; margin-bottom: 30px; color:#475569;">過去のすべての抽選結果と、当サイトのAIが予想した成績の振り返りを記録しています。</p>
+        {links_html}
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="index.html" style="display:inline-block; background: #3b82f6; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold;">◀ トップページへ戻る</a>
+        </div>
+    </div>
+    {imobile_overlay}
+</body>
+</html>"""
+
+    with open("archive_loto7.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+def generate_sitemap(archive_urls):
+    """サイトマップをゼロから全自動生成する"""
+    base_urls = [
+        "https://loto-yosou-ai.com/index.html",
+        "https://loto-yosou-ai.com/loto7.html",
+        "https://loto-yosou-ai.com/loto6.html",
+        "https://loto-yosou-ai.com/numbers.html",
+        "https://loto-yosou-ai.com/archive_loto7.html",
+    ]
+    all_urls = base_urls + archive_urls
+    
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    for url in all_urls:
+        xml_content += "  <url>\n"
+        xml_content += f"    <loc>{url}</loc>\n"
+        xml_content += f"    <lastmod>{today}</lastmod>\n"
+        priority = "1.0" if "archive/" not in url else "0.6"
+        xml_content += f"    <priority>{priority}</priority>\n"
+        xml_content += "  </url>\n"
+    xml_content += '</urlset>'
+    
+    with open("sitemap.xml", "w", encoding="utf-8") as f:
+        f.write(xml_content)
+    print(f"✅ sitemap.xml を生成・更新しました（計 {len(all_urls)} ページ）")
+# ==========================================
+# ▲▲▲ 新規追加：ここまで ▲▲▲
+# ==========================================
+
 # --- 5. HTML構築 ---
 def build_html():
     print("🔄 ロト7 データ取得＆アルゴリズム解析を開始...")
@@ -1638,6 +1906,14 @@ def build_html():
                 <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
                 <tbody>
 
+                <!-- ▼ 追加：アーカイブ一覧への導線ボタン ▼ -->
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="archive_loto7.html" style="display: inline-block; background-color: #f8fafc; color: #1e3a8a; border: 2px solid #3b82f6; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    📚 過去の全成績と分析データ一覧を見る ＞
+                </a>
+            </div>
+            <!-- ▲ 追加ここまで ▲ -->
+
 """
     for record in history_record:
         res_class = "result-win" if "等" in record.get('best_result', '') else "result-lose"
@@ -1872,6 +2148,15 @@ if __name__ == "__main__":
         
     real_data = get_loto7_full_detail()
     generate_loto7_detail_page(real_data)
+
+    # ▼▼▼ 新規追加：ここから ▼▼▼
+    print("📈 SEO用アーカイブページ・サイトマップの構築を開始します...")
+    history_records = load_history_from_jsonbin()
+    generated_archive_urls = generate_archive_detail_pages(history_records)
+    generate_archive_index_page(history_records)
+    generate_sitemap(generated_archive_urls)
+    print("✨ SEO用アーカイブ構築が完了しました！")
+    # ▲▲▲ 新規追加：ここまで ▲▲▲
     
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ロト7版)
