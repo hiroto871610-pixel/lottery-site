@@ -1,158 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://loto-yosou-ai.com/index.html</loc>
-    <lastmod>2026-05-03</lastmod>
+    <loc>https://loto-yosou-ai.com/</loc>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://loto-yosou-ai.com/loto7.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>1.0</priority>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://loto-yosou-ai.com/loto6.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>1.0</priority>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://loto-yosou-ai.com/numbers.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>1.0</priority>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://loto-yosou-ai.com/horoscope.html</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://loto-yosou-ai.com/archive.html</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://loto-yosou-ai.com/news.html</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://loto-yosou-ai.com/loto7_detail.html</loc>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://loto-yosou-ai.com/archive_loto7.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>1.0</priority>
+    <loc>https://loto-yosou-ai.com/loto6_detail.html</loc>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://loto-yosou-ai.com/archive_loto6.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>1.0</priority>
+    <loc>https://loto-yosou-ai.com/numbers_detail.html</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://loto-yosou-ai.com/column.html</loc>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://loto-yosou-ai.com/archive_numbers.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>1.0</priority>
+    <loc>https://loto-yosou-ai.com/jumbo.html</loc>
+    <priority>0.7</priority>
   </url>
+
   <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6974.html</loc>
-    <lastmod>2026-05-03</lastmod>
+    <loc>https://loto-yosou-ai.com/about.html</loc>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6973.html</loc>
-    <lastmod>2026-05-03</lastmod>
+    <loc>https://loto-yosou-ai.com/privacy.html</loc>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6972.html</loc>
-    <lastmod>2026-05-03</lastmod>
+    <loc>https://loto-yosou-ai.com/disclaimer.html</loc>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6971.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6970.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6969.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6968.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6967.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6966.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6965.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6964.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6963.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6962.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6961.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6960.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6959.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6958.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6957.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6956.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6955.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6954.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6953.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6952.html</loc>
-    <lastmod>2026-05-03</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://loto-yosou-ai.com/archive/numbers_6951.html</loc>
-    <lastmod>2026-05-03</lastmod>
+    <loc>https://loto-yosou-ai.com/contact.html</loc>
     <priority>0.6</priority>
   </url>
 </urlset>
