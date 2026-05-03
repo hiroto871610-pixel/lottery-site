@@ -57,6 +57,31 @@
     .ad-pc { display: none; }
     .ad-sp { display: block; }
 }
+
+/* ▼ YouTubeボタン用のレスポンシブ設定 ▼ */
+        .yt-btn {
+            display: inline-flex; 
+            align-items: center; 
+            background-color: #e11d48; 
+            color: white; 
+            text-decoration: none; 
+            padding: 15px 35px; 
+            border-radius: 30px; 
+            font-weight: bold; 
+            font-size: 18px; /* パソコンでは18px */
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3); 
+            transition: transform 0.2s;
+        }
+        .yt-btn:hover {
+            transform: scale(1.02);
+        }
+        @media (max-width: 600px) {
+            .yt-btn {
+                font-size: 14px; /* スマホでは少し小さく14px */
+                padding: 12px 25px; /* スマホ用に余白も少しスリムに調整 */
+            }
+        }
+
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681" crossorigin="anonymous"></script>
 </head>
@@ -106,8 +131,8 @@
                 当サイトのAIが弾き出した予想の一部をYouTubeショートでも最速でお届けしています。また当サイトの予想の答え合わせも配信中！<br>
                 見逃さないように、ぜひチャンネル登録をお願いします！
             </p>
-            <a href="https://www.youtube.com/channel/UCi91rSs7mbV4lCM_Hpfo91Q" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; background-color: #e11d48; color: white; text-decoration: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3); transition: transform 0.2s;">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="margin-right: 10px;">
+            <a href="https://www.youtube.com/channel/UCi91rSs7mbV4lCM_Hpfo91Q" target="_blank" rel="noopener noreferrer" class="yt-btn">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="margin-right: 8px;">
                     <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
                 </svg>
                 YouTubeチャンネルはこちら
