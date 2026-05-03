@@ -884,6 +884,7 @@ def generate_numbers_detail_page(result_data):
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
+        <a href="news.html">NEWS📰</a>
     </nav>
 
     <div class="container">
@@ -1870,6 +1871,7 @@ def build_html():
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
+        <a href="news.html">NEWS📰</a>
     </nav>
 
 <div class="section-card" style="text-align: center; background: linear-gradient(to right, #ffffff, #f8fafc); border: 2px solid #64748b; margin-top: 25px; margin-bottom: 30px; padding: 25px 15px; border-radius: 12px;">

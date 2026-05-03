@@ -243,6 +243,7 @@ def build_html():
         <a href="column.html">攻略ガイド🔰</a>
         <a href="horoscope.html">占い🔮</a>
         <a href="archive.html" >YOUTUBE🎥</a>
+        <a href="news.html">NEWS📰</a>
     </nav>
 
     <div style="text-align: center; margin: 20px 0;">
