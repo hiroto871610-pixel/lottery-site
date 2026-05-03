@@ -946,6 +946,21 @@ def generate_loto6_detail_page(result_data):
         </div>
         """
 
+        # ▼▼▼ 追加：アーカイブ分析ページへのボタンHTMLを生成するロジック ▼▼▼
+    archive_link_html = ""
+    target_round_str = result_data.get('round', '')
+    round_match = re.search(r'\d+', target_round_str)
+    
+    if round_match:
+        kai_num = round_match.group().zfill(4)
+        archive_url = f"archive/loto6_{kai_num}.html"
+        archive_link_html = f"""
+        <a href="{archive_url}" style="display: inline-block; background-color: #f0f9ff; color: #0284c7; border: 2px solid #0284c7; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s;">
+            📊 この回の出目分析とAI成績を見る ＞
+        </a>
+        """
+    # ▲▲▲ 追加ここまで ▲▲▲
+
     # HTMLの組み立て（※CSSの波括弧は {{ }} と2つ重ねています）
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -1092,11 +1107,14 @@ def generate_loto6_detail_page(result_data):
             </a>
         </div>
 
+        <!-- ▼▼▼ 修正箇所：ボタンを横並びに配置 ▼▼▼ -->
         <div style="text-align: center; margin: 30px 0;">
-    <a href="loto6.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        ◀ ロト6 AI予想トップに戻る
-    </a>
-</div>
+            <a href="loto6.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                ◀ ロト6 AI予想トップに戻る
+            </a>
+            {archive_link_html}
+        </div>
+        <!-- ▲▲▲ 修正箇所ここまで ▲▲▲ -->
 
         <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">
@@ -1438,6 +1456,258 @@ def get_next_loto6_date():
 
     weekdays = ["月", "火", "水", "木", "金", "土", "日"]
     return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
+
+# ==========================================
+# ▼▼▼ 新規追加：アーカイブとサイトマップ生成機能（ロト6版） ▼▼▼
+# ==========================================
+import os
+import re
+import datetime
+
+def generate_archive_detail_pages(history_record):
+    """過去の各回ごとの個別分析ページを /archive/ フォルダに生成する"""
+    os.makedirs("archive", exist_ok=True)
+    generated_urls = []
+    
+    for idx, record in enumerate(history_record):
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_match = re.search(r'\d+', kai_str)
+            if not kai_match: continue
+            
+            kai_num = kai_match.group().zfill(4)
+            filename = f"loto6_{kai_num}.html" # ロト6用にファイル名を変更
+            filepath = os.path.join("archive", filename)
+            page_url = f"https://loto-yosou-ai.com/archive/{filename}"
+            generated_urls.append(page_url)
+            
+            if os.path.exists(filepath):
+                continue
+
+            main_nums = record.get('actual_main', '----')
+            bonus_nums = record.get('actual_bonus', '')
+            best_result = record.get('best_result', '----')
+            
+            # --- 出目分析ロジック ---
+            main_nums_list = [int(n) for n in re.findall(r'\d+', main_nums)]
+            analysis_html = ""
+            
+            if len(main_nums_list) == 6: # ★ロト6なので6個
+                # 1. 奇数・偶数のバランス
+                odds = sum(1 for n in main_nums_list if n % 2 != 0)
+                evens = 6 - odds
+                balance_str = f"奇数 {odds}個 ： 偶数 {evens}個"
+                
+                # 2. 合計値（サム）
+                total_sum = sum(main_nums_list)
+                
+                # 3. 連続数字の有無
+                consecutives = []
+                sorted_nums = sorted(main_nums_list)
+                for i in range(len(sorted_nums) - 1):
+                    if sorted_nums[i+1] - sorted_nums[i] == 1:
+                        consecutives.append(f"{sorted_nums[i]:02d}・{sorted_nums[i+1]:02d}")
+                consec_str = "、".join(consecutives) if consecutives else "なし"
+                
+                # 4. 前回からの連続出現（引っ張り数字）
+                prev_overlap_str = "データなし"
+                if idx + 1 < len(history_record):
+                    prev_record = history_record[idx + 1]
+                    if prev_record.get('status') == 'finished':
+                        prev_nums = [int(n) for n in re.findall(r'\d+', prev_record.get('actual_main', ''))]
+                        overlap = set(main_nums_list) & set(prev_nums)
+                        prev_overlap_str = "、".join([f"{n:02d}" for n in sorted(overlap)]) if overlap else "なし"
+
+                analysis_html = f"""
+        <div class="result-box" style="border-left-color: #10b981; background: #ecfdf5;">
+            <h2 style="color:#047857; margin-top:0;">📊 {kai_str} の出目分析データ</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px; color: #334155;">
+                <tr><th style="text-align:left; padding:10px 0; border-bottom:1px solid #d1fae5; width:45%;">⚖️ 奇数・偶数比率</th><td style="padding:10px 0; border-bottom:1px solid #d1fae5; font-weight:bold;">{balance_str}</td></tr>
+                <tr><th style="text-align:left; padding:10px 0; border-bottom:1px solid #d1fae5;">∑ 合計値（サム）</th><td style="padding:10px 0; border-bottom:1px solid #d1fae5; font-weight:bold;">{total_sum}</td></tr>
+                <tr><th style="text-align:left; padding:10px 0; border-bottom:1px solid #d1fae5;">🔗 連続数字</th><td style="padding:10px 0; border-bottom:1px solid #d1fae5; font-weight:bold;">{consec_str}</td></tr>
+                <tr><th style="text-align:left; padding:10px 0;">🔁 前回からの連続出現</th><td style="padding:10px 0; font-weight:bold;">{prev_overlap_str}</td></tr>
+            </table>
+        </div>
+                """
+
+            # 予想A〜EのHTML化（ロト6は青基調）
+            preds_html = ""
+            for i, pred in enumerate(record.get('predictions', [])):
+                labels = ['予想A(本命)', '予想B', '予想C', '予想D', '予想E']
+                balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
+                preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0f2fe; padding:5px 15px; border-radius:4px; margin-right:20px;">{labels[i]}</div><div class="ball-container" style="display:flex; gap:8px;">{balls}</div></div>\n'
+
+            html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>【{kai_str}】ロト6 抽選結果とAI予想の分析・振り返り</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
+        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-weight: bold; margin: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+        .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #0284c7; }}
+        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../archive_loto6.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ 過去の結果一覧に戻る</a>
+        <h1 style="color: #0284c7; font-size: 24px; margin-top: 20px; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px;">ロト6 {kai_str} 抽選結果とAI分析</h1>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p>本ページは、<strong>ロト6 {kai_str}</strong> の実際の抽選結果と、当サイトのAIアルゴリズムが事前に算出した予想結果の照合レポートです。</p>
+        
+        <div class="result-box">
+            <h2 style="color:#0284c7; margin-top:0;">🎯 実際の抽選結果</h2>
+            <p><strong>本数字：</strong> <span style="font-size: 20px; font-weight: bold; letter-spacing: 2px;">{main_nums}</span></p>
+            <p style="color: #16a34a;"><strong>ボーナス：</strong> {bonus_nums}</p>
+        </div>
+
+        {analysis_html}
+
+        <div class="result-box" style="border-left-color: #0284c7; background: #f0f9ff;">
+            <h2 style="color:#0369a1; margin-top:0;">🤖 AI予想の成績：【 {best_result} 】</h2>
+            <p>当回のAIによる5パターンの予想は以下の通りでした。</p>
+            {preds_html}
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="../loto6.html" style="background: #0284c7; color: white; padding: 15px 30px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">最新のロト6 AI予想を見る ＞</a>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad3_pc}</div>
+            <div class="ad-sp">{imobile_ad3_sp}</div>
+        </div>
+    </div>
+    {imobile_overlay}
+</body>
+</html>"""
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(html_content)
+                
+    return generated_urls
+
+def generate_archive_index_page(history_record):
+    """全履歴へのリンクをまとめた一覧ページ (archive_loto6.html) を生成する"""
+    links_html = ""
+    for record in history_record:
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_match = re.search(r'\d+', kai_str)
+            if not kai_match: continue
+            
+            kai_num = kai_match.group().zfill(4)
+            main_nums = record.get('actual_main', '----')
+            best_res = record.get('best_result', '----')
+            
+            res_color = "#dc2626" if "等" in best_res else "#64748b"
+            
+            links_html += f"""
+            <a href="archive/loto6_{kai_num}.html" style="display: block; background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; text-decoration: none; color: #333; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: transform 0.2s;">
+                <div style="font-weight: bold; color: #0284c7; font-size: 18px;">{kai_str}</div>
+                <div style="font-size: 14px; color: #475569; margin: 5px 0;">結果: {main_nums}</div>
+                <div style="font-weight: bold; color: {res_color};">AI成績: {best_res}</div>
+            </a>
+            """
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ロト6 過去の当選番号とAI予想成績アーカイブ一覧</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
+        .container {{ max-width: 800px; margin: 0 auto; }}
+        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #0284c7; text-align: center; border-bottom: 3px solid #0284c7; padding-bottom: 10px;">📊 ロト6 過去データ＆AI分析一覧</h1>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p style="text-align: center; margin-bottom: 30px; color:#475569;">過去のすべての抽選結果と、当サイトのAIが予想した成績の振り返りを記録しています。</p>
+        {links_html}
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="index.html" style="display:inline-block; background: #3b82f6; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold;">◀ トップページへ戻る</a>
+        </div>
+    </div>
+    {imobile_overlay}
+</body>
+</html>"""
+
+    with open("archive_loto6.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+def generate_sitemap(archive_urls):
+    """サイトマップを更新する（ロト6のアーカイブURLを追記）"""
+    # 既存のサイトマップがある場合は読み込み、無ければ新規作成
+    sitemap_path = "sitemap.xml"
+    existing_content = ""
+    if os.path.exists(sitemap_path):
+        with open(sitemap_path, "r", encoding="utf-8") as f:
+            existing_content = f.read()
+
+    # ロト7側で生成済みの基本ページURLリスト
+    base_urls = [
+        "https://loto-yosou-ai.com/index.html",
+        "https://loto-yosou-ai.com/loto7.html",
+        "https://loto-yosou-ai.com/loto6.html",
+        "https://loto-yosou-ai.com/numbers.html",
+        "https://loto-yosou-ai.com/archive_loto7.html",
+        "https://loto-yosou-ai.com/archive_loto6.html", # 追加
+    ]
+    
+    # すべてのURLを結合（重複を弾く）
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    # 1. まず基本ページを書き込む
+    for url in base_urls:
+        xml_content += "  <url>\n"
+        xml_content += f"    <loc>{url}</loc>\n"
+        xml_content += f"    <lastmod>{today}</lastmod>\n"
+        priority = "1.0" if "archive/" not in url else "0.8"
+        xml_content += f"    <priority>{priority}</priority>\n"
+        xml_content += "  </url>\n"
+
+    # 2. ロト7・ロト6のアーカイブURLを書き込む（正規表現で既存ファイルから抽出して統合しても良いですが、今回はシンプルにロト6分を追記）
+    # ※ロト7側で上書きされないよう、本来は両方のPythonファイルで共通の sitemap_urls.txt のようなものを管理するのがベストですが、今回は簡易実装です。
+    for url in archive_urls:
+        xml_content += "  <url>\n"
+        xml_content += f"    <loc>{url}</loc>\n"
+        xml_content += f"    <lastmod>{today}</lastmod>\n"
+        xml_content += f"    <priority>0.6</priority>\n"
+        xml_content += "  </url>\n"
+        
+    xml_content += '</urlset>'
+    
+    with open(sitemap_path, "w", encoding="utf-8") as f:
+        f.write(xml_content)
+    print(f"✅ sitemap.xml を更新しました（ロト6アーカイブ追加）")
+# ==========================================
+# ▲▲▲ 新規追加：ここまで ▲▲▲
+# ==========================================
 
 # --- 5. HTML構築 ---
 def build_html():
@@ -1910,10 +2180,37 @@ def build_html():
 # --- 最後にファイルを書き出す ---
 if __name__ == "__main__":
     final_html = build_html()
+
+# === ▼ 修正・追加：loto6.htmlの成績表の下に「アーカイブ一覧」ボタンを挿入する処理 ▼ ===
+    insertion_target = "</tbody>\n            </table>\n            </div>"
+    insertion_button = """</tbody>
+            </table>
+            </div>
+            
+            <!-- ▼ 追加：アーカイブ一覧への導線ボタン ▼ -->
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="archive_loto6.html" style="display: inline-block; background-color: #f0f9ff; color: #0284c7; border: 2px solid #0ea5e9; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    📚 過去の全成績と分析データ一覧を見る ＞
+                </a>
+            </div>
+            <!-- ▲ 追加ここまで ▲ -->"""
+    final_html = final_html.replace(insertion_target, insertion_button)
+    # === ▲ 修正・追加ここまで ▲ ===
+
     with open('loto6.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
         real_data = get_loto6_full_detail()
     generate_loto6_detail_page(real_data)
+
+# ▼▼▼ 新規追加：アーカイブ・サイトマップ自動生成処理 ▼▼▼
+    print("📈 SEO用アーカイブページ・サイトマップの構築を開始します...")
+    history_records = load_history_from_jsonbin()
+    generated_archive_urls = generate_archive_detail_pages(history_records)
+    generate_archive_index_page(history_records)
+    generate_sitemap(generated_archive_urls)
+    print("✨ SEO用アーカイブ構築が完了しました！")
+    # ▲▲▲ 新規追加：ここまで ▲▲▲
+
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する
     # ==========================================
