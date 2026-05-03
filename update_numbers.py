@@ -1419,8 +1419,8 @@ def generate_archive_detail_pages(history_record):
             page_url = f"https://loto-yosou-ai.com/archive/{filename}"
             generated_urls.append(page_url)
             
-            if os.path.exists(filepath):
-                continue
+            #if os.path.exists(filepath):
+                #continue
 
             actual_n4 = record.get('actual_n4', '----')
             actual_n3 = record.get('actual_n3', '---')
@@ -1647,9 +1647,18 @@ def generate_archive_detail_pages(history_record):
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
-    {{imobile_overlay}}
+    {imobile_overlay}
 </body>
 </html>"""
+
+            # ▼▼▼ 修正：ここでも変数を「確実」に広告のHTMLに置き換える ▼▼▼
+    html_content = html_content.replace("{imobile_ad2_pc}", imobile_ad2_pc)
+    html_content = html_content.replace("{imobile_ad2_sp}", imobile_ad2_sp)
+    html_content = html_content.replace("{imobile_ad3_pc}", imobile_ad3_pc)
+    html_content = html_content.replace("{imobile_ad3_sp}", imobile_ad3_sp)
+    html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
+    # ▲▲▲ 修正ここまで ▲▲▲
+
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html_content)
                 
@@ -1764,9 +1773,17 @@ def generate_archive_index_page(history_record):
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
     </footer>
 
-    {{imobile_overlay}}
+    {imobile_overlay}
 </body>
 </html>"""
+
+    # ▼▼▼ 修正：ここでも変数を「確実」に広告のHTMLに置き換える ▼▼▼
+    html_content = html_content.replace("{imobile_ad2_pc}", imobile_ad2_pc)
+    html_content = html_content.replace("{imobile_ad2_sp}", imobile_ad2_sp)
+    html_content = html_content.replace("{imobile_ad3_pc}", imobile_ad3_pc)
+    html_content = html_content.replace("{imobile_ad3_sp}", imobile_ad3_sp)
+    html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
+    # ▲▲▲ 修正ここまで ▲▲▲
 
     with open("archive_numbers.html", "w", encoding="utf-8") as f:
         f.write(html_content)
