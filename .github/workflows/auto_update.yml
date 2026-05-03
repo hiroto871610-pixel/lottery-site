@@ -57,6 +57,8 @@ jobs:
           JSONBIN_BIN_ID_VIDEO_LOTO6: ${{ secrets.JSONBIN_BIN_ID_VIDEO_LOTO6 }}
           JSONBIN_BIN_ID_VIDEO_LOTO7: ${{ secrets.JSONBIN_BIN_ID_VIDEO_LOTO7 }}
           JSONBIN_BIN_ID_VIDEO_NUMBERS: ${{ secrets.JSONBIN_BIN_ID_VIDEO_NUMBERS }}
+          MICROCMS_SERVICE_DOMAIN: ${{ secrets.MICROCMS_SERVICE_DOMAIN }}
+          MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
         
         run: |
           python update_loto7.py
@@ -64,6 +66,7 @@ jobs:
           python update_numbers.py
           python update_jumbo.py
           python update_index.py
+          python update_news.py
           python sync_prize_data.py
 
       # ▼▼▼ 修正箇所：変更されたファイル（アーカイブやサイトマップ含む）を確実に拾うように変更 ▼▼▼
