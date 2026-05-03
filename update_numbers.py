@@ -1376,6 +1376,23 @@ def generate_archive_detail_pages(history_record):
     os.makedirs("archive", exist_ok=True)
     generated_urls = []
     
+    # ▼▼▼ 新規追加：N4とN3それぞれのグラフ描画用過去データ（100回分）を集計 ▼▼▼
+    n4_all_digits = []
+    n3_all_digits = []
+    for r in history_record:
+        if r.get('status') == 'finished':
+            n4_all_digits.extend([int(x) for x in r.get('actual_n4', '') if x.isdigit()])
+            n3_all_digits.extend([int(x) for x in r.get('actual_n3', '') if x.isdigit()])
+            
+    n4_counts = Counter(n4_all_digits)
+    n3_counts = Counter(n3_all_digits)
+    
+    # Chart.jsに渡すデータ（0〜9のラベルと、それぞれの出現回数）
+    chart_labels = [str(i) for i in range(10)]
+    n4_chart_data = [n4_counts.get(i, 0) for i in range(10)]
+    n3_chart_data = [n3_counts.get(i, 0) for i in range(10)]
+    # ▲▲▲ 追加ここまで ▲▲▲
+    
     for idx, record in enumerate(history_record):
         if record.get('status') == 'finished':
             kai_str = record.get('target_kai', '')
@@ -1383,7 +1400,7 @@ def generate_archive_detail_pages(history_record):
             if not kai_match: continue
             
             kai_num = kai_match.group().zfill(4)
-            filename = f"numbers_{kai_num}.html" # ナンバーズ用にファイル名を変更
+            filename = f"numbers_{kai_num}.html"
             filepath = os.path.join("archive", filename)
             page_url = f"https://loto-yosou-ai.com/archive/{filename}"
             generated_urls.append(page_url)
@@ -1399,6 +1416,11 @@ def generate_archive_detail_pages(history_record):
             # --- 出目分析ロジック ---
             n4_bal, n4_sum, n4_dup = analyze_numbers_draw(actual_n4)
             n3_bal, n3_sum, n3_dup = analyze_numbers_draw(actual_n3)
+            
+            # ▼▼▼ 新規追加：JSに「今回当選した数字」を渡すための配列（重複を許容） ▼▼▼
+            n4_win_js = [str(n) for n in actual_n4 if n.isdigit()]
+            n3_win_js = [str(n) for n in actual_n3 if n.isdigit()]
+            # ▲▲▲ 追加ここまで ▲▲▲
             
             # 予想HTML化
             def build_preds_html(preds, labels, bg_color, border_color):
@@ -1418,6 +1440,7 @@ def generate_archive_detail_pages(history_record):
     <meta charset="UTF-8">
     <title>【{kai_str}】ナンバーズ3＆4 抽選結果とAI分析・振り返り</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
         .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
@@ -1436,8 +1459,8 @@ def generate_archive_detail_pages(history_record):
         
         <div style="text-align: center; margin: 20px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad2_pc}</div>
-            <div class="ad-sp">{imobile_ad2_sp}</div>
+            <div class="ad-pc">{{imobile_ad2_pc}}</div>
+            <div class="ad-sp">{{imobile_ad2_sp}}</div>
         </div>
 
         <p>本ページは、<strong>ナンバーズ {kai_str}</strong> の実際の抽選結果と、当サイトのAIアルゴリズムが事前に算出した予想結果の照合・分析レポートです。</p>
@@ -1456,6 +1479,17 @@ def generate_archive_detail_pages(history_record):
                     <tr><th>🔗 重複数字（ゾロ目）</th><td><strong>{n4_dup}</strong></td></tr>
                 </table>
             </div>
+
+            <!-- ▼ N4 グラフ領域 ▼ -->
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #bbf7d0;">
+                <strong style="color:#16a34a;">📈 出現頻度と当選数字の分布 (N4)</strong>
+                <p style="font-size: 12px; color: #64748b; margin-top: 5px; margin-bottom: 10px;">※過去100回。<span style="color: #16a34a; font-weight: bold;">緑色の棒</span>が今回の当選数字です。</p>
+                <div style="position: relative; height: 180px; width: 100%;">
+                    <canvas id="n4Chart"></canvas>
+                </div>
+            </div>
+            <!-- ▲ N4 グラフ領域 ▲ -->
+
             <h3 style="color:#16a34a; font-size:16px;">🤖 AI成績：【 {result_n4} 】</h3>
             {n4_preds_html}
         </div>
@@ -1474,6 +1508,17 @@ def generate_archive_detail_pages(history_record):
                     <tr><th>🔗 重複数字（ゾロ目）</th><td><strong>{n3_dup}</strong></td></tr>
                 </table>
             </div>
+
+            <!-- ▼ N3 グラフ領域 ▼ -->
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fecdd3;">
+                <strong style="color:#e11d48;">📈 出現頻度と当選数字の分布 (N3)</strong>
+                <p style="font-size: 12px; color: #64748b; margin-top: 5px; margin-bottom: 10px;">※過去100回。<span style="color: #e11d48; font-weight: bold;">赤色の棒</span>が今回の当選数字です。</p>
+                <div style="position: relative; height: 180px; width: 100%;">
+                    <canvas id="n3Chart"></canvas>
+                </div>
+            </div>
+            <!-- ▲ N3 グラフ領域 ▲ -->
+
             <h3 style="color:#e11d48; font-size:16px;">🤖 AI成績：【 {result_n3} 】</h3>
             {n3_preds_html}
         </div>
@@ -1484,11 +1529,72 @@ def generate_archive_detail_pages(history_record):
 
         <div style="text-align: center; margin: 30px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad3_pc}</div>
-            <div class="ad-sp">{imobile_ad3_sp}</div>
+            <div class="ad-pc">{{imobile_ad3_pc}}</div>
+            <div class="ad-sp">{{imobile_ad3_sp}}</div>
         </div>
     </div>
-    {imobile_overlay}
+    
+    <!-- ▼▼▼ グラフ描画用スクリプト ▼▼▼ -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {{
+            const labels = {chart_labels};
+            const n4Data = {n4_chart_data};
+            const n3Data = {n3_chart_data};
+            const n4Win = {n4_win_js};
+            const n3Win = {n3_win_js};
+            
+            // グラフ生成の共通関数
+            function createChart(canvasId, dataCounts, winNums, baseColorRGB, borderRGB) {{
+                const ctx = document.getElementById(canvasId);
+                if (!ctx) return;
+                
+                // 当選数字が含まれていればテーマカラー、そうでなければグレー
+                const bgColors = labels.map(num => winNums.includes(num) ? `rgba(${{baseColorRGB}}, 0.8)` : 'rgba(148, 163, 184, 0.3)');
+                const borderColors = labels.map(num => winNums.includes(num) ? `rgba(${{borderRGB}}, 1)` : 'rgba(148, 163, 184, 0.8)');
+
+                new Chart(ctx.getContext('2d'), {{
+                    type: 'bar',
+                    data: {{
+                        labels: labels,
+                        datasets: [{{
+                            label: '出現回数',
+                            data: dataCounts,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {{
+                            legend: {{ display: false }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return '出現回数: ' + context.parsed.y + '回';
+                                    }}
+                                }}
+                            }}
+                        }},
+                        scales: {{
+                            y: {{ beginAtZero: true, ticks: {{ stepSize: 5 }} }}, // Nは回数が多いのでstep5
+                            x: {{ grid: {{ display: false }} }}
+                        }}
+                    }}
+                }});
+            }}
+
+            // N4は緑系 (22, 163, 74)
+            createChart('n4Chart', n4Data, n4Win, '22, 163, 74', '21, 128, 61');
+            // N3は赤系 (225, 29, 72)
+            createChart('n3Chart', n3Data, n3Win, '225, 29, 72', '190, 18, 60');
+        }});
+    </script>
+    <!-- ▲▲▲ ここまで ▲▲▲ -->
+
+    {{imobile_overlay}}
 </body>
 </html>"""
             with open(filepath, "w", encoding="utf-8") as f:

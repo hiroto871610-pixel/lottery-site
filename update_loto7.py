@@ -1429,6 +1429,19 @@ def generate_archive_detail_pages(history_record):
     os.makedirs("archive", exist_ok=True)
     generated_urls = []
     
+    # ▼▼▼ 新規追加：グラフ描画用の過去データ（100回分）を集計 ▼▼▼
+    all_nums_for_chart = []
+    for r in history_record:
+        if r.get('status') == 'finished':
+            nums = [int(n) for n in re.findall(r'\d+', r.get('actual_main', ''))]
+            all_nums_for_chart.extend(nums)
+    global_counts = Counter(all_nums_for_chart)
+    
+    # Chart.jsに渡すデータ（1〜37のラベルと、それぞれの出現回数）
+    chart_labels = [f"{i:02d}" for i in range(1, 38)]
+    chart_data = [global_counts.get(i, 0) for i in range(1, 38)]
+    # ▲▲▲ 追加ここまで ▲▲▲
+    
     # 連続出現（引っ張り数字）を計算するために、enumerateでインデックス(idx)を取得します
     for idx, record in enumerate(history_record):
         if record.get('status') == 'finished':
@@ -1442,6 +1455,7 @@ def generate_archive_detail_pages(history_record):
             page_url = f"https://loto-yosou-ai.com/archive/{filename}"
             generated_urls.append(page_url)
             
+            # すでにページが存在する場合はスキップ（※全出力してグラフを反映させたい場合は、ここの2行を一時的にコメントアウトするか、archiveフォルダを空にしてください）
             if os.path.exists(filepath):
                 continue
 
@@ -1449,9 +1463,13 @@ def generate_archive_detail_pages(history_record):
             bonus_nums = record.get('actual_bonus', '')
             best_result = record.get('best_result', '----')
             
-            # ▼▼▼ 新規追加：出目分析ロジック ▼▼▼
+            # --- 出目分析ロジック ---
             main_nums_list = [int(n) for n in re.findall(r'\d+', main_nums)]
             analysis_html = ""
+            
+            # ▼▼▼ 新規追加：JSに「今回当選した数字」を渡すための配列 ▼▼▼
+            win_nums_js = [f"{n:02d}" for n in main_nums_list]
+            # ▲▲▲ 追加ここまで ▲▲▲
             
             if len(main_nums_list) == 7:
                 # 1. 奇数・偶数のバランス
@@ -1479,7 +1497,7 @@ def generate_archive_detail_pages(history_record):
                         overlap = set(main_nums_list) & set(prev_nums)
                         prev_overlap_str = "、".join([f"{n:02d}" for n in sorted(overlap)]) if overlap else "なし"
 
-                # 分析ブロックのHTMLを作成
+                # ▼▼▼ 修正：分析ブロックの下に、グラフ描画領域のHTMLを追加 ▼▼▼
                 analysis_html = f"""
         <div class="result-box" style="border-left-color: #10b981; background: #ecfdf5;">
             <h2 style="color:#047857; margin-top:0;">📊 {kai_str} の出目分析データ</h2>
@@ -1490,8 +1508,17 @@ def generate_archive_detail_pages(history_record):
                 <tr><th style="text-align:left; padding:10px 0;">🔁 前回からの連続出現</th><td style="padding:10px 0; font-weight:bold;">{prev_overlap_str}</td></tr>
             </table>
         </div>
+        
+        <!-- Chart.js グラフ領域 -->
+        <div class="result-box" style="border-left-color: #3b82f6; background: #eff6ff;">
+            <h2 style="color:#1d4ed8; margin-top:0; margin-bottom: 5px;">📈 出現頻度と当選数字の分布</h2>
+            <p style="font-size: 13px; color: #475569; margin-top: 0; margin-bottom: 15px;">※過去100回のデータから算出。<span style="color: #ea580c; font-weight: bold;">オレンジ色の棒</span>が今回当選した数字です。</p>
+            <div style="position: relative; height: 250px; width: 100%;">
+                <canvas id="freqChart"></canvas>
+            </div>
+        </div>
                 """
-            # ▲▲▲ 追加ここまで ▲▲▲
+                # ▲▲▲ 修正ここまで ▲▲▲
 
             # 予想A〜EのHTML化
             preds_html = ""
@@ -1500,12 +1527,14 @@ def generate_archive_detail_pages(history_record):
                 balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
                 preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0e7ff; padding:5px 15px; border-radius:4px; margin-right:20px;">{labels[i]}</div><div class="ball-container" style="display:flex; gap:8px;">{balls}</div></div>\n'
 
+            # ▼▼▼ 修正：HTMLの組み立て部分。 <head>内にChart.jsのCDNを追加し、末尾にグラフ描画JSを追加 ▼▼▼
             html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <title>【{kai_str}】ロト7 抽選結果とAI予想の分析・振り返り</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
         .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
@@ -1540,7 +1569,7 @@ def generate_archive_detail_pages(history_record):
             <p style="color: #16a34a;"><strong>ボーナス：</strong> {bonus_nums}</p>
         </div>
 
-        <!-- 差し込んだ分析ブロック -->
+        <!-- 差し込んだ分析ブロック（グラフ込み） -->
         {analysis_html}
 
         <div class="result-box" style="border-left-color: #d97706; background: #fffbeb;">
@@ -1560,6 +1589,57 @@ def generate_archive_detail_pages(history_record):
             <div class="ad-sp">{imobile_ad3_sp}</div>
         </div>
     </div>
+
+    <!-- ▼▼▼ グラフ描画用スクリプト ▼▼▼ -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {{
+            const labels = {chart_labels};
+            const dataCounts = {chart_data};
+            const winNums = {win_nums_js};
+            
+            // 当選数字はオレンジ、それ以外はグレーっぽく色分け
+            const bgColors = labels.map(num => winNums.includes(num) ? 'rgba(234, 88, 12, 0.8)' : 'rgba(148, 163, 184, 0.3)');
+            const borderColors = labels.map(num => winNums.includes(num) ? 'rgba(194, 65, 12, 1)' : 'rgba(148, 163, 184, 0.8)');
+
+            const ctx = document.getElementById('freqChart');
+            if (ctx) {{
+                new Chart(ctx.getContext('2d'), {{
+                    type: 'bar',
+                    data: {{
+                        labels: labels,
+                        datasets: [{{
+                            label: '出現回数',
+                            data: dataCounts,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {{
+                            legend: {{ display: false }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return '出現回数: ' + context.parsed.y + '回';
+                                    }}
+                                }}
+                            }}
+                        }},
+                        scales: {{
+                            y: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }},
+                            x: {{ grid: {{ display: false }} }}
+                        }}
+                    }}
+                }});
+            }}
+        }});
+    </script>
+    <!-- ▲▲▲ ここまで ▲▲▲ -->
+
     {imobile_overlay}
 </body>
 </html>"""
