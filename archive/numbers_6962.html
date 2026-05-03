@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>【第6962回】ナンバーズ3＆4 抽選結果とAI分析・振り返り</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .result-box { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; color: #334155; margin-bottom: 15px; }
+        th, td { padding:10px 0; border-bottom:1px solid #e2e8f0; }
+        th { text-align:left; width:45%; }
+        .ad-pc { display: block; } .ad-sp { display: none; }
+        @media (max-width: 600px) { .ad-pc { display: none; } .ad-sp { display: block; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../archive_numbers.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ 過去の結果一覧に戻る</a>
+        <h1 style="color: #1e3a8a; font-size: 24px; margin-top: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">ナンバーズ 第6962回 抽選結果とAI分析</h1>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p>本ページは、<strong>ナンバーズ 第6962回</strong> の実際の抽選結果と、当サイトのAIアルゴリズムが事前に算出した予想結果の照合・分析レポートです。</p>
+        
+        <!-- ナンバーズ4 ブロック -->
+        <div class="result-box" style="border-left: 5px solid #16a34a; background: #f0fdf4;">
+            <h2 style="color:#15803d; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+                <span>🎯 ナンバーズ4 結果</span>
+                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px;">7323</span>
+            </h2>
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #bbf7d0;">
+                <strong style="color:#16a34a;">📊 出目分析</strong>
+                <table>
+                    <tr><th>⚖️ 奇数・偶数比率</th><td><strong>奇数 3 ： 偶数 1</strong></td></tr>
+                    <tr><th>∑ 合計値（サム）</th><td><strong>15</strong></td></tr>
+                    <tr><th>🔗 重複数字（ゾロ目）</th><td><strong>3が2個</strong></td></tr>
+                </table>
+            </div>
+
+            <!-- ▼ N4 グラフ領域 ▼ -->
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #bbf7d0;">
+                <strong style="color:#16a34a;">📈 出現頻度と当選数字の分布 (N4)</strong>
+                <p style="font-size: 12px; color: #64748b; margin-top: 5px; margin-bottom: 10px;">※過去100回。<span style="color: #16a34a; font-weight: bold;">緑色の棒</span>が今回の当選数字です。</p>
+                <div style="position: relative; height: 180px; width: 100%;">
+                    <canvas id="n4Chart"></canvas>
+                </div>
+            </div>
+            <!-- ▲ N4 グラフ領域 ▲ -->
+
+            <h3 style="color:#16a34a; font-size:16px;">🤖 AI成績：【 ハズレ 】</h3>
+            <div style="background:#fff; border:2px solid #bbf7d0; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想A(本命)</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">2</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">1</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span></div></div>
+<div style="background:#fff; border:2px solid #bbf7d0; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想B</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">1</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">2</span></div></div>
+<div style="background:#fff; border:2px solid #bbf7d0; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想C</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">1</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">2</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span></div></div>
+<div style="background:#fff; border:2px solid #bbf7d0; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想D</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">2</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">1</span></div></div>
+<div style="background:#fff; border:2px solid #bbf7d0; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想E</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">1</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">2</span></div></div>
+
+        </div>
+
+        <!-- ナンバーズ3 ブロック -->
+        <div class="result-box" style="border-left: 5px solid #e11d48; background: #fff1f2; margin-top:30px;">
+            <h2 style="color:#be123c; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+                <span>🎯 ナンバーズ3 結果</span>
+                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px;">099</span>
+            </h2>
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fecdd3;">
+                <strong style="color:#e11d48;">📊 出目分析</strong>
+                <table>
+                    <tr><th>⚖️ 奇数・偶数比率</th><td><strong>奇数 2 ： 偶数 1</strong></td></tr>
+                    <tr><th>∑ 合計値（サム）</th><td><strong>18</strong></td></tr>
+                    <tr><th>🔗 重複数字（ゾロ目）</th><td><strong>9が2個</strong></td></tr>
+                </table>
+            </div>
+
+            <!-- ▼ N3 グラフ領域 ▼ -->
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fecdd3;">
+                <strong style="color:#e11d48;">📈 出現頻度と当選数字の分布 (N3)</strong>
+                <p style="font-size: 12px; color: #64748b; margin-top: 5px; margin-bottom: 10px;">※過去100回。<span style="color: #e11d48; font-weight: bold;">赤色の棒</span>が今回の当選数字です。</p>
+                <div style="position: relative; height: 180px; width: 100%;">
+                    <canvas id="n3Chart"></canvas>
+                </div>
+            </div>
+            <!-- ▲ N3 グラフ領域 ▲ -->
+
+            <h3 style="color:#e11d48; font-size:16px;">🤖 AI成績：【 ハズレ 】</h3>
+            <div style="background:#fff; border:2px solid #fecdd3; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想A(本命)</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span></div></div>
+<div style="background:#fff; border:2px solid #fecdd3; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想B</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span></div></div>
+<div style="background:#fff; border:2px solid #fecdd3; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想C</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span></div></div>
+<div style="background:#fff; border:2px solid #fecdd3; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想D</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span></div></div>
+<div style="background:#fff; border:2px solid #fecdd3; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">予想E</div><div style="display:flex;"><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">8</span><span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border-radius: 6px; font-weight: bold; margin: 2px;">4</span></div></div>
+
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="../numbers.html" style="background: #1e3a8a; color: white; padding: 15px 30px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(30, 58, 138, 0.3);">最新のナンバーズ AI予想を見る ＞</a>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad3_pc}</div>
+            <div class="ad-sp">{imobile_ad3_sp}</div>
+        </div>
+    </div>
+    
+    <!-- ▼▼▼ グラフ描画用スクリプト ▼▼▼ -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            const n4Data = [13, 12, 6, 7, 16, 2, 7, 11, 9, 13];
+            const n3Data = [10, 8, 7, 9, 7, 4, 3, 7, 10, 7];
+            const n4Win = ['7', '3', '2', '3'];
+            const n3Win = ['0', '9', '9'];
+            
+            // グラフ生成の共通関数
+            function createChart(canvasId, dataCounts, winNums, baseColorRGB, borderRGB) {
+                const ctx = document.getElementById(canvasId);
+                if (!ctx) return;
+                
+                // 当選数字が含まれていればテーマカラー、そうでなければグレー
+                const bgColors = labels.map(num => winNums.includes(num) ? `rgba(${baseColorRGB}, 0.8)` : 'rgba(148, 163, 184, 0.3)');
+                const borderColors = labels.map(num => winNums.includes(num) ? `rgba(${borderRGB}, 1)` : 'rgba(148, 163, 184, 0.8)');
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '出現回数',
+                            data: dataCounts,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return '出現回数: ' + context.parsed.y + '回';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 5 } }, // Nは回数が多いのでstep5
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            // N4は緑系 (22, 163, 74)
+            createChart('n4Chart', n4Data, n4Win, '22, 163, 74', '21, 128, 61');
+            // N3は赤系 (225, 29, 72)
+            createChart('n3Chart', n3Data, n3Win, '225, 29, 72', '190, 18, 60');
+        });
+    </script>
+    <!-- ▲▲▲ ここまで ▲▲▲ -->
+
+    {imobile_overlay}
+</body>
+</html>

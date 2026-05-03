@@ -11,16 +11,15 @@
         body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }
         header { background-color: #1e3a8a; padding: 10px 0; text-align: center; }
         nav { display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }
-        /* ▼ PCでのナビゲーション設定 ▼ */
-        nav a {
-            color: #1e3a8a; 
-            padding: 14px 15px; /* クリックしやすいように少し広げる */
-            font-size: 15px;    /* PCでは少し大きめ */
-            text-decoration: none; 
-            font-weight: bold; 
-            border-bottom: 3px solid transparent; 
-            transition: all 0.3s; 
-        }
+        nav a { 
+    color: #1e3a8a; 
+    padding: 12px 12px; /* 👈 上下の余白を12px、左右の余白を12pxに縮小 */
+    font-size: 14px;    /* 👈 文字サイズを少し小さく指定（元は未指定＝16px相当） */
+    text-decoration: none; 
+    font-weight: bold; 
+    border-bottom: 3px solid transparent; 
+    transition: all 0.3s; 
+}
         nav a.active { border-bottom: 3px solid #d97706; color: #d97706; }
         nav a:hover { background-color: #f0f4f8; }
         .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
@@ -58,19 +57,7 @@
 @media (max-width: 600px) {
     .ad-pc { display: none; }
     .ad-sp { display: block; }
-
-/* ▼ ここから追加：スマホでメニューを2段に収める魔法 ▼ */
-            nav {
-                padding: 0 2px; /* スマホ画面の横幅ギリギリまで使う */
-            }
-            nav a {
-                font-size: 12px; /* スマホでは文字を小さく */
-                padding: 10px 5px; /* 左右の余白を削って横並びにさせる */
-                letter-spacing: -0.5px; /* 文字の間隔を少しだけ詰める */
-            }
-            /* ▲ ここまで追加 ▲ */
-
-        }
+}
 
     </style> 
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
@@ -158,11 +145,18 @@
             </a>
         </div>
 
+        <!-- ▼▼▼ 修正：ここにアーカイブへのボタンが差し込まれます ▼▼▼ -->
         <div style="text-align: center; margin: 30px 0;">
-    <a href="loto7.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        ◀ ロト7 AI予想トップに戻る
-    </a>
-</div>
+            <a href="loto7.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                ◀ ロト7 AI予想トップへ
+            </a>
+            
+        <a href="archive/loto7_0675.html" style="display: inline-block; background-color: #f8fafc; color: #10b981; border: 2px solid #10b981; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s;">
+            📊 この回の出目分析とAI成績を見る ＞
+        </a>
+        
+        </div>
+        <!-- ▲▲▲ 修正ここまで ▲▲▲ -->
 
     <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">

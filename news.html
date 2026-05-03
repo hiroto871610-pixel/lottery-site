@@ -33,13 +33,10 @@
         footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }
         .footer-links a { color: #cbd5e1; text-decoration: none; margin: 0 10px; }
         
-        .ad-pc { display: block; } 
-        .ad-sp { display: none; }
-        @media (max-width: 600px) { 
-            .ad-pc { display: none; } 
-            .ad-sp { display: block; } 
-
-/* ▼ ここから追加：スマホでメニューを2段に収める魔法 ▼ */
+        .ad-pc { display: block; } .ad-sp { display: none; }
+        @media (max-width: 600px) { .ad-pc { display: none; } .ad-sp { display: block; } 
+        
+        /* ▼ ここから追加：スマホでメニューを2段に収める魔法 ▼ */
             nav {
                 padding: 0 2px; /* スマホ画面の横幅ギリギリまで使う */
             }
@@ -51,7 +48,6 @@
             /* ▲ ここまで追加 ▲ */
 
         }
-
     </style>
 </head>
 <body>
@@ -88,7 +84,18 @@
                 サイトのアップデート情報や、AI予想の的中結果を自動でお届けします。
             </p>
             
-            <p style='text-align: center; color: #64748b;'>現在お知らせはありません。</p>
+            
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed #bfdbfe; padding-bottom: 10px; margin-bottom: 15px;">
+                <span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block;">✨ アップデート</span>
+                <span style="color: #64748b; font-size: 14px; font-weight: bold;">2026/05/03</span>
+            </div>
+            <h3 style="margin: 0 0 10px 0; color: #1e293b; font-size: 18px;">NEWSページを作成・各ページに機能を追加しました！</h3>
+            <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">・サイトにNEWSページを作成しました！当サイトでの予想が当選していた場合に自動で当選情報をお知らせします！
+・各宝くじページでご利用者様の予想を当サイトのAIが確率のチェックするマイ予想チェッカーを導入！
+・各回の分析ページを毎回更新！詳しい分析情報をお届けします！</p>
+        </div>
+        
             
         </div>
 
