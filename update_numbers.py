@@ -1439,6 +1439,8 @@ def generate_archive_detail_pages(history_record):
 <head>
     <meta charset="UTF-8">
     <title>【{kai_str}】ナンバーズ3＆4 抽選結果とAI分析・振り返り</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -1641,6 +1643,8 @@ def generate_archive_index_page(history_record):
 <head>
     <meta charset="UTF-8">
     <title>ナンバーズ 過去の当選番号とAI予想成績アーカイブ一覧</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
