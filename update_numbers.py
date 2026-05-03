@@ -791,6 +791,21 @@ def generate_numbers_detail_page(result_data):
     n3_trs = ""
     for p in result_data.get("n3_prizes", []):
         n3_trs += f"<tr><td style='font-weight:bold; color:#334155;'>{p['grade']}</td><td style='color:#ea580c; font-weight:bold; font-size:16px;'>{p['prize']}</td><td style='color:#64748b;'>{p['winners']}</td></tr>"
+    
+    # === ▼ ここから追加 ▼ ===
+    archive_link_html = ""
+    target_round_str = result_data.get('round', '')
+    round_match = re.search(r'\d+', target_round_str)
+    
+    if round_match:
+        kai_num = round_match.group().zfill(4)
+        archive_url = f"archive/numbers_{kai_num}.html"
+        archive_link_html = f"""
+        <a href="{archive_url}" style="display: inline-block; background-color: #f8fafc; color: #1e3a8a; border: 2px solid #1e3a8a; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s;">
+            📊 この回の出目分析とAI成績を見る ＞
+        </a>
+        """
+    # === ▲ ここまで追加 ▲ ===
 
     # HTMLの組み立て（※CSSの波括弧は {{ }} と2つ重ねてエラーを回避しています）
     html_content = f"""<!DOCTYPE html>
@@ -944,10 +959,11 @@ def generate_numbers_detail_page(result_data):
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-    <a href="numbers.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        ◀ ナンバーズ AI予想トップに戻る
-    </a>
-</div>
+            <a href="numbers.html" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 10px 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                ◀ ナンバーズ AI予想トップへ
+            </a>
+            {archive_link_html}
+        </div>
     
     <!-- 👇広告の表示部分👇 -->
         <div style="text-align: center; margin: 20px 0;">
@@ -1324,6 +1340,279 @@ def get_next_numbers_date():
 
     weekdays = ["月", "火", "水", "木", "金", "土", "日"]
     return f"{next_date.month}月{next_date.day}日({weekdays[next_date.weekday()]})"
+
+# ==========================================
+# ▼▼▼ 新規追加：アーカイブとサイトマップ生成機能（ナンバーズ版） ▼▼▼
+# ==========================================
+import os
+import re
+import datetime
+
+def analyze_numbers_draw(main_nums_str):
+    """ナンバーズの出目分析（奇数偶数、サム、連続）を行う共通関数"""
+    if not main_nums_str or main_nums_str == "----" or main_nums_str == "---":
+        return "", "", ""
+        
+    nums_list = [int(x) for x in str(main_nums_str)]
+    length = len(nums_list)
+    
+    # 1. 奇数・偶数のバランス
+    odds = sum(1 for n in nums_list if n % 2 != 0)
+    evens = length - odds
+    balance_str = f"奇数 {odds} ： 偶数 {evens}"
+    
+    # 2. 合計値（サム）
+    total_sum = sum(nums_list)
+    
+    # 3. 連続・重複数字（ダブル・トリプル等）
+    counts = Counter(nums_list)
+    duplicates = [f"{n}が{c}個" for n, c in counts.items() if c >= 2]
+    dup_str = "、".join(duplicates) if duplicates else "なし"
+    
+    return balance_str, str(total_sum), dup_str
+
+def generate_archive_detail_pages(history_record):
+    """過去の各回ごとの個別分析ページを /archive/ フォルダに生成する"""
+    os.makedirs("archive", exist_ok=True)
+    generated_urls = []
+    
+    for idx, record in enumerate(history_record):
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_match = re.search(r'\d+', kai_str)
+            if not kai_match: continue
+            
+            kai_num = kai_match.group().zfill(4)
+            filename = f"numbers_{kai_num}.html" # ナンバーズ用にファイル名を変更
+            filepath = os.path.join("archive", filename)
+            page_url = f"https://loto-yosou-ai.com/archive/{filename}"
+            generated_urls.append(page_url)
+            
+            if os.path.exists(filepath):
+                continue
+
+            actual_n4 = record.get('actual_n4', '----')
+            actual_n3 = record.get('actual_n3', '---')
+            result_n4 = record.get('result_n4', '----')
+            result_n3 = record.get('result_n3', '----')
+            
+            # --- 出目分析ロジック ---
+            n4_bal, n4_sum, n4_dup = analyze_numbers_draw(actual_n4)
+            n3_bal, n3_sum, n3_dup = analyze_numbers_draw(actual_n3)
+            
+            # 予想HTML化
+            def build_preds_html(preds, labels, bg_color, border_color):
+                html = ""
+                for i, pred in enumerate(preds):
+                    balls = "".join([f'<span class="ball" style="display: inline-flex; justify-content: center; align-items: center; width: 35px; height: 35px; background: {bg_color}; color: white; border-radius: 6px; font-weight: bold; margin: 2px;">{n}</span>' for n in pred])
+                    html += f'<div style="background:#fff; border:2px solid {border_color}; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; flex-wrap:wrap;"><div style="font-weight:bold; color:#333; background:#f1f5f9; padding:3px 10px; border-radius:4px; margin-right:15px; font-size: 14px;">{labels[i]}</div><div style="display:flex;">{balls}</div></div>\n'
+                return html
+
+            labels = ['予想A(本命)', '予想B', '予想C', '予想D', '予想E']
+            n4_preds_html = build_preds_html(record.get('n4_preds', []), labels, "linear-gradient(135deg, #22c55e, #16a34a)", "#bbf7d0")
+            n3_preds_html = build_preds_html(record.get('n3_preds', []), labels, "linear-gradient(135deg, #f43f5e, #e11d48)", "#fecdd3")
+
+            html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>【{kai_str}】ナンバーズ3＆4 抽選結果とAI分析・振り返り</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
+        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 15px; color: #334155; margin-bottom: 15px; }}
+        th, td {{ padding:10px 0; border-bottom:1px solid #e2e8f0; }}
+        th {{ text-align:left; width:45%; }}
+        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../archive_numbers.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ 過去の結果一覧に戻る</a>
+        <h1 style="color: #1e3a8a; font-size: 24px; margin-top: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">ナンバーズ {kai_str} 抽選結果とAI分析</h1>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p>本ページは、<strong>ナンバーズ {kai_str}</strong> の実際の抽選結果と、当サイトのAIアルゴリズムが事前に算出した予想結果の照合・分析レポートです。</p>
+        
+        <!-- ナンバーズ4 ブロック -->
+        <div class="result-box" style="border-left: 5px solid #16a34a; background: #f0fdf4;">
+            <h2 style="color:#15803d; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+                <span>🎯 ナンバーズ4 結果</span>
+                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px;">{actual_n4}</span>
+            </h2>
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #bbf7d0;">
+                <strong style="color:#16a34a;">📊 出目分析</strong>
+                <table>
+                    <tr><th>⚖️ 奇数・偶数比率</th><td><strong>{n4_bal}</strong></td></tr>
+                    <tr><th>∑ 合計値（サム）</th><td><strong>{n4_sum}</strong></td></tr>
+                    <tr><th>🔗 重複数字（ゾロ目）</th><td><strong>{n4_dup}</strong></td></tr>
+                </table>
+            </div>
+            <h3 style="color:#16a34a; font-size:16px;">🤖 AI成績：【 {result_n4} 】</h3>
+            {n4_preds_html}
+        </div>
+
+        <!-- ナンバーズ3 ブロック -->
+        <div class="result-box" style="border-left: 5px solid #e11d48; background: #fff1f2; margin-top:30px;">
+            <h2 style="color:#be123c; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+                <span>🎯 ナンバーズ3 結果</span>
+                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px;">{actual_n3}</span>
+            </h2>
+            <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fecdd3;">
+                <strong style="color:#e11d48;">📊 出目分析</strong>
+                <table>
+                    <tr><th>⚖️ 奇数・偶数比率</th><td><strong>{n3_bal}</strong></td></tr>
+                    <tr><th>∑ 合計値（サム）</th><td><strong>{n3_sum}</strong></td></tr>
+                    <tr><th>🔗 重複数字（ゾロ目）</th><td><strong>{n3_dup}</strong></td></tr>
+                </table>
+            </div>
+            <h3 style="color:#e11d48; font-size:16px;">🤖 AI成績：【 {result_n3} 】</h3>
+            {n3_preds_html}
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="../numbers.html" style="background: #1e3a8a; color: white; padding: 15px 30px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(30, 58, 138, 0.3);">最新のナンバーズ AI予想を見る ＞</a>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad3_pc}</div>
+            <div class="ad-sp">{imobile_ad3_sp}</div>
+        </div>
+    </div>
+    {imobile_overlay}
+</body>
+</html>"""
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(html_content)
+                
+    return generated_urls
+
+def generate_archive_index_page(history_record):
+    """全履歴へのリンクをまとめた一覧ページ (archive_numbers.html) を生成する"""
+    links_html = ""
+    for record in history_record:
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_match = re.search(r'\d+', kai_str)
+            if not kai_match: continue
+            
+            kai_num = kai_match.group().zfill(4)
+            actual_n4 = record.get('actual_n4', '----')
+            actual_n3 = record.get('actual_n3', '---')
+            result_n4 = record.get('result_n4', '----')
+            result_n3 = record.get('result_n3', '----')
+            
+            c4 = "#dc2626" if "🎯" in result_n4 else "#64748b"
+            c3 = "#dc2626" if "🎯" in result_n3 else "#64748b"
+            
+            links_html += f"""
+            <a href="archive/numbers_{kai_num}.html" style="display: block; background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; text-decoration: none; color: #333; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: transform 0.2s;">
+                <div style="font-weight: bold; color: #1e3a8a; font-size: 18px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 5px; margin-bottom: 8px;">{kai_str}</div>
+                <div style="display:flex; justify-content:space-between; font-size: 14px;">
+                    <div style="width:48%;">
+                        <div style="color: #16a34a; font-weight:bold;">N4: {actual_n4}</div>
+                        <div style="color: {c4}; font-weight:bold; font-size:12px;">AI: {result_n4}</div>
+                    </div>
+                    <div style="width:48%; border-left:1px solid #e2e8f0; padding-left:10px;">
+                        <div style="color: #e11d48; font-weight:bold;">N3: {actual_n3}</div>
+                        <div style="color: {c3}; font-weight:bold; font-size:12px;">AI: {result_n3}</div>
+                    </div>
+                </div>
+            </a>
+            """
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ナンバーズ 過去の当選番号とAI予想成績アーカイブ一覧</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
+        .container {{ max-width: 800px; margin: 0 auto; }}
+        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #1e3a8a; text-align: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px;">📊 ナンバーズ 過去データ＆AI分析一覧</h1>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <p style="text-align: center; margin-bottom: 30px; color:#475569;">過去のすべての抽選結果と、当サイトのAIが予想した成績の振り返りを記録しています。</p>
+        {links_html}
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="index.html" style="display:inline-block; background: #3b82f6; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold;">◀ トップページへ戻る</a>
+        </div>
+    </div>
+    {imobile_overlay}
+</body>
+</html>"""
+
+    with open("archive_numbers.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+def generate_sitemap(archive_urls):
+    """サイトマップを更新する（ナンバーズのアーカイブURLを追記）"""
+    sitemap_path = "sitemap.xml"
+    existing_content = ""
+    if os.path.exists(sitemap_path):
+        with open(sitemap_path, "r", encoding="utf-8") as f:
+            existing_content = f.read()
+
+    base_urls = [
+        "https://loto-yosou-ai.com/index.html",
+        "https://loto-yosou-ai.com/loto7.html",
+        "https://loto-yosou-ai.com/loto6.html",
+        "https://loto-yosou-ai.com/numbers.html",
+        "https://loto-yosou-ai.com/archive_loto7.html",
+        "https://loto-yosou-ai.com/archive_loto6.html",
+        "https://loto-yosou-ai.com/archive_numbers.html", # 追加
+    ]
+    
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for url in base_urls:
+        xml_content += "  <url>\n"
+        xml_content += f"    <loc>{url}</loc>\n"
+        xml_content += f"    <lastmod>{today}</lastmod>\n"
+        priority = "1.0" if "archive/" not in url else "0.8"
+        xml_content += f"    <priority>{priority}</priority>\n"
+        xml_content += "  </url>\n"
+
+    for url in archive_urls:
+        xml_content += "  <url>\n"
+        xml_content += f"    <loc>{url}</loc>\n"
+        xml_content += f"    <lastmod>{today}</lastmod>\n"
+        xml_content += f"    <priority>0.6</priority>\n"
+        xml_content += "  </url>\n"
+        
+    xml_content += '</urlset>'
+    
+    with open(sitemap_path, "w", encoding="utf-8") as f:
+        f.write(xml_content)
+    print(f"✅ sitemap.xml を更新しました（ナンバーズアーカイブ追加）")
+# ==========================================
+# ▲▲▲ 新規追加：ここまで ▲▲▲
+# ==========================================
 
 # --- 5. HTML構築 ---
 def build_html():
@@ -1777,10 +2066,37 @@ def build_html():
 
 if __name__ == "__main__":
     final_html = build_html()
+
+# === ▼ 修正・追加：numbers.htmlの成績表の下に「アーカイブ一覧」ボタンを挿入 ▼ ===
+    insertion_target = "</tbody>\n            </table>\n            </div>"
+    insertion_button = """</tbody>
+            </table>
+            </div>
+            
+            <!-- ▼ 追加：アーカイブ一覧への導線ボタン ▼ -->
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="archive_numbers.html" style="display: inline-block; background-color: #f8fafc; color: #1e3a8a; border: 2px solid #3b82f6; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    📚 過去の全成績と分析データ一覧を見る ＞
+                </a>
+            </div>
+            <!-- ▲ 追加ここまで ▲ -->"""
+    final_html = final_html.replace(insertion_target, insertion_button)
+    # === ▲ 修正・追加ここまで ▲ ===
+
     with open('numbers.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
         real_data = get_numbers_full_detail()
     generate_numbers_detail_page(real_data)
+
+# ▼▼▼ 新規追加：アーカイブ・サイトマップ自動生成処理 ▼▼▼
+    print("📈 SEO用アーカイブページ・サイトマップの構築を開始します...")
+    history_records = load_history_from_jsonbin()
+    generated_archive_urls = generate_archive_detail_pages(history_records)
+    generate_archive_index_page(history_records)
+    generate_sitemap(generated_archive_urls)
+    print("✨ SEO用アーカイブ構築が完了しました！")
+    # ▲▲▲ 新規追加：ここまで ▲▲▲
+
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ナンバーズ版)
     # =========================================
