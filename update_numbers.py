@@ -1771,49 +1771,59 @@ def generate_archive_index_page(history_record):
     with open("archive_numbers.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
-def generate_sitemap(archive_urls):
-    """サイトマップを更新する（ナンバーズのアーカイブURLを追記）"""
+def generate_sitemap():
+    """archiveフォルダの中身を直接見て、全宝くじのサイトマップを完璧に生成する"""
+    import glob # フォルダ内を検索するためのライブラリ
     sitemap_path = "sitemap.xml"
-    existing_content = ""
-    if os.path.exists(sitemap_path):
-        with open(sitemap_path, "r", encoding="utf-8") as f:
-            existing_content = f.read()
-
+    
+    # サイトの基本ページ一覧
     base_urls = [
         "https://loto-yosou-ai.com/index.html",
         "https://loto-yosou-ai.com/loto7.html",
         "https://loto-yosou-ai.com/loto6.html",
         "https://loto-yosou-ai.com/numbers.html",
+        "https://loto-yosou-ai.com/horoscope.html",
+        "https://loto-yosou-ai.com/archive.html",
+        "https://loto-yosou-ai.com/news.html",
+        "https://loto-yosou-ai.com/loto7_detail.html",
+        "https://loto-yosou-ai.com/loto6_detail.html",
+        "https://loto-yosou-ai.com/numbers_detail.html",
+        "https://loto-yosou-ai.com/column.html",
+        "https://loto-yosou-ai.com/jumbo.html",
+        "https://loto-yosou-ai.com/about.html",
+        "https://loto-yosou-ai.com/privacy.html",
+        "https://loto-yosou-ai.com/disclaimer.html",
+        "https://loto-yosou-ai.com/contact.html",
         "https://loto-yosou-ai.com/archive_loto7.html",
         "https://loto-yosou-ai.com/archive_loto6.html",
-        "https://loto-yosou-ai.com/archive_numbers.html", # 追加
+        "https://loto-yosou-ai.com/archive_numbers.html",
     ]
     
+    # archiveフォルダの中にあるすべてのHTMLファイルを自動でかき集める
+    archive_urls = []
+    if os.path.exists("archive"):
+        archive_files = glob.glob("archive/*.html")
+        archive_urls = [f"https://loto-yosou-ai.com/archive/{os.path.basename(f)}" for f in archive_files]
+        
+    all_urls = base_urls + archive_urls
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     
     xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     
-    for url in base_urls:
+    for url in all_urls:
         xml_content += "  <url>\n"
         xml_content += f"    <loc>{url}</loc>\n"
         xml_content += f"    <lastmod>{today}</lastmod>\n"
-        priority = "1.0" if "archive/" not in url else "0.8"
+        priority = "1.0" if "archive/" not in url else "0.6"
         xml_content += f"    <priority>{priority}</priority>\n"
-        xml_content += "  </url>\n"
-
-    for url in archive_urls:
-        xml_content += "  <url>\n"
-        xml_content += f"    <loc>{url}</loc>\n"
-        xml_content += f"    <lastmod>{today}</lastmod>\n"
-        xml_content += f"    <priority>0.6</priority>\n"
         xml_content += "  </url>\n"
         
     xml_content += '</urlset>'
     
     with open(sitemap_path, "w", encoding="utf-8") as f:
         f.write(xml_content)
-    print(f"✅ sitemap.xml を更新しました（ナンバーズアーカイブ追加）")
+    print(f"✅ sitemap.xml を完全な状態で更新しました（計 {len(all_urls)} ページ）")
 # ==========================================
 # ▲▲▲ 新規追加：ここまで ▲▲▲
 # ==========================================
@@ -2475,11 +2485,11 @@ if __name__ == "__main__":
 # ▼▼▼ 新規追加：アーカイブ・サイトマップ自動生成処理 ▼▼▼
     print("📈 SEO用アーカイブページ・サイトマップの構築を開始します...")
     history_records = load_history_from_jsonbin()
-    generated_archive_urls = generate_archive_detail_pages(history_records)
+    generate_archive_detail_pages(history_records) # URLを受け取る必要がなくなりました
     generate_archive_index_page(history_records)
-    generate_sitemap(generated_archive_urls)
+    generate_sitemap() # ← カッコの中を空にする！
     print("✨ SEO用アーカイブ構築が完了しました！")
-    # ▲▲▲ 新規追加：ここまで ▲▲▲
+# ▲▲▲ 新規追加：ここまで ▲▲▲
 
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する (ナンバーズ版)
