@@ -1732,13 +1732,13 @@ def generate_archive_detail_pages(history_record):
 </body>
 </html>"""
 
-            # ▼▼▼ 修正：ここでも変数を「確実」に広告のHTMLに置き換える ▼▼▼
-    html_content = html_content.replace("{imobile_ad2_pc}", imobile_ad2_pc)
-    html_content = html_content.replace("{imobile_ad2_sp}", imobile_ad2_sp)
-    html_content = html_content.replace("{imobile_ad3_pc}", imobile_ad3_pc)
-    html_content = html_content.replace("{imobile_ad3_sp}", imobile_ad3_sp)
-    html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
-    # ▲▲▲ 修正ここまで ▲▲▲
+            # ▼▼▼ ココを追加！ 広告タグを確実に埋め込む ▼▼▼
+            html_content = html_content.replace("{imobile_ad2_pc}", imobile_ad2_pc)
+            html_content = html_content.replace("{imobile_ad2_sp}", imobile_ad2_sp)
+            html_content = html_content.replace("{imobile_ad3_pc}", imobile_ad3_pc)
+            html_content = html_content.replace("{imobile_ad3_sp}", imobile_ad3_sp)
+            html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
+            # ▲▲▲ ココまで ▲▲▲
 
     with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html_content)
