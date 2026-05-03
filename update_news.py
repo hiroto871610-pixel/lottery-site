@@ -188,7 +188,15 @@ def build_news_html():
         header {{ background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); color: white; padding: 30px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
         header a {{ text-decoration: none; color: white; display: block; }}
         nav {{ display: flex; justify-content: center; background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 100; border-bottom: 1px solid #e2e8f0; }}
-        nav a {{ color: #1e3a8a; padding: 12px 12px; font-size: 14px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }}
+        nav a {{ 
+    color: #1e3a8a; 
+    padding: 12px 12px; /* 👈 上下の余白を12px、左右の余白を12pxに縮小 */
+    font-size: 14px;    /* 👈 文字サイズを少し小さく指定（元は未指定＝16px相当） */
+    text-decoration: none; 
+    font-weight: bold; 
+    border-bottom: 3px solid transparent; 
+    transition: all 0.3s; 
+}}
         nav a:hover {{ color: #1e3a8a; background-color: #f8fafc; }}
         nav a.active {{ color: #1e3a8a; border-bottom: 3px solid #1e3a8a; }}
         .container {{ max-width: 800px; margin: 40px auto; padding: 0 20px; }}
