@@ -1635,6 +1635,27 @@ def build_html():
 
     history_record = manage_history(latest_data, n4_preds, n3_preds)
 
+    # ▼▼▼ 新規追加：マイ予想チェッカー用のデータ作成 ▼▼▼
+    # top_nums_str は "1桁目の「8」" のような形式なので数字だけを抽出
+    def extract_num(text):
+        m = re.search(r'「(\d+)」', text)
+        return m.group(1) if m else ""
+
+    checker_data = {
+        "n4": {
+            "hot_nums": [str(n) for n, c in n4_hot],
+            "cold_nums": [str(n) for n, c in n4_cold],
+            "top_num": extract_num(n4_top_str)
+        },
+        "n3": {
+            "hot_nums": [str(n) for n, c in n3_hot],
+            "cold_nums": [str(n) for n, c in n3_cold],
+            "top_num": extract_num(n3_top_str)
+        }
+    }
+    checker_json = json.dumps(checker_data)
+    # ▲▲▲ 追加ここまで ▲▲▲
+
     next_date_str = get_next_numbers_date()
     
     html = f"""<!DOCTYPE html>
@@ -1836,6 +1857,151 @@ def build_html():
                     当サイトのAIは各桁ごとのトレンドの波を複合的にスコアリングしています。上記の特注数字を軸に構成された<strong>【予想A】</strong>が、当サイトの最もおすすめな本命予想です！
                 </p>
             </div>
+
+            <!-- ▼▼▼ 新規追加：マイ予想チェッカー UIとJS (ナンバーズ版) ▼▼▼ -->
+            <div style="background-color: #ffffff; border: 2px solid #16a34a; padding: 25px; border-radius: 12px; margin-top: 30px; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.1);">
+                <h3 style="color: #15803d; margin-top: 0; font-size: 20px; text-align: center;">🤔 あなたの数字は当たる？<br>マイ予想チェッカー</h3>
+                <p style="font-size: 14px; color: #64748b; text-align: center; margin-bottom: 20px;">買おうとしている数字を選んで、AIの期待値スコアをチェックしてみましょう！</p>
+                
+                <!-- タブ切り替え -->
+                <div style="display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0;">
+                    <button id="tab-n4" style="background: none; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; color: #16a34a; border-bottom: 3px solid #16a34a; cursor: pointer;">ナンバーズ4</button>
+                    <button id="tab-n3" style="background: none; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; color: #94a3b8; border-bottom: 3px solid transparent; cursor: pointer;">ナンバーズ3</button>
+                </div>
+
+                <!-- ダイヤルUI表示エリア -->
+                <div id="dial-area" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px;">
+                    <!-- JSで桁数分のダイヤルを生成 -->
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button id="btn-check" style="background: #16a34a; color: white; border: none; padding: 12px 40px; border-radius: 30px; font-weight: bold; font-size: 18px; cursor: pointer; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);">AIで判定する</button>
+                </div>
+                
+                <!-- 判定結果表示エリア -->
+                <div id="checker-result" style="display: none; background: #f0fdf4; border: 2px dashed #86efac; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 16px; color: #15803d; font-weight: bold; margin-bottom: 10px;">AI総合判定</div>
+                    <div id="result-rank" style="font-size: 32px; font-weight: 900; color: #dc2626; margin-bottom: 10px; letter-spacing: 2px;"></div>
+                    <div id="result-comment" style="font-size: 15px; color: #475569; line-height: 1.6;"></div>
+                </div>
+            </div>
+
+            <script>
+                const aiData = {checker_json};
+                let currentMode = 'n4'; // 'n4' or 'n3'
+                
+                const tabN4 = document.getElementById('tab-n4');
+                const tabN3 = document.getElementById('tab-n3');
+                const dialArea = document.getElementById('dial-area');
+                const btnCheck = document.getElementById('btn-check');
+                const resultArea = document.getElementById('checker-result');
+                const resultRank = document.getElementById('result-rank');
+                const resultComment = document.getElementById('result-comment');
+
+                // ダイヤルUIを生成する関数
+                function renderDials(length) {{
+                    dialArea.innerHTML = '';
+                    for(let i=0; i<length; i++) {{
+                        const container = document.createElement('div');
+                        container.style.cssText = 'display:flex; flex-direction:column; align-items:center; width:60px;';
+                        
+                        const btnUp = document.createElement('button');
+                        btnUp.innerHTML = '▲';
+                        btnUp.style.cssText = 'background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px 4px 0 0; width:100%; padding:8px 0; cursor:pointer; color:#475569;';
+                        
+                        const display = document.createElement('div');
+                        display.innerText = '0';
+                        display.className = 'digit-display'; // 値取得用のクラス
+                        display.style.cssText = 'font-size:32px; font-weight:900; padding:10px 0; width:100%; text-align:center; border-left:1px solid #cbd5e1; border-right:1px solid #cbd5e1; background:#fff; color:#1e293b;';
+                        
+                        const btnDown = document.createElement('button');
+                        btnDown.innerHTML = '▼';
+                        btnDown.style.cssText = 'background:#f1f5f9; border:1px solid #cbd5e1; border-radius:0 0 4px 4px; width:100%; padding:8px 0; cursor:pointer; color:#475569;';
+
+                        // 数字の増減ロジック
+                        btnUp.onclick = () => {{
+                            let val = parseInt(display.innerText);
+                            display.innerText = val === 9 ? 0 : val + 1;
+                            resultArea.style.display = 'none'; // 変更したら結果を隠す
+                        }};
+                        btnDown.onclick = () => {{
+                            let val = parseInt(display.innerText);
+                            display.innerText = val === 0 ? 9 : val - 1;
+                            resultArea.style.display = 'none';
+                        }};
+
+                        container.appendChild(btnUp);
+                        container.appendChild(display);
+                        container.appendChild(btnDown);
+                        dialArea.appendChild(container);
+                    }}
+                }}
+
+                // 初期描画 (N4)
+                renderDials(4);
+
+                // タブ切り替え処理
+                tabN4.onclick = () => {{
+                    currentMode = 'n4';
+                    tabN4.style.color = '#16a34a'; tabN4.style.borderBottomColor = '#16a34a';
+                    tabN3.style.color = '#94a3b8'; tabN3.style.borderBottomColor = 'transparent';
+                    renderDials(4);
+                    resultArea.style.display = 'none';
+                }};
+                tabN3.onclick = () => {{
+                    currentMode = 'n3';
+                    tabN4.style.color = '#94a3b8'; tabN4.style.borderBottomColor = 'transparent';
+                    tabN3.style.color = '#e11d48'; tabN3.style.borderBottomColor = '#e11d48'; // N3は赤系
+                    renderDials(3);
+                    resultArea.style.display = 'none';
+                }};
+
+                // 判定処理
+                btnCheck.onclick = () => {{
+                    // 現在のダイヤルの値を取得
+                    const displays = document.querySelectorAll('.digit-display');
+                    const selectedNums = Array.from(displays).map(d => d.innerText);
+                    
+                    const targetData = aiData[currentMode];
+                    let hotMatch = 0;
+                    let hasTop = false;
+
+                    selectedNums.forEach(numStr => {{
+                        if(targetData.hot_nums.includes(numStr)) hotMatch++;
+                        if(targetData.top_num === numStr) hasTop = true;
+                    }});
+
+                    let rank = "Cランク";
+                    let comment = "";
+
+                    if(hasTop && hotMatch >= 2) {{
+                        rank = "Sランク 🔥";
+                        comment = "完璧なチョイスです！AI特注数字が組み込まれ、出現トレンドにも完全に合致しています。ストレートでの購入を強く推奨します！";
+                    }} else if (hotMatch >= 1 || hasTop) {{
+                        rank = "Aランク ✨";
+                        comment = "非常に良い組み合わせです。トレンドの波に乗っています。ボックスも押さえておくと安心です。";
+                    }} else {{
+                        rank = "Bランク 💡";
+                        comment = "AIのトレンドからは少し外れています。あえて裏をかくならOKですが、当サイトの『予想A』の数字をいくつか混ぜると期待値が上がります。";
+                    }}
+
+                    resultRank.innerText = rank;
+                    resultComment.innerText = comment;
+                    
+                    // 色の切り替え（N4は緑、N3は赤）
+                    const themeColor = currentMode === 'n4' ? '#15803d' : '#be123c';
+                    const bgColor = currentMode === 'n4' ? '#f0fdf4' : '#fff1f2';
+                    const borderColor = currentMode === 'n4' ? '#86efac' : '#fecdd3';
+                    
+                    resultArea.style.background = bgColor;
+                    resultArea.style.borderColor = borderColor;
+                    resultArea.querySelector('div').style.color = themeColor;
+
+                    resultArea.style.display = 'block';
+                    resultArea.scrollIntoView({{behavior: "smooth", block: "center"}});
+                }};
+            </script>
+            <!-- ▲▲▲ 新規追加 ここまで ▲▲▲ -->
 
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>

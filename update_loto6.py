@@ -1720,6 +1720,15 @@ def build_html():
     predictions, confidence_rank, confidence_msg, top_nums_str = generate_advanced_predictions(history_data)
     
     history_record = manage_history(latest_data, predictions)
+
+    # ▼▼▼ 新規追加：マイ予想チェッカー用のデータ作成 ▼▼▼
+    checker_data = {
+        "hot_nums": [n for n, c in hot],
+        "cold_nums": [n for n, c in cold],
+        "top_nums": top_nums_str.split("、") # 文字列を配列化
+    }
+    checker_json = json.dumps(checker_data)
+    # ▲▲▲ 追加ここまで ▲▲▲
     
     print(f"📡 LOTO6 データ取得成功: {latest_data['kai']} ({latest_data['date']})")
 
@@ -1916,6 +1925,136 @@ def build_html():
                 </p>
             </div>
 
+            <!-- ▼▼▼ 新規追加：マイ予想チェッカー UIとJS (ロト6版) ▼▼▼ -->
+            <div style="background-color: #ffffff; border: 2px solid #0284c7; padding: 25px; border-radius: 12px; margin-top: 30px; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.1);">
+                <h3 style="color: #0369a1; margin-top: 0; font-size: 20px; text-align: center;">🤔 あなたの数字は当たる？<br>マイ予想チェッカー</h3>
+                <p style="font-size: 14px; color: #64748b; text-align: center; margin-bottom: 20px;">買おうとしている数字を6つ選んで、AIの期待値スコアをチェックしてみましょう！</p>
+                
+                <div id="checker-status" style="text-align: center; font-weight: bold; color: #1e3a8a; margin-bottom: 15px;">選択中: <span id="select-count" style="font-size: 22px; color: #0284c7;">0</span> / 6個</div>
+                
+                <div id="number-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                    <!-- JSで1〜43のボタンを生成 -->
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button id="btn-clear" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-right: 10px;">リセット</button>
+                    <button id="btn-check" style="background: #ccc; color: white; border: none; padding: 12px 30px; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: not-allowed;" disabled>6つ選んで判定する</button>
+                </div>
+                
+                <!-- 判定結果表示エリア -->
+                <div id="checker-result" style="display: none; background: #f0f9ff; border: 2px dashed #7dd3fc; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 16px; color: #0369a1; font-weight: bold; margin-bottom: 10px;">AI総合判定</div>
+                    <div id="result-rank" style="font-size: 32px; font-weight: 900; color: #dc2626; margin-bottom: 10px; letter-spacing: 2px;"></div>
+                    <div id="result-comment" style="font-size: 15px; color: #475569; line-height: 1.6;"></div>
+                </div>
+            </div>
+
+            <script>
+                const aiData = {checker_json};
+                const maxSelect = 6;
+                let selectedNums = [];
+
+                const grid = document.getElementById('number-grid');
+                const countSpan = document.getElementById('select-count');
+                const btnCheck = document.getElementById('btn-check');
+                const btnClear = document.getElementById('btn-clear');
+                const resultArea = document.getElementById('checker-result');
+                const resultRank = document.getElementById('result-rank');
+                const resultComment = document.getElementById('result-comment');
+
+                // 1〜43のボタンを生成
+                for (let i = 1; i <= 43; i++) {{
+                    const numStr = i.toString().padStart(2, '0');
+                    const btn = document.createElement('button');
+                    btn.innerText = numStr;
+                    btn.style.cssText = 'padding: 10px 0; font-size: 16px; font-weight: bold; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; cursor: pointer; transition: all 0.2s;';
+                    
+                    btn.addEventListener('click', () => {{
+                        if (selectedNums.includes(numStr)) {{
+                            // 選択解除
+                            selectedNums = selectedNums.filter(n => n !== numStr);
+                            btn.style.background = '#fff';
+                            btn.style.color = '#333';
+                            btn.style.borderColor = '#cbd5e1';
+                        }} else {{
+                            // 選択
+                            if (selectedNums.length < maxSelect) {{
+                                selectedNums.push(numStr);
+                                btn.style.background = '#0ea5e9';
+                                btn.style.color = '#fff';
+                                btn.style.borderColor = '#0ea5e9';
+                            }} else {{
+                                alert('選べるのは6個までです！');
+                            }}
+                        }}
+                        
+                        countSpan.innerText = selectedNums.length;
+                        
+                        if (selectedNums.length === maxSelect) {{
+                            btnCheck.style.background = '#0284c7';
+                            btnCheck.style.cursor = 'pointer';
+                            btnCheck.disabled = false;
+                        }} else {{
+                            btnCheck.style.background = '#ccc';
+                            btnCheck.style.cursor = 'not-allowed';
+                            btnCheck.disabled = true;
+                        }}
+                    }});
+                    grid.appendChild(btn);
+                }}
+
+                btnClear.addEventListener('click', () => {{
+                    selectedNums = [];
+                    countSpan.innerText = '0';
+                    btnCheck.style.background = '#ccc';
+                    btnCheck.style.cursor = 'not-allowed';
+                    btnCheck.disabled = true;
+                    resultArea.style.display = 'none';
+                    Array.from(grid.children).forEach(btn => {{
+                        btn.style.background = '#fff';
+                        btn.style.color = '#333';
+                        btn.style.borderColor = '#cbd5e1';
+                    }});
+                }});
+
+                btnCheck.addEventListener('click', () => {{
+                    resultArea.style.display = 'block';
+                    
+                    let score = 0;
+                    let hotMatch = 0;
+                    let topMatch = 0;
+                    
+                    selectedNums.forEach(num => {{
+                        if (aiData.top_nums.includes(num)) topMatch += 1;
+                        if (aiData.hot_nums.includes(num)) hotMatch += 1;
+                        if (aiData.cold_nums.includes(num)) score -= 1;
+                    }});
+
+                    let rank = "Cランク";
+                    let comment = "";
+
+                    if (topMatch >= 2 || (topMatch >= 1 && hotMatch >= 3)) {{
+                        rank = "Sランク 🔥";
+                        comment = "素晴らしいチョイスです！AIが推奨する『特注HOT数字』がしっかり組み込まれており、高額当選の期待値が非常に高い組み合わせです。";
+                    }} else if (topMatch >= 1 || hotMatch >= 2) {{
+                        rank = "Aランク ✨";
+                        comment = "有望な組み合わせです！最近のトレンドに沿った数字が選ばれています。迷わず購入して良いでしょう。";
+                    }} else if (hotMatch == 1) {{
+                        rank = "Bランク 💡";
+                        comment = "少し波乱含みの組み合わせです。あえてトレンドを外して大穴を狙うならこのままでOK！手堅くいくならHOT数字を追加してみてください。";
+                    }} else {{
+                        rank = "Cランク ⚠️";
+                        comment = "AIのトレンドデータからは少し外れた組み合わせです。もし迷っているなら、当サイトの『予想A』の数字をいくつか混ぜてみてください！";
+                    }}
+
+                    resultRank.innerText = rank;
+                    resultComment.innerText = comment;
+                    
+                    resultArea.scrollIntoView({{behavior: "smooth", block: "center"}});
+                }});
+            </script>
+            <!-- ▲▲▲ 新規追加 ここまで ▲▲▲ -->
+
         <div class="section-card">
             <h2 class="section-header" style="color: #475569; border-bottom: 2px solid #e2e8f0;">🔔 最新の抽選結果 ({latest_data['kai']} - {latest_data['date']})</h2>
             <div class="prediction-box" style="background-color: #f8fafc; border-color: #e2e8f0;">
@@ -1950,7 +2089,7 @@ def build_html():
             <div class="scroll-table-container">
             <table>
                 <thead><tr><th>対象回号</th><th>実際の当選番号</th><th>当サイトの成績照合</th></tr></thead>
-                <tbody>\n"""
+                <tbody>\n"""                
     for record in history_record:
         res_class = "result-win" if "等" in record.get('best_result', '') else "result-lose"
         html += f"""                    <tr>
