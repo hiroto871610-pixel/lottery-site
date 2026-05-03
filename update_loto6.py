@@ -1740,7 +1740,7 @@ def generate_archive_detail_pages(history_record):
     html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
     # ▲▲▲ 修正ここまで ▲▲▲
 
-            with open(filepath, "w", encoding="utf-8") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html_content)
                 
     return generated_urls
