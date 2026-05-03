@@ -1430,18 +1430,23 @@ def generate_archive_detail_pages(history_record):
     os.makedirs("archive", exist_ok=True)
     generated_urls = []
     
-    # ▼▼▼ 新規追加：グラフ描画用の過去データ（100回分）を集計 ▼▼▼
+    # ▼▼▼ 修正：JSONBinではなく、楽天の過去データ（確実な履歴）を使って100回分集計する ▼▼▼
     all_nums_for_chart = []
-    for r in history_record:
-        if r.get('status') == 'finished':
-            nums = [int(n) for n in re.findall(r'\d+', r.get('actual_main', ''))]
+    try:
+        # fetch_history_data() は楽天から過去約150回分を取ってくる関数です
+        real_history = fetch_history_data()[:100] # 最新から100回分だけ切り取る
+        for r in real_history:
+            nums = [int(n) for n in r['main']]
             all_nums_for_chart.extend(nums)
+    except Exception as e:
+        print(f"グラフ用データの取得に失敗しました: {e}")
+        
     global_counts = Counter(all_nums_for_chart)
     
     # Chart.jsに渡すデータ（1〜37のラベルと、それぞれの出現回数）
     chart_labels = [f"{i:02d}" for i in range(1, 38)]
     chart_data = [global_counts.get(i, 0) for i in range(1, 38)]
-    # ▲▲▲ 追加ここまで ▲▲▲
+    # ▲▲▲ 修正ここまで ▲▲▲
     
     # 連続出現（引っ張り数字）を計算するために、enumerateでインデックス(idx)を取得します
     for idx, record in enumerate(history_record):
@@ -1457,8 +1462,8 @@ def generate_archive_detail_pages(history_record):
             generated_urls.append(page_url)
             
             # すでにページが存在する場合はスキップ（※全出力してグラフを反映させたい場合は、ここの2行を一時的にコメントアウトするか、archiveフォルダを空にしてください）
-            if os.path.exists(filepath):
-                continue
+            # if os.path.exists(filepath):
+                # continue
 
             main_nums = record.get('actual_main', '----')
             bonus_nums = record.get('actual_bonus', '')
