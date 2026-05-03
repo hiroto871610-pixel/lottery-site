@@ -12,15 +12,16 @@
         header a { text-decoration: none; color: white; display: block; }
         header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
         nav { display: flex; justify-content: center; background-color: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 100; border-bottom: 1px solid #e2e8f0; }
+        /* ▼ PCでのナビゲーション設定 ▼ */
         nav a {
-    color: #1e3a8a; 
-    padding: 12px 12px; /* 👈 上下の余白を12px、左右の余白を12pxに縮小 */
-    font-size: 14px;    /* 👈 文字サイズを少し小さく指定（元は未指定＝16px相当） */
-    text-decoration: none; 
-    font-weight: bold; 
-    border-bottom: 3px solid transparent; 
-    transition: all 0.3s; 
-}
+            color: #1e3a8a; 
+            padding: 14px 15px; /* クリックしやすいように少し広げる */
+            font-size: 15px;    /* PCでは少し大きめ */
+            text-decoration: none; 
+            font-weight: bold; 
+            border-bottom: 3px solid transparent; 
+            transition: all 0.3s; 
+        }
         nav a:hover { color: #1e3a8a; background-color: #f8fafc; }
         .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
         .section-card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
@@ -87,7 +88,20 @@
 @media (max-width: 600px) {
     .ad-pc { display: none; }
     .ad-sp { display: block; }
-}
+
+    /* ▼ ここから追加：スマホでメニューを2段に収める魔法 ▼ */
+            nav {
+                padding: 0 2px; /* スマホ画面の横幅ギリギリまで使う */
+            }
+            nav a {
+                font-size: 12px; /* スマホでは文字を小さく */
+                padding: 10px 5px; /* 左右の余白を削って横並びにさせる */
+                letter-spacing: -0.5px; /* 文字の間隔を少しだけ詰める */
+            }
+            /* ▲ ここまで追加 ▲ */
+
+          }
+
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1431683156739681"
      crossorigin="anonymous"></script>

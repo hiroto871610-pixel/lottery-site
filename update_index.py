@@ -259,15 +259,16 @@ def build_index_html():
         header p {{ margin: 10px 0 0 0; font-size: 15px; color: #e2e8f0; }}
         
         nav {{ display: flex; justify-content: center; background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 100; border-bottom: 1px solid #e2e8f0; }}
-        nav a {{ 
-    color: #1e3a8a; 
-    padding: 12px 12px; /* 👈 上下の余白を12px、左右の余白を12pxに縮小 */
-    font-size: 14px;    /* 👈 文字サイズを少し小さく指定（元は未指定＝16px相当） */
-    text-decoration: none; 
-    font-weight: bold; 
-    border-bottom: 3px solid transparent; 
-    transition: all 0.3s; 
-}}
+        /* ▼ PCでのナビゲーション設定 ▼ */
+        nav a {{
+            color: #1e3a8a; 
+            padding: 14px 15px; /* クリックしやすいように少し広げる */
+            font-size: 15px;    /* PCでは少し大きめ */
+            text-decoration: none; 
+            font-weight: bold; 
+            border-bottom: 3px solid transparent; 
+            transition: all 0.3s; 
+        }}
         nav a:hover {{ color: #1e3a8a; background-color: #f8fafc; }}
         nav a.active {{ color: #1e3a8a; }}
         nav a.active::after {{ content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #3b82f6, #1e3a8a); }}
@@ -332,7 +333,20 @@ def build_index_html():
 @media (max-width: 600px) {{
     .ad-pc {{ display: none; }}
     .ad-sp {{ display: block; }}
-}}
+
+/* ▼ ここから追加：スマホでメニューを2段に収める魔法 ▼ */
+            nav {{
+                padding: 0 2px; /* スマホ画面の横幅ギリギリまで使う */
+            }}
+            nav a {{
+                font-size: 12px; /* スマホでは文字を小さく */
+                padding: 10px 5px; /* 左右の余白を削って横並びにさせる */
+                letter-spacing: -0.5px; /* 文字の間隔を少しだけ詰める */
+            }}
+            /* ▲ ここまで追加 ▲ */
+
+            }}
+
     </style>
 </head>
 <body>
