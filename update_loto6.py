@@ -1511,7 +1511,7 @@ def generate_archive_detail_pages(history_record):
             
             # すでにページが存在する場合はスキップ（※全出力してグラフを反映させたい場合は一時的にコメントアウト）
             # if os.path.exists(filepath):
-                # continue
+                #continue
 
             main_nums = record.get('actual_main', '----')
             bonus_nums = record.get('actual_bonus', '')
@@ -1587,28 +1587,60 @@ def generate_archive_detail_pages(history_record):
 <head>
     <meta charset="UTF-8">
     <title>【{kai_str}】ロト6 抽選結果とAI予想の分析・振り返り</title>
-    <link rel="icon" type="image/png" href="favicon.icon.png">
-<link rel="apple-touch-icon" href="favicon.icon.png">
+    <link rel="icon" type="image/png" href="../favicon.icon.png">
+    <link rel="apple-touch-icon" href="../favicon.icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
-        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; margin: 0; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 14px 15px; font-size: 15px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }}
+        nav a.active {{ border-bottom: 3px solid #0284c7; color: #0284c7; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
         .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-weight: bold; margin: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
         .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #0284c7; }}
+        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
         .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
-        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} }}
+        @media (max-width: 600px) {{ 
+            .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
+            nav {{ padding: 0 2px; }}
+            nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
+            .container {{ margin: 15px; padding: 20px; }}
+        }}
     </style>
 </head>
 <body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;">
+            <img src="../Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ロト6当選予想・速報</div>
+        </a>
+    </header>
+    <nav>
+        <a href="../index.html">トップ</a>
+        <a href="../loto7.html">ロト7</a>
+        <a href="../loto6.html" class="active">ロト6</a>
+        <a href="../numbers.html">ナンバーズ</a>
+        <a href="../jumbo.html">ジャンボ</a>
+        <a href="../column.html">攻略ガイド🔰</a>
+        <a href="../horoscope.html">占い🔮</a>
+        <a href="../archive.html" >YOUTUBE🎥</a>
+        <a href="../news.html">NEWS📰</a>
+    </nav>
+
     <div class="container">
         <a href="../archive_loto6.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ 過去の結果一覧に戻る</a>
         <h1 style="color: #0284c7; font-size: 24px; margin-top: 20px; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px;">ロト6 {kai_str} 抽選結果とAI分析</h1>
         
         <div style="text-align: center; margin: 20px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad2_pc}</div>
-            <div class="ad-sp">{imobile_ad2_sp}</div>
+            <div class="ad-pc">{{imobile_ad2_pc}}</div>
+            <div class="ad-sp">{{imobile_ad2_sp}}</div>
         </div>
 
         <p>本ページは、<strong>ロト6 {kai_str}</strong> の実際の抽選結果と、当サイトのAIアルゴリズムが事前に算出した予想結果の照合レポートです。</p>
@@ -1619,7 +1651,6 @@ def generate_archive_detail_pages(history_record):
             <p style="color: #16a34a;"><strong>ボーナス：</strong> {bonus_nums}</p>
         </div>
 
-        <!-- 差し込んだ分析ブロック（グラフ込み） -->
         {analysis_html}
 
         <div class="result-box" style="border-left-color: #0284c7; background: #f0f9ff;">
@@ -1634,19 +1665,17 @@ def generate_archive_detail_pages(history_record):
 
         <div style="text-align: center; margin: 30px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad3_pc}</div>
-            <div class="ad-sp">{imobile_ad3_sp}</div>
+            <div class="ad-pc">{{imobile_ad3_pc}}</div>
+            <div class="ad-sp">{{imobile_ad3_sp}}</div>
         </div>
     </div>
     
-    <!-- ▼▼▼ グラフ描画用スクリプト ▼▼▼ -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {{
             const labels = {chart_labels};
             const dataCounts = {chart_data};
             const winNums = {win_nums_js};
             
-            // ロト6用：当選数字はブルー、それ以外はグレーっぽく色分け
             const bgColors = labels.map(num => winNums.includes(num) ? 'rgba(2, 132, 199, 0.8)' : 'rgba(148, 163, 184, 0.3)');
             const borderColors = labels.map(num => winNums.includes(num) ? 'rgba(3, 105, 161, 1)' : 'rgba(148, 163, 184, 0.8)');
 
@@ -1687,9 +1716,19 @@ def generate_archive_detail_pages(history_record):
             }}
         }});
     </script>
-    <!-- ▲▲▲ ここまで ▲▲▲ -->
+    
+    <footer>
+        <div class="footer-links">
+            <a href="../about.html">運営者情報</a> |
+            <a href="../privacy.html">プライバシーポリシー</a> | 
+            <a href="../disclaimer.html">免責事項</a> | 
+            <a href="../contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+    </footer>
 
-    {imobile_overlay}
+    {{imobile_overlay}}
 </body>
 </html>"""
             with open(filepath, "w", encoding="utf-8") as f:
@@ -1729,20 +1768,51 @@ def generate_archive_index_page(history_record):
     <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; padding: 20px; color: #333; }}
-        .container {{ max-width: 800px; margin: 0 auto; }}
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 14px 15px; font-size: 15px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }}
+        nav a.active {{ border-bottom: 3px solid #0284c7; color: #0284c7; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 800px; margin: 30px auto; padding: 0 20px; }}
+        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
         .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
-        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} }}
+        @media (max-width: 600px) {{ 
+            .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
+            nav {{ padding: 0 2px; }}
+            nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
+        }}
     </style>
 </head>
 <body>
+    <header>
+        <a href="index.html" style="text-decoration: none;">
+            <img src="Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">ロト6当選予想・速報</div>
+        </a>
+    </header>
+    <nav>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html" class="active">ロト6</a>
+        <a href="numbers.html">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
+        <a href="news.html">NEWS📰</a>
+    </nav>
+
     <div class="container">
         <h1 style="color: #0284c7; text-align: center; border-bottom: 3px solid #0284c7; padding-bottom: 10px;">📊 ロト6 過去データ＆AI分析一覧</h1>
         
         <div style="text-align: center; margin: 20px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad2_pc}</div>
-            <div class="ad-sp">{imobile_ad2_sp}</div>
+            <div class="ad-pc">{{imobile_ad2_pc}}</div>
+            <div class="ad-sp">{{imobile_ad2_sp}}</div>
         </div>
 
         <p style="text-align: center; margin-bottom: 30px; color:#475569;">過去のすべての抽選結果と、当サイトのAIが予想した成績の振り返りを記録しています。</p>
@@ -1752,7 +1822,19 @@ def generate_archive_index_page(history_record):
             <a href="index.html" style="display:inline-block; background: #3b82f6; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold;">◀ トップページへ戻る</a>
         </div>
     </div>
-    {imobile_overlay}
+    
+    <footer>
+        <div class="footer-links">
+            <a href="about.html">運営者情報</a> |
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 宝くじ当選予想・データ分析ポータル All Rights Reserved.</p>
+    </footer>
+
+    {{imobile_overlay}}
 </body>
 </html>"""
 
