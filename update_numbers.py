@@ -1419,8 +1419,8 @@ def generate_archive_detail_pages(history_record):
             page_url = f"https://loto-yosou-ai.com/archive/{filename}"
             generated_urls.append(page_url)
             
-            # if os.path.exists(filepath):
-                #continue
+            if os.path.exists(filepath):
+                continue
 
             actual_n4 = record.get('actual_n4', '----')
             actual_n3 = record.get('actual_n3', '---')

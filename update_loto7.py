@@ -1462,8 +1462,8 @@ def generate_archive_detail_pages(history_record):
             generated_urls.append(page_url)
             
             # すでにページが存在する場合はスキップ（※全出力してグラフを反映させたい場合は、ここの2行を一時的にコメントアウトするか、archiveフォルダを空にしてください）
-            # if os.path.exists(filepath):
-                #continue
+            if os.path.exists(filepath):
+                continue
 
             main_nums = record.get('actual_main', '----')
             bonus_nums = record.get('actual_bonus', '')
