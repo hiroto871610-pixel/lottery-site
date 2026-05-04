@@ -1626,6 +1626,7 @@ def generate_archive_detail_pages(history_record):
             .ball {{ width: 34px; height: 34px; font-size: 14px; }}
         }}
     </style>
+
 </head>
 <body>
     <header>
