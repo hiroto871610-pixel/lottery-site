@@ -1601,7 +1601,7 @@ def generate_archive_detail_pages(history_record):
         .container {{ max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
         .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #0284c7; }}
 
-        /* 予想ボールの基本デザイン（直書きを消した代わりにここで定義） */
+        /* 予想ボールの基本デザイン */
         .numbers-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; display: flex; align-items: center; flex-wrap: wrap; }}
         .row-label {{ font-size: 16px; font-weight: bold; color: #1e3a8a; background-color: #e0f2fe; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 90px; text-align: center; }}
         .ball-container {{ display: flex; gap: 8px; flex-wrap: wrap; margin-right: auto;}}
@@ -1621,12 +1621,11 @@ def generate_archive_detail_pages(history_record):
             
             /* スマホでボールを縮小し、縦並びに切り替えるルール */
             .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px; gap: 10px; }}
-            .row-label {{ margin-right: 0; margin-bottom: 5px; }}
+            .row-label {{ margin-right: 0; margin-bottom: 5px; font-size: 14px; padding: 3px 8px; }}
             .ball-container {{ margin-right: 0; gap: 6px; }}
-            .ball {{ width: 34px; height: 34px; font-size: 14px; }}
+            .ball {{ width: 34px; height: 34px; font-size: 14px; margin: 1px; }}
         }}
     </style>
-
 </head>
 <body>
     <header>
@@ -1746,14 +1745,14 @@ def generate_archive_detail_pages(history_record):
 </body>
 </html>"""
 
-            # ▼▼▼ ココを追加！ 広告タグを確実に埋め込む ▼▼▼
+            # ▼▼▼ 広告タグの置換処理 ▼▼▼
             html_content = html_content.replace("{imobile_ad2_pc}", imobile_ad2_pc)
             html_content = html_content.replace("{imobile_ad2_sp}", imobile_ad2_sp)
             html_content = html_content.replace("{imobile_ad3_pc}", imobile_ad3_pc)
             html_content = html_content.replace("{imobile_ad3_sp}", imobile_ad3_sp)
             html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
-            # ▲▲▲ ココまで ▲▲▲
 
+            # ファイルに保存（インデントは .replace と同じ位置に合わせる）
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html_content)
                 
