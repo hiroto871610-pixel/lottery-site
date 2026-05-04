@@ -1474,11 +1474,19 @@ def generate_archive_detail_pages(history_record):
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
         .footer-links a:hover {{ color: white; text-decoration: underline; }}
         .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        /* ▼▼▼ 追加：タイトルのレイアウト用ルール ▼▼▼ */
+        .result-title {{ display: flex; justify-content: space-between; align-items: center; margin-top: 0; }}
+        .result-num {{ font-size: 24px; font-weight: 900; letter-spacing: 4px; }}
+        /* ▲▲▲ 追加ここまで ▲▲▲ */
         @media (max-width: 600px) {{ 
             .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
             nav {{ padding: 0 2px; }}
             nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
             .container {{ margin: 15px; padding: 20px; }}
+            /* ▼▼▼ 追加：スマホの時は縦並びにして、番号を左寄せで下に配置 ▼▼▼ */
+            .result-title {{ flex-direction: column; align-items: flex-start; gap: 8px; }}
+            .result-num {{ font-size: 26px; }}
+            /* ▲▲▲ 追加ここまで ▲▲▲ */
         }}
     </style>
 </head>
@@ -1515,9 +1523,9 @@ def generate_archive_detail_pages(history_record):
         
         <!-- ナンバーズ4 ブロック -->
         <div class="result-box" style="border-left: 5px solid #16a34a; background: #f0fdf4;">
-            <h2 style="color:#15803d; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+            <h2 class="result-title" style="color:#15803d;">
                 <span>🎯 ナンバーズ4 結果</span>
-                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px;">{actual_n4}</span>
+                <span class="result-num">{actual_n4}</span>
             </h2>
             <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #bbf7d0;">
                 <strong style="color:#16a34a;">📊 出目分析</strong>
@@ -1544,9 +1552,9 @@ def generate_archive_detail_pages(history_record):
 
         <!-- ナンバーズ3 ブロック -->
         <div class="result-box" style="border-left: 5px solid #e11d48; background: #fff1f2; margin-top:30px;">
-            <h2 style="color:#be123c; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
+            <h2 class="result-title" style="color:#be123c;">
                 <span>🎯 ナンバーズ3 結果</span>
-                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px;">{actual_n3}</span>
+                <span class="result-num">{actual_n3}</span>
             </h2>
             <div style="background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #fecdd3;">
                 <strong style="color:#e11d48;">📊 出目分析</strong>
@@ -1940,6 +1948,11 @@ def build_html():
             .ball-container {{ margin-right: 0; gap: 8px; }}
             .ball {{ width: 36px; height: 36px; font-size: 18px; border-radius: 6px; }} 
             .recommend-tag {{ margin-left: 0; margin-top: 5px; font-size: 12px; align-self: flex-start; }} 
+            /* ▼▼▼ ここから追加：HOT＆COLDをスマホで綺麗に収める ▼▼▼ */
+            .hc-container {{ flex-direction: column; gap: 10px; }}
+            .hc-box {{ min-width: 100%; padding: 10px; box-sizing: border-box; }}
+            .hc-number {{ font-size: 14px; padding: 4px 8px; }}
+            /* ▲▲▲ ここまで追加 ▲▲▲ */
         }}
         
         .hc-container {{ display: flex; gap: 20px; flex-wrap: wrap; }}
