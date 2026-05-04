@@ -127,12 +127,12 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg", target_
             bbox = draw.multiline_textbbox((0, 0), promo_text, font=FONT_PROMO, align="center")
             promo_x = (1080 - (bbox[2] - bbox[0])) / 2
             
-            base_y = 850 if has_carryover else 700
+            base_y = 700
             
             progress = min(1.0, (t - 2.5) * 2.0)
             alpha = int(255 * progress)
             y_off = int(20 * (1.0 - progress))
-            promo_y = base_y + 420 + y_off
+            promo_y = base_y + 800 + y_off
             
             # ③ text を multiline_text に変更し、align="center" を追加
             draw.multiline_text((promo_x + 4, promo_y + 4), promo_text, font=FONT_PROMO, fill=(0, 0, 0, alpha), align="center")
