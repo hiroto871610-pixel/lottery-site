@@ -1600,12 +1600,12 @@ def generate_archive_detail_pages(history_record):
         nav a:hover {{ background-color: #f0f4f8; }}
         .container {{ max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
         .result-box {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #0284c7; }}
-        
-        /* ▼ 追加：予想ボールの基本デザイン（直書きを避けるためここに集約） ▼ */
-        .numbers-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; flex-wrap: wrap; }}
-        .row-label {{ font-weight: bold; color: #1e3a8a; background-color: #e0f2fe; padding: 5px 15px; border-radius: 4px; margin-right: 20px; font-size: 16px; min-width: 90px; text-align: center; }}
-        .ball-container {{ display: flex; gap: 8px; flex-wrap: wrap; }}
-        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-weight: bold; margin: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+
+        /* 予想ボールの基本デザイン（直書きを消した代わりにここで定義） */
+        .numbers-row {{ background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 15px 20px; margin-bottom: 15px; display: flex; align-items: center; flex-wrap: wrap; }}
+        .row-label {{ font-size: 16px; font-weight: bold; color: #1e3a8a; background-color: #e0f2fe; padding: 5px 15px; border-radius: 4px; margin-right: 20px; min-width: 90px; text-align: center; }}
+        .ball-container {{ display: flex; gap: 8px; flex-wrap: wrap; margin-right: auto;}}
+        .ball {{ display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
 
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
         .footer-links {{ margin-bottom: 15px; }}
@@ -1619,12 +1619,11 @@ def generate_archive_detail_pages(history_record):
             nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
             .container {{ margin: 15px; padding: 20px; }}
             
-            /* ▼ 追加：スマホの時は縦並びにしてボールを小さくする（ロト7と同じ修正） ▼ */
+            /* スマホでボールを縮小し、縦並びに切り替えるルール */
             .numbers-row {{ flex-direction: column; align-items: flex-start; padding: 15px; gap: 10px; }}
-            .row-label {{ margin-right: 0; margin-bottom: 5px; font-size: 14px; padding: 3px 8px; }}
+            .row-label {{ margin-right: 0; margin-bottom: 5px; }}
             .ball-container {{ margin-right: 0; gap: 6px; }}
-            .ball {{ width: 34px; height: 34px; font-size: 14px; margin: 1px; }}
-            /* ▲ ここまで追加 ▲ */
+            .ball {{ width: 34px; height: 34px; font-size: 14px; }}
         }}
     </style>
 </head>
@@ -1754,7 +1753,7 @@ def generate_archive_detail_pages(history_record):
             html_content = html_content.replace("{imobile_overlay}", imobile_overlay)
             # ▲▲▲ ココまで ▲▲▲
 
-    with open(filepath, "w", encoding="utf-8") as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html_content)
                 
     return generated_urls
