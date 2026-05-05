@@ -2596,7 +2596,7 @@ if __name__ == "__main__":
     # ==========================================
     print("📰 NEWSページの自動更新を開始します...")
     try:
-        from news import build_news_html
+        from update_news import build_news_html
         build_news_html()
     except Exception as e:
         print(f"⚠️ NEWSページの更新に失敗しました: {e}")

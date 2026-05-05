@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import re
 # ▼▼▼ 追加：news.pyから関数を呼び出す ▼▼▼
 try:
-    from news import fetch_microcms_news, generate_auto_result_news
+    from update_news import fetch_microcms_news, generate_auto_result_news
 except ImportError:
     pass
 # ▲▲▲ ここまで ▲▲▲
