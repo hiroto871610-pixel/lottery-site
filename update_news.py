@@ -232,25 +232,66 @@ def build_news_html():
         update_sitemap_with_news(new_urls_for_sitemap)    
 
 def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, border_color):
-    """ニュースの個別記事ページを生成する"""
-    # 既存のデザインを踏襲したHTMLテンプレート
+    """ニュースの個別記事ページを生成する（フルデザイン版）"""
     html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{item['title']} | ロト＆ナンバーズ攻略局🎯</title>
-    <!-- ... (必要なCSSやヘッダーを記述。アーカイブページと同様) ... -->
+    <link rel="icon" type="image/png" href="../favicon.icon.png">
+    <link rel="apple-touch-icon" href="../favicon.icon.png">
     <style>
-        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; color: #333; }}
-        .container {{ max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; line-height: 1.6; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 14px 15px; font-size: 15px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }}
+        nav a.active {{ border-bottom: 3px solid #1e3a8a; color: #1e3a8a; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 800px; margin: 30px auto; padding: 0 20px; }}
+        .news-box {{ background: {bg_color}; border: 1px solid {border_color}; border-radius: 12px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        
+        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
+        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{ 
+            .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
+            nav {{ padding: 0 2px; }}
+            nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
+        }}
     </style>
 </head>
 <body>
-    <!-- ヘッダーとナビ -->
+    <header>
+        <a href="../index.html" style="text-decoration: none;">
+            <img src="../Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">NEWS・的中速報</div>
+        </a>
+    </header>
+    <nav>
+        <a href="../index.html">トップ</a>
+        <a href="../loto7.html">ロト7</a>
+        <a href="../loto6.html">ロト6</a>
+        <a href="../numbers.html">ナンバーズ</a>
+        <a href="../jumbo.html">ジャンボ</a>
+        <a href="../column.html">攻略ガイド🔰</a>
+        <a href="../horoscope.html">占い🔮</a>
+        <a href="../archive.html" >YOUTUBE🎥</a>
+        <a href="../news.html" class="active">NEWS📰</a>
+    </nav>
+
     <div class="container">
         <a href="../news.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ NEWS一覧に戻る</a>
-        <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 30px; margin-top: 20px;">
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{{imobile_ad2_pc}}</div>
+            <div class="ad-sp">{{imobile_ad2_sp}}</div>
+        </div>
+
+        <div class="news-box">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed {border_color}; padding-bottom: 15px; margin-bottom: 20px;">
                 {tag_html}
                 <span style="color: #64748b; font-weight: bold;">{date_str}</span>
@@ -260,12 +301,39 @@ def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, bord
                 {item['content']}
             </div>
             
-            <!-- アーカイブリンクの挿入 (アイテムの中にリンク情報があれば) -->
-            {f'<div style="margin-top: 30px; text-align: center;"><a href="{item.get("archive_link", "#")}" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold;">🎯 この回の詳細分析を見る ＞</a></div>' if 'archive_link' in item else ''}
+            <!-- アーカイブリンクの挿入 -->
+            {f'<div style="margin-top: 30px; text-align: center;"><a href="{item.get("archive_link", "#")}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">🎯 この回の詳細分析を見る ＞</a></div>' if 'archive_link' in item else ''}
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{{imobile_ad3_pc}}</div>
+            <div class="ad-sp">{{imobile_ad3_sp}}</div>
         </div>
     </div>
+    
+    <footer>
+        <div class="footer-links">
+            <a href="../about.html">運営者情報</a> |
+            <a href="../privacy.html">プライバシーポリシー</a> | 
+            <a href="../disclaimer.html">免責事項</a> | 
+            <a href="../contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
+    </footer>
+
+    {{imobile_overlay}}
 </body>
 </html>"""
+
+    # 広告の置換処理
+    html = html.replace("{imobile_ad2_pc}", imobile_ad2_pc)
+    html = html.replace("{imobile_ad2_sp}", imobile_ad2_sp)
+    html = html.replace("{imobile_ad3_pc}", imobile_ad3_pc)
+    html = html.replace("{imobile_ad3_sp}", imobile_ad3_sp)
+    html = html.replace("{imobile_overlay}", imobile_overlay)
+
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -287,8 +355,11 @@ def update_sitemap_with_news(new_urls):
         # </urlset> の直前に新しいURLを挿入
         updated_content = content.replace("</urlset>", f"{new_entries}</urlset>")
         
+        # ▼ ここは左から半角スペース8つ
         with open(sitemap_path, "w", encoding="utf-8") as f:
             f.write(updated_content)
         print(f"✅ sitemap.xml に新しいNEWSページ {len(new_urls)} 件を追加しました。")
+
+    # ▼ ここは `try:` と同じ位置（左から半角スペース4つ）
     except Exception as e:
         print(f"❌ サイトマップ更新エラー: {e}")
