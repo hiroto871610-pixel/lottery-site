@@ -4,6 +4,12 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
+# ▼▼▼ 追加：news.pyから関数を呼び出す ▼▼▼
+try:
+    from news import fetch_microcms_news, generate_auto_result_news
+except ImportError:
+    pass
+# ▲▲▲ ここまで ▲▲▲
 
 # データベースファイルのパス
 FILES = {
@@ -195,6 +201,65 @@ def build_index_html():
     l7_json = load_latest_data(FILES['loto7'])
     l6_json = load_latest_data(FILES['loto6'])
     nm_json = load_latest_data(FILES['numbers'])
+
+    # ▼▼▼ ここから追加：最新NEWSを2件取得する ▼▼▼
+    print("📰 トップページ用に最新NEWSを取得中...")
+    top_news_html = ""
+    try:
+        # 手動ニュースと自動速報を合体
+        manual_news = fetch_microcms_news()
+        auto_news = generate_auto_result_news()
+        all_news = manual_news + auto_news
+        
+        if all_news:
+            # 日付順でソートして上から2件だけ取得
+            all_news.sort(key=lambda x: x["date"], reverse=True)
+            latest_2_news = all_news[:2]
+
+            top_news_html = f"""
+            <div class="section-card" style="margin-bottom: 30px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 20px; color: #1e3a8a;">📢 最新のNEWS</h2>
+                    <a href="news.html" style="font-size: 14px; color: #3b82f6; text-decoration: none; font-weight: bold;">すべて見る ＞</a>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+            """
+
+            for item in latest_2_news:
+                date_str = item["date"].replace("-", "/")
+                safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
+                file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
+                file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+                
+                # タグの色分け
+                if item["tag"] == "win":
+                    tag_span = '<span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; min-width: 60px; text-align: center;">🎯 的中</span>'
+                elif item["tag"] == "result":
+                    tag_span = '<span style="background: #8b5cf6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; min-width: 60px; text-align: center;">🔔 速報</span>'
+                elif item["tag"] == "update":
+                    tag_span = '<span style="background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; min-width: 60px; text-align: center;">✨ 更新</span>'
+                else:
+                    tag_span = '<span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; min-width: 60px; text-align: center;">📢 情報</span>'
+
+                top_news_html += f"""
+                    <div style="display: flex; align-items: flex-start; gap: 10px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; margin-top: 2px;">
+                            {tag_span}
+                            <span style="color: #64748b; font-size: 12px; font-weight: bold; white-space: nowrap;">{date_str}</span>
+                        </div>
+                        <a href="news/{file_name}" style="color: #334155; text-decoration: none; font-size: 15px; font-weight: bold; line-height: 1.4; flex: 1; transition: color 0.2s;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#334155'">
+                            {item['title']}
+                        </a>
+                    </div>
+                """
+
+            top_news_html += """
+                </div>
+            </div>
+            """
+    except Exception as e:
+        print(f"⚠️ トップページ用NEWS取得エラー: {e}")
+    # ▲▲▲ 追加ここまで ▲▲▲
     
     # トップページの表示用に、最新の抽選結果をWebから直接取得する
     print("📡 トップページ用の最新当選番号を取得中...")
@@ -377,6 +442,8 @@ def build_index_html():
         当サイトは、過去の膨大な抽選データを最新のAIアルゴリズムで解析し、ロト7、ロト6、ナンバーズの次回予想を完全無料で公開しています。毎日自動更新される「AI予想」を活用して、あなたの宝くじライフをスマートにサポートします。
     </p>
 </div>
+
+    {top_news_html}
     
     <div style="text-align: center; margin: 20px 0;">
     <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
