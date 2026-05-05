@@ -2591,7 +2591,6 @@ if __name__ == "__main__":
     history_records = load_history_from_jsonbin()
     generate_archive_detail_pages(history_records) # URLを受け取る必要がなくなりました
     generate_archive_index_page(history_records)
-    generate_sitemap() # ← カッコの中を空にする！
     # ==========================================
     # 📰 NEWSページの自動連動更新 (★サイトマップより先に実行する！)
     # ==========================================
@@ -2608,16 +2607,6 @@ if __name__ == "__main__":
     print("🗺️ サイトマップ(sitemap.xml)を生成します...")
     generate_sitemap() 
     print("✨ SEO用アーカイブ・サイトマップ構築が完了しました！")
-    # ==========================================
-    # 📰 NEWSページの自動連動更新 (★サイトマップより先に実行する！)
-    # ==========================================
-    print("📰 NEWSページの自動更新を開始します...")
-    try:
-        from news import build_news_html
-        build_news_html()
-    except Exception as e:
-        print(f"⚠️ NEWSページの更新に失敗しました: {e}")
-
     # ==========================================
     # 🎬 【追加】動画作成用のJSONデータを出力する
     # ==========================================
@@ -2655,15 +2644,5 @@ if __name__ == "__main__":
         
     except Exception as e:
         print(f"⚠️ 動画用JSONの出力に失敗しました: {e}")
-
-    # ==========================================
-    # 📰 【追加】NEWSページとサイトマップの自動連動更新
-    # ==========================================
-    print("📰 NEWSページの自動更新を開始します...")
-    try:
-        from news import build_news_html
-        build_news_html()
-    except Exception as e:
-        print(f"⚠️ NEWSページの更新に失敗しました: {e}")
 
     print("✨ [自動取得・完全決着版] ロト6 の自動更新とXへのポストが完了しました！")

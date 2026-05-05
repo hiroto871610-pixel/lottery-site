@@ -81,21 +81,35 @@ def fetch_microcms_news():
     return []
 
 def get_carryover(lottery_type):
-    """楽天宝くじのページからキャリーオーバーの有無を簡易的に取得する"""
+    """楽天宝くじのページから【最新回】のキャリーオーバーを正確に取得する"""
+    if lottery_type not in ["loto6", "loto7"]:
+        return "" # ナンバーズにはキャリーオーバーがないため空白を返す
+
     url = f"https://takarakuji.rakuten.co.jp/backnumber/{lottery_type}/"
     try:
         res = requests.get(url, timeout=5)
         res.encoding = 'euc-jp'
-        if "キャリーオーバー" in res.text:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            for table in soup.find_all('table'):
-                if 'キャリーオーバー' in table.get_text():
-                    tds = table.find_all('td')
-                    if tds:
-                        val = tds[-1].get_text(strip=True)
-                        if val and "0円" not in val:
-                            return f"💰 キャリーオーバー発生中！ ({val})"
-    except: pass
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        # 「本数字」と「1等」が含まれている最初のテーブル（＝最新回の結果）だけを探す
+        for table in soup.find_all('table'):
+            text = table.get_text()
+            if '本数字' in text and '1等' in text:
+                # 最新回のテーブルが見つかったら、その中だけでキャリーオーバーを探す
+                if 'キャリーオーバー' in text:
+                    for tr in table.find_all('tr'):
+                        if 'キャリーオーバー' in tr.get_text():
+                            tds = tr.find_all('td')
+                            if tds:
+                                val = tds[-1].get_text(strip=True)
+                                if val and "0円" not in val:
+                                    return f"💰 キャリーオーバー発生中！ ({val})"
+                
+                # 最新テーブルを調べ終わったら、過去のテーブルは見ずに即終了する（誤飲防止）
+                break
+    except Exception as e:
+        print(f"⚠️ キャリーオーバー取得エラー: {e}")
+        
     return "キャリーオーバー：なし"
 
 def generate_auto_result_news():
