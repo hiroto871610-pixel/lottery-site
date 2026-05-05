@@ -2567,4 +2567,13 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"⚠️ 動画用JSONの出力に失敗しました: {e}")
     # ==========================================
+    # 📰 【追加】NEWSページとサイトマップの自動連動更新
+    # ==========================================
+    print("📰 NEWSページの自動更新を開始します...")
+    try:
+        from news import build_news_html
+        build_news_html()
+    except Exception as e:
+        print(f"⚠️ NEWSページの更新に失敗しました: {e}")
+
     print("✨ [自動取得・完全決着版] ナンバーズ3＆4 の自動更新とXへのポストが完了しました！")
