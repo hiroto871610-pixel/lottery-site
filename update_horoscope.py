@@ -1,7 +1,9 @@
+import re
 import os
 import datetime
 import random
 import requests
+from bs4 import BeautifulSoup
 import urllib.request
 import base64
 from PIL import Image, ImageDraw, ImageFont
@@ -12,6 +14,106 @@ from dotenv import load_dotenv
 # 環境変数の読み込み
 load_dotenv()
 
+# =========================================================
+# 吉日カレンダーの完全自動取得・追記エンジン
+# =========================================================
+LUCKY_DAYS_FILE = "lucky_days.json"
+
+def scrape_lucky_days(year, month):
+    """
+    安定稼働している汎用カレンダーサイトから吉日を自動取得する関数。
+    HTMLのクラス名変更に強い「キーワード検索型」の堅牢な解析ロジックを採用。
+    """
+    fetched_days = {}
+    print(f"☁️ {year}年{month}月の吉日データをWebから自動検索しています...")
+    
+    # ターゲットサイト（大安や一粒万倍日が記載されている安定したオンラインカレンダー）
+    url = f"https://www.arachne.jp/onlinecalendar/{year}/{month:02d}/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.content, "html.parser")
+            
+            # カレンダーの各日付マス（td）をすべて走査する
+            for td in soup.find_all("td"):
+                # マス内のテキストを抽出し、改行や空白を整理
+                text = td.get_text(separator=" ", strip=True)
+                
+                # 先頭が数字（日付）で始まっているかチェック
+                day_match = re.match(r'^(\d{1,2})', text)
+                if not day_match:
+                    continue
+                    
+                day = int(day_match.group(1))
+                
+                # そのマス（日付）の中に吉日のキーワードが含まれているか判定
+                lucky_events = []
+                if "天赦日" in text: lucky_events.append("天赦日")
+                if "一粒万倍日" in text: lucky_events.append("一粒万倍日")
+                if "大安" in text: lucky_events.append("大安")
+                if "寅の日" in text: lucky_events.append("寅の日")
+                if "巳の日" in text: lucky_events.append("巳の日")
+                
+                # 吉日が見つかった場合のみ辞書に登録（複数あれば「+」で結合）
+                if lucky_events:
+                    date_key = f"{year}-{month:02d}-{day:02d}"
+                    fetched_days[date_key] = " + ".join(lucky_events)
+                    
+        return fetched_days
+    except Exception as e:
+        print(f"⚠️ 吉日データの自動取得に失敗しました: {e}")
+        return {}
+
+def get_lucky_days():
+    """JSONファイルから吉日データを読み込み、未来のデータが減ってきたら自動で補充・追記する"""
+    lucky_days = {}
+    
+    # 1. 既存のデータベース（JSON）を読み込む
+    if os.path.exists(LUCKY_DAYS_FILE):
+        try:
+            with open(LUCKY_DAYS_FILE, "r", encoding="utf-8") as f:
+                lucky_days = json.load(f)
+        except Exception:
+            pass
+
+    today = datetime.date.today()
+    today_str = today.strftime("%Y-%m-%d")
+    
+    # 2. 未来の吉日が何日分残っているかカウント
+    future_days = [date for date in lucky_days.keys() if date >= today_str]
+    
+    # 3. 未来のデータが2件未満になったら、自動スクレイピングを発動して追記
+    if len(future_days) < 2:
+        print("⚠️ 未来の吉日データが少なくなりました。完全自動補充を開始します。")
+        
+        # 今月と来月のデータをWebから取得
+        new_data_this_month = scrape_lucky_days(today.year, today.month)
+        
+        next_month = today.month + 1 if today.month < 12 else 1
+        next_year = today.year if today.month < 12 else today.year + 1
+        new_data_next_month = scrape_lucky_days(next_year, next_month)
+        
+        # 取得できた新しいデータを既存の辞書に合体（アップデート）
+        if new_data_this_month or new_data_next_month:
+            lucky_days.update(new_data_this_month)
+            lucky_days.update(new_data_next_month)
+            
+            # JSONファイルに上書き保存し、次回以降のスクレイピングを回避
+            with open(LUCKY_DAYS_FILE, "w", encoding="utf-8") as f:
+                json.dump(lucky_days, f, ensure_ascii=False, indent=4)
+            print("✅ 吉日カレンダーの完全自動更新・保存が完了しました！")
+        else:
+            print("⚠️ 新しい吉日の取得ができませんでした。")
+
+    return lucky_days
+
+def check_lucky_day():
+    """今日が吉日かどうかを判定し、吉日ならその名前を返す"""
+    lucky_days = get_lucky_days()
+    today_str = datetime.date.today().strftime("%Y-%m-%d")
+    return lucky_days.get(today_str, None)
 # =========================================================
 # 星座と占いテキストのデータ定義（★大増量版★）
 # =========================================================
@@ -247,6 +349,35 @@ def build_html(date_str, daily_data):
     
     # タロットデータをJSに渡すためにJSON文字列に変換
     tarot_json = json.dumps(TAROT_DECK, ensure_ascii=False)
+
+    # タロットデータをJSに渡すためにJSON文字列に変換
+    tarot_json = json.dumps(TAROT_DECK, ensure_ascii=False)
+    
+    # ▼▼▼ 追加：吉日カレンダーのHTMLを構築 ▼▼▼
+    today_date = datetime.date.today()
+    calendar_html = '<table class="spec-table" style="width: 100%; border-collapse: collapse; font-size: 15px;">'
+    
+    # ★変更：自動更新機能付きの関数を呼び出してデータを取得する
+    lucky_days_dict = get_lucky_days()
+    
+    # ★変更：lucky_days_dict を使用する
+    future_lucky_days = {k: v for k, v in lucky_days_dict.items() if datetime.datetime.strptime(k, "%Y-%m-%d").date() >= today_date}
+    
+    for i, (date_key, event_name) in enumerate(sorted(future_lucky_days.items())):
+        if i >= 5: break # 5件まで
+        d_obj = datetime.datetime.strptime(date_key, "%Y-%m-%d")
+        weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+        display_date = f"{d_obj.month}月{d_obj.day}日 ({weekdays[d_obj.weekday()]})"
+        
+        # 色分け
+        if "天赦日" in event_name:
+            badge = f'<span style="color: white; font-weight: bold; background-color: #ef4444; padding: 3px 8px; border-radius: 4px;">{event_name}</span>'
+        else:
+            badge = f'<span style="color: #ea580c; font-weight: bold; background-color: #ffedd5; padding: 3px 8px; border-radius: 4px;">{event_name}</span>'
+            
+        calendar_html += f'<tr><td style="padding: 10px; border-bottom: 1px solid #e2e8f0; width: 40%; font-weight: bold; color: #1e293b;">{display_date}</td><td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">{badge}</td></tr>'
+    calendar_html += '</table>'
+    # ▲▲▲ 追加ここまで ▲▲▲
     
     # --- ランキング部分のHTMLを構築 ---
     ranking_html = ""
@@ -515,6 +646,21 @@ def build_html(date_str, daily_data):
     </div>
 </div>
 
+    <!-- (中略) タロットと星座占いのブロックの下に追加 -->
+        <div class="section-card">
+            <h2 class="section-header"><span>👑</span> 本日（{date_str}）の12星座 運勢ランキング</h2>
+            {ranking_html}
+        </div>
+        
+        <!-- ▼▼▼ ここに追加：吉日カレンダーブロック ▼▼▼ -->
+        <div class="section-card" style="background: linear-gradient(to right, #ffffff, #fffbeb); border: 2px solid #fcd34d;">
+            <h2 class="section-header" style="color: #b45309; border-bottom-color: #fde68a;">🗓️ 宝くじ購入に最適！近日の吉日カレンダー</h2>
+            {calendar_html}
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="../jumbo.html" style="display: inline-block; background-color: #d97706; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);">詳細な吉日カレンダーを見る ＞</a>
+            </div>
+        </div>
+
     <footer>
         <div class="footer-links">
             <a href="about.html">運営者情報</a> |
@@ -674,6 +820,44 @@ def create_story_image(date_str, daily_data):
     print(f"✅ ストーリーズ画像 ({output_path}) の生成が完了しました！")
     return output_path
 
+def create_lucky_day_story(date_str, event_name):
+    """今日が吉日の場合に、専用のストーリーズ画像を生成する"""
+    print(f"🎉 本日は吉日({event_name})です！専用のストーリーズ画像を生成します...")
+    width, height = 1080, 1920
+    
+    # 縁起の良い赤×金のグラデーション風（単色ベース）
+    img = Image.new('RGB', (width, height), (159, 18, 57)) 
+    draw = ImageDraw.Draw(img)
+    
+    font_path = "NotoSansJP-Bold.ttf"
+    if not os.path.exists(font_path):
+        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
+        urllib.request.urlretrieve(font_url, font_path)
+
+    font_super = ImageFont.truetype(font_path, 150)
+    font_title = ImageFont.truetype(font_path, 100)
+    font_date = ImageFont.truetype(font_path, 70)
+    font_desc = ImageFont.truetype(font_path, 60)
+    
+    # 装飾とテキストの描画
+    draw.text((width/2, 300), f"{date_str}", font=font_date, fill=(255, 255, 255), align="center", anchor="ma")
+    
+    draw.text((width/2, 500), "本日は", font=font_title, fill=(253, 224, 71), align="center", anchor="ma")
+    
+    # 吉日の名前を中央にドカンと配置
+    draw.text((width/2, 700), event_name, font=font_super, fill=(255, 255, 255), align="center", anchor="ma")
+    
+    draw.text((width/2, 950), "宝くじ購入の\n大チャンス到来！", font=font_title, fill=(253, 224, 71), align="center", anchor="ma")
+    
+    # 白い枠で囲ったメッセージ
+    draw.rounded_rectangle([100, 1200, 980, 1600], radius=30, outline=(255, 255, 255), width=8)
+    promo_text = "AIの最新予想を使って\n高額当選を狙いましょう！\n\n👇予想はプロフィールから👇"
+    draw.multiline_text((width/2, 1280), promo_text, font=font_desc, fill=(255, 255, 255), align="center", anchor="ma")
+    
+    output_path = "story_lucky_day.jpg"
+    img.save(output_path, "JPEG", quality=95)
+    return output_path
+
 # =========================================================
 # 画像アップロードとInstagram Storiesへの自動投稿（維持）
 # =========================================================
@@ -749,8 +933,23 @@ def post_story_to_instagram(image_url):
 # =========================================================
 if __name__ == "__main__":
     date_str, daily_data = generate_daily_horoscope()
+    
+    # 1. 占いページの作成
     build_html(date_str, daily_data)
+    
+    # 2. 星座占いランキングのストーリーズ投稿
     image_path = create_story_image(date_str, daily_data)
     image_url = upload_image_to_server(image_path)
     if image_url:
         post_story_to_instagram(image_url)
+        
+    # 3. ▼ 追加：今日が吉日なら追加でストーリーズを投稿 ▼
+    lucky_event = check_lucky_day()
+    if lucky_event:
+        time.sleep(15) # 連続投稿を避けるため少し待機
+        lucky_image_path = create_lucky_day_story(date_str, lucky_event)
+        lucky_image_url = upload_image_to_server(lucky_image_path)
+        if lucky_image_url:
+            post_story_to_instagram(lucky_image_url)
+    else:
+        print("ℹ️ 本日は特別な吉日ではないため、吉日専用ストーリーズの投稿はスキップしました。")
