@@ -1909,6 +1909,13 @@ def generate_sitemap():
     if os.path.exists("archive"):
         archive_files = glob.glob("archive/*.html")
         archive_urls = [f"https://loto-yosou-ai.com/archive/{os.path.basename(f)}" for f in archive_files]
+
+    # ▼▼▼ 新規追加：newsフォルダの中にあるすべてのHTMLファイルもかき集める ▼▼▼
+    news_urls = []
+    if os.path.exists("news"):
+        news_files = glob.glob("news/*.html")
+        news_urls = [f"https://loto-yosou-ai.com/news/{os.path.basename(f)}" for f in news_files]
+    # ▲▲▲ 追加ここまで ▲▲▲
         
     all_urls = base_urls + archive_urls
     today = datetime.datetime.now().strftime("%Y-%m-%d")

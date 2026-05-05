@@ -337,29 +337,3 @@ def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, bord
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html)
 
-def update_sitemap_with_news(new_urls):
-    """既存の sitemap.xml を読み込み、新しいNEWSのURLを追記して保存する"""
-    sitemap_path = "sitemap.xml"
-    if not os.path.exists(sitemap_path):
-        return
-        
-    try:
-        with open(sitemap_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        new_entries = ""
-        for url in new_urls:
-            new_entries += f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{today}</lastmod>\n    <priority>0.7</priority>\n  </url>\n"
-            
-        # </urlset> の直前に新しいURLを挿入
-        updated_content = content.replace("</urlset>", f"{new_entries}</urlset>")
-        
-        # ▼ ここは左から半角スペース8つ
-        with open(sitemap_path, "w", encoding="utf-8") as f:
-            f.write(updated_content)
-        print(f"✅ sitemap.xml に新しいNEWSページ {len(new_urls)} 件を追加しました。")
-
-    # ▼ ここは `try:` と同じ位置（左から半角スペース4つ）
-    except Exception as e:
-        print(f"❌ サイトマップ更新エラー: {e}")
