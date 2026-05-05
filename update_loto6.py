@@ -1484,12 +1484,17 @@ def generate_archive_detail_pages(history_record):
     os.makedirs("archive", exist_ok=True)
     generated_urls = []
     
-    # ▼▼▼ 新規追加：グラフ描画用の過去データ（100回分）を集計 ▼▼▼
+    # ▼▼▼ 修正：JSONBinではなく、楽天の過去データ（確実な履歴）を使って100回分集計する ▼▼▼
     all_nums_for_chart = []
-    for r in history_record:
-        if r.get('status') == 'finished':
-            nums = [int(n) for n in re.findall(r'\d+', r.get('actual_main', ''))]
+    try:
+        # fetch_history_data() を呼び出して最新から100回分を抽出
+        real_history = fetch_history_data()[:100] 
+        for r in real_history:
+            nums = [int(n) for n in r['main']]
             all_nums_for_chart.extend(nums)
+    except Exception as e:
+        print(f"グラフ用データの取得に失敗しました: {e}")
+        
     global_counts = Counter(all_nums_for_chart)
     
     # Chart.jsに渡すデータ（1〜43のラベルと、それぞれの出現回数）
