@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -79,85 +80,138 @@ def fetch_microcms_news():
         print(f"❌ microCMS通信エラー: {e}")
     return []
 
-def generate_auto_wins_news():
-    """JSONBinの履歴を直接確認し、最新回で的中があれば自動で号外を作成する"""
+def get_carryover(lottery_type):
+    """楽天宝くじのページからキャリーオーバーの有無を簡易的に取得する"""
+    url = f"https://takarakuji.rakuten.co.jp/backnumber/{lottery_type}/"
+    try:
+        res = requests.get(url, timeout=5)
+        res.encoding = 'euc-jp'
+        if "キャリーオーバー" in res.text:
+            soup = BeautifulSoup(res.text, 'html.parser')
+            for table in soup.find_all('table'):
+                if 'キャリーオーバー' in table.get_text():
+                    tds = table.find_all('td')
+                    if tds:
+                        val = tds[-1].get_text(strip=True)
+                        if val and "0円" not in val:
+                            return f"💰 キャリーオーバー発生中！ ({val})"
+    except: pass
+    return "キャリーオーバー：なし"
+
+def generate_auto_result_news():
+    """JSONBinの履歴(インデックス1＝最新の確定結果)を確認し、抽選速報を自動作成する"""
     auto_news = []
     today_str = datetime.date.today().strftime("%Y-%m-%d")
 
-    # ロト7の判定
+    # ロト7の速報
     l7_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID_LOTO7"))
-    if l7_history and l7_history[0].get('status') == 'finished':
-        best = l7_history[0].get('best_result', '')
-        if "🎯" in best:
-            auto_news.append({
-                "date": today_str,
-                "tag": "win",
-                "title": f"🚨 号外：ロト7 {l7_history[0]['target_kai']} で的中発生！",
-                "content": f"当サイトのAI予想が見事【{best}】を的中させました！詳細はロト7のページでご確認ください。"
-            })
+    if l7_history and len(l7_history) > 1 and l7_history[1].get('status') == 'finished':
+        latest = l7_history[1]
+        kai_str = latest['target_kai']
+        kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
+        carryover = get_carryover("loto7")
+        auto_news.append({
+            "date": today_str,
+            "tag": "result",
+            "title": f"【速報】ロト7 {kai_str} 抽選結果とAI予想成績",
+            "content": f"ロト7 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{latest.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
+            "archive_link": f"../archive/loto7_{kai_num}.html",
+            "unique_id": f"loto7_{kai_num}" # 重複生成防止用のID
+        })
 
-    # ロト6の判定 (Loto6は元のJSONBIN_BIN_IDを使用)
+    # ロト6の速報
     l6_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID"))
-    if l6_history and l6_history[0].get('status') == 'finished':
-        best = l6_history[0].get('best_result', '')
-        if "🎯" in best:
-            auto_news.append({
-                "date": today_str,
-                "tag": "win",
-                "title": f"🚨 号外：ロト6 {l6_history[0]['target_kai']} で的中発生！",
-                "content": f"当サイトのAI予想が見事【{best}】を的中させました！詳細はロト6のページでご確認ください。"
-            })
+    if l6_history and len(l6_history) > 1 and l6_history[1].get('status') == 'finished':
+        latest = l6_history[1]
+        kai_str = latest['target_kai']
+        kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
+        carryover = get_carryover("loto6")
+        auto_news.append({
+            "date": today_str,
+            "tag": "result",
+            "title": f"【速報】ロト6 {kai_str} 抽選結果とAI予想成績",
+            "content": f"ロト6 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{latest.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
+            "archive_link": f"../archive/loto6_{kai_num}.html",
+            "unique_id": f"loto6_{kai_num}"
+        })
 
-    # ナンバーズの判定
+    # ナンバーズの速報
     nm_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID_NUMBERS"))
-    if nm_history and nm_history[0].get('status') == 'finished':
-        n4_res = nm_history[0].get('result_n4', '')
-        n3_res = nm_history[0].get('result_n3', '')
-        hits = []
-        if "🎯" in n4_res: hits.append(f"N4: {n4_res}")
-        if "🎯" in n3_res: hits.append(f"N3: {n3_res}")
-        
-        if hits:
-            auto_news.append({
-                "date": today_str,
-                "tag": "win",
-                "title": f"🚨 号外：ナンバーズ {nm_history[0]['target_kai']} で的中発生！",
-                "content": f"当サイトのAI予想が的中しました！ ({' / '.join(hits)}) 詳細はナンバーズのページでご確認ください。"
-            })
+    if nm_history and len(nm_history) > 1 and nm_history[1].get('status') == 'finished':
+        latest = nm_history[1]
+        kai_str = latest['target_kai']
+        kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
+        auto_news.append({
+            "date": today_str,
+            "tag": "result",
+            "title": f"【速報】ナンバーズ {kai_str} 抽選結果とAI予想成績",
+            "content": f"ナンバーズ {kai_str} の抽選結果が発表されました！\n\n・ナンバーズ4 AI成績：【{latest.get('result_n4', '----')}】\n・ナンバーズ3 AI成績：【{latest.get('result_n3', '----')}】\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
+            "archive_link": f"../archive/numbers_{kai_num}.html",
+            "unique_id": f"numbers_{kai_num}"
+        })
 
     return auto_news
 
 def build_news_html():
     print("🔄 NEWS・速報ページを生成中...")
     
-    # 1. microCMSから手動のお知らせを取得
     manual_news = fetch_microcms_news()
-    
-    # 2. JSONBinから自動で的中の号外を生成
-    auto_news = generate_auto_wins_news()
+    auto_news = generate_auto_result_news() # ★ここを変更
 
-    # 3. 合体させて日付順（新しい順）に並び替え
     all_news = manual_news + auto_news
     all_news.sort(key=lambda x: x["date"], reverse=True)
 
-    # ニュースのHTMLブロックを生成
     news_items_html = ""
+    os.makedirs("news", exist_ok=True) 
+    new_urls_for_sitemap = [] 
+
     for item in all_news:
         date_str = item["date"].replace("-", "/")
         
-        # タグによってデザイン（色）を変える
+        # ★ファイル名を unique_id ベースにして重複を完全に防ぐ
+        safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
+        file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
+        file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+        file_path = os.path.join("news", file_name)
+        page_url = f"https://loto-yosou-ai.com/news/{file_name}"
+        
         if item["tag"] == "win":
             tag_html = '<span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block; box-shadow: 0 2px 4px rgba(239,68,68,0.3); animation: pulse 2s infinite;">🎯 的中速報</span>'
             border_color = "#fecaca"
             bg_color = "#fff1f2"
+        elif item["tag"] == "result": # ★追加：毎回の抽選結果用
+            tag_html = '<span style="background: #8b5cf6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block;">🔔 抽選結果</span>'
+            border_color = "#ddd6fe"
+            bg_color = "#f5f3ff"
         elif item["tag"] == "update":
             tag_html = '<span style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block;">✨ アップデート</span>'
             border_color = "#bfdbfe"
             bg_color = "#eff6ff"
-        else: # info
+        else:
             tag_html = '<span style="background: #10b981; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block;">📢 お知らせ</span>'
             border_color = "#bbf7d0"
             bg_color = "#f0fdf4"
+
+        news_items_html += f"""
+        <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed {border_color}; padding-bottom: 10px; margin-bottom: 15px;">
+                {tag_html}
+                <span style="color: #64748b; font-size: 14px; font-weight: bold;">{date_str}</span>
+            </div>
+            <h3 style="margin: 0 0 10px 0; font-size: 18px;">
+                <a href="news/{file_name}" style="color: #1e293b; text-decoration: none;">{item["title"]} ＞</a>
+            </h3>
+            <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">{item["content"][:60]}...</p>
+        </div>
+        """
+
+        # 個別ページの生成
+        if not os.path.exists(file_path):
+            generate_single_news_page(item, file_path, date_str, tag_html, bg_color, border_color)
+            new_urls_for_sitemap.append(page_url)
+
+    if not news_items_html:
+        news_items_html = "<p style='text-align: center; color: #64748b;'>現在お知らせはありません。</p>"
 
         news_items_html += f"""
         <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
@@ -173,124 +227,68 @@ def build_news_html():
     if not news_items_html:
         news_items_html = "<p style='text-align: center; color: #64748b;'>現在お知らせはありません。</p>"
 
-    # HTML全体の組み立て（トップページとデザインを統一）
-    html_content = f"""<!DOCTYPE html>
+    # 最後に、新しく作られた個別ページのURLをサイトマップに追加
+    if new_urls_for_sitemap:
+        update_sitemap_with_news(new_urls_for_sitemap)    
+
+def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, border_color):
+    """ニュースの個別記事ページを生成する"""
+    # 既存のデザインを踏襲したHTMLテンプレート
+    html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEWS・的中速報 | ロト＆ナンバーズ攻略局🎯完全無料のAI予想</title>
-    <link rel="icon" type="image/png" href="favicon.icon.png">
-    <link rel="apple-touch-icon" href="favicon.icon.png">
-    <meta name="description" content="AI予想の的中速報や、サイトの最新アップデート情報をお届けします。">
+    <title>{item['title']} | ロト＆ナンバーズ攻略局🎯</title>
+    <!-- ... (必要なCSSやヘッダーを記述。アーカイブページと同様) ... -->
     <style>
-        body {{ font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #2d3748; line-height: 1.6; }}
-        header {{ background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); color: white; padding: 30px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
-        header a {{ text-decoration: none; color: white; display: block; }}
-        nav {{ display: flex; justify-content: center; background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 100; border-bottom: 1px solid #e2e8f0; }}
-        /* ▼ PCでのナビゲーション設定 ▼ */
-        nav a {{
-            color: #1e3a8a; 
-            padding: 14px 15px; /* クリックしやすいように少し広げる */
-            font-size: 15px;    /* PCでは少し大きめ */
-            text-decoration: none; 
-            font-weight: bold; 
-            border-bottom: 3px solid transparent; 
-            transition: all 0.3s; 
-        }}
-        nav a:hover {{ color: #1e3a8a; background-color: #f8fafc; }}
-        nav a.active {{ color: #1e3a8a; border-bottom: 3px solid #1e3a8a; }}
-        .container {{ max-width: 800px; margin: 40px auto; padding: 0 20px; }}
-        .section-card {{ background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }}
-        .section-header {{ color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 25px; font-size: 22px; text-align: center; }}
-        
-        @keyframes pulse {{ 0% {{ transform: scale(1); }} 50% {{ transform: scale(1.05); }} 100% {{ transform: scale(1); }} }}
-
-        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; }}
-        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; }}
-        
-        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
-        @media (max-width: 600px) {{ .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
-        
-        /* ▼ ここから追加：スマホでメニューを2段に収める魔法 ▼ */
-            nav {{
-                padding: 0 2px; /* スマホ画面の横幅ギリギリまで使う */
-            }}
-            nav a {{
-                font-size: 12px; /* スマホでは文字を小さく */
-                padding: 10px 5px; /* 左右の余白を削って横並びにさせる */
-                letter-spacing: -0.5px; /* 文字の間隔を少しだけ詰める */
-            }}
-            /* ▲ ここまで追加 ▲ */
-
-        }}
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f4f8; color: #333; }}
+        .container {{ max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
     </style>
 </head>
 <body>
-    <header>
-        <a href="index.html">
-            <img src="Lotologo001.png" alt="ロト＆ナンバーズ攻略局🎯完全無料のAI予想" style="max-width: 100%; height: auto; max-height: 180px;">
-            <div style="font-size: 24px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">NEWS・的中速報</div>
-        </a>
-    </header>
-    
-    <nav>
-        <a href="index.html">トップ</a>
-        <a href="loto7.html">ロト7</a>
-        <a href="loto6.html">ロト6</a>
-        <a href="numbers.html">ナンバーズ</a>
-        <a href="jumbo.html">ジャンボ</a>
-        <a href="column.html">攻略ガイド🔰</a>
-        <a href="horoscope.html">占い🔮</a>
-        <a href="archive.html" >YOUTUBE🎥</a>
-        <a href="news.html" class="active">NEWS📰</a>
-    </nav>
-
+    <!-- ヘッダーとナビ -->
     <div class="container">
-        <!-- 広告エリア 上部 -->
-        <div style="text-align: center; margin-bottom: 30px;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad2_pc}</div>
-            <div class="ad-sp">{imobile_ad2_sp}</div>
-        </div>
-
-        <div class="section-card">
-            <h2 class="section-header">📢 最新のお知らせ・的中速報</h2>
-            <p style="font-size: 14px; color: #64748b; text-align: center; margin-bottom: 30px;">
-                サイトのアップデート情報や、AI予想の的中結果を自動でお届けします。
-            </p>
+        <a href="../news.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ NEWS一覧に戻る</a>
+        <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 30px; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed {border_color}; padding-bottom: 15px; margin-bottom: 20px;">
+                {tag_html}
+                <span style="color: #64748b; font-weight: bold;">{date_str}</span>
+            </div>
+            <h1 style="color: #1e293b; font-size: 24px; margin-top: 0;">{item['title']}</h1>
+            <div style="font-size: 16px; line-height: 1.8; color: #475569; white-space: pre-wrap;">
+                {item['content']}
+            </div>
             
-            {news_items_html}
-            
+            <!-- アーカイブリンクの挿入 (アイテムの中にリンク情報があれば) -->
+            {f'<div style="margin-top: 30px; text-align: center;"><a href="{item.get("archive_link", "#")}" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold;">🎯 この回の詳細分析を見る ＞</a></div>' if 'archive_link' in item else ''}
         </div>
-
-        <!-- 広告エリア 下部 -->
-        <div style="text-align: center; margin-bottom: 30px;">
-            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{imobile_ad3_pc}</div>
-            <div class="ad-sp">{imobile_ad3_sp}</div>
-        </div>
-
     </div>
-    
-    <footer>
-        <div class="footer-links">
-            <a href="about.html">運営者情報</a> |
-            <a href="privacy.html">プライバシーポリシー</a> | 
-            <a href="disclaimer.html">免責事項</a> | 
-            <a href="contact.html">お問い合わせ</a>
-        </div>
-        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
-        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
-    </footer>
-
-    {imobile_overlay}
 </body>
 </html>"""
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(html)
 
-    with open('news.html', 'w', encoding='utf-8') as f:
-        f.write(html_content)
-    print("✨ NEWSページ (news.html) の生成が完了しました！")
-
-if __name__ == "__main__":
-    build_news_html()
+def update_sitemap_with_news(new_urls):
+    """既存の sitemap.xml を読み込み、新しいNEWSのURLを追記して保存する"""
+    sitemap_path = "sitemap.xml"
+    if not os.path.exists(sitemap_path):
+        return
+        
+    try:
+        with open(sitemap_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        new_entries = ""
+        for url in new_urls:
+            new_entries += f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{today}</lastmod>\n    <priority>0.7</priority>\n  </url>\n"
+            
+        # </urlset> の直前に新しいURLを挿入
+        updated_content = content.replace("</urlset>", f"{new_entries}</urlset>")
+        
+        with open(sitemap_path, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+        print(f"✅ sitemap.xml に新しいNEWSページ {len(new_urls)} 件を追加しました。")
+    except Exception as e:
+        print(f"❌ サイトマップ更新エラー: {e}")
