@@ -2568,7 +2568,8 @@ def build_html():
         make_webhook_url = "https://hook.eu1.make.com/fdih3wfbnmazwrgdb1l2j43fdj2z5wgc" # ユーザー指定のWebhook URL
         payload = {
             "text": x_msg,
-            "image_url": shared_image_url if shared_image_url else ""
+            "image_url": shared_image_url if shared_image_url else "",
+            "link": site_url
         }
         try:
             res = requests.post(make_webhook_url, json=payload, timeout=10)
