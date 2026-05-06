@@ -460,15 +460,15 @@ def upload_video_to_cloudinary(video_path):
         return None
 
 def post_reel_to_instagram(video_url, caption_text):
-    """Instagram Graph APIを使ってリール動画を自動投稿する"""
+    """Instagram Graph APIを使ってリール動画を自動投稿する（エンコード待機機能付き）"""
     ig_account_id = os.environ.get("IG_ACCOUNT_ID")
     access_token = os.environ.get("IG_ACCESS_TOKEN")
     
     # 【ステップ1】メディアコンテナの作成（REELS指定）
     container_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
     container_payload = {
-        'media_type': 'REELS',    # ★ ここを REELS にするだけでリール投稿になります！
-        'video_url': video_url,   # ★ image_url ではなく video_url
+        'media_type': 'REELS',
+        'video_url': video_url,
         'caption': caption_text,
         'access_token': access_token
     }
@@ -481,11 +481,37 @@ def post_reel_to_instagram(video_url, caption_text):
         return
         
     creation_id = container_data['id']
-    print(f"✅ コンテナ作成成功 (ID: {creation_id})。Instagram側の処理完了を1分間待ちます⏳...")
+    print(f"✅ コンテナ作成成功 (ID: {creation_id})。Instagram側の処理完了を待ちます⏳...")
     
-    # 🚨【超重要】リール動画は、Instagram側のサーバーでエンコード(変換処理)が行われます。
-    # この処理が終わる前に公開しようとするとエラーになるため、ここで強制的に「60秒待機」させます。
-    time.sleep(60) 
+    # 【ステップ1.5】Instagram側の準備が完了したか定期的にチェックする（最大5分待機）
+    status_url = f"https://graph.facebook.com/v19.0/{creation_id}"
+    status_params = {
+        'fields': 'status_code',
+        'access_token': access_token
+    }
+    
+    is_ready = False
+    for i in range(10): # 30秒 × 10回 = 最大5分間チェックする
+        time.sleep(30)
+        print(f"⏳ エンコード状況を確認中... ({i+1}/10)")
+        status_response = requests.get(status_url, params=status_params)
+        status_data = status_response.json()
+        
+        status_code = status_data.get('status_code')
+        if status_code == 'FINISHED':
+            print("✅ Instagram側の準備が完了しました！")
+            is_ready = True
+            break
+        elif status_code == 'ERROR':
+            print("❌ Instagram側で動画の処理エラーが発生しました。")
+            return
+        else:
+            # 処理中（IN_PROGRESS）の場合はループを継続して待つ
+            pass
+            
+    if not is_ready:
+        print("❌ 5分待機しましたがInstagram側の処理が終わらないため、今回は公開をスキップしました。")
+        return
     
     # 【ステップ2】メディアの公開
     publish_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
