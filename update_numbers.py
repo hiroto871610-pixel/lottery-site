@@ -2443,35 +2443,30 @@ def build_html():
     x_send_flag = False
     x_msg = ""
 
-    # ① 日曜の朝 (YouTube結果動画 ＋ 明日の予告)
+    # ① 日曜の朝 (明日の予告) ※YouTubeの告知は別ファイルで自動実行されます
     if today_weekday == 6 and current_hour < 19:
         x_send_flag = True
-        x_msg = f"【🎥AI予想 週間結果まとめ】\n今週のロト＆ナンバーズのAI予想成績をYouTubeで公開しました！✨\n\n明日は #ナンバーズ {next_kai} の抽選日🎯\n\n👇最新のAI予想と結果動画はこちら\n{site_url}"
+        x_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n\n👇過去データから導き出した予想はこちら\n{site_url}"
 
-    # ② 日〜木曜の夜 (明日の予告)
-    elif today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
-        x_send_flag = True
-        x_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を完全無料で公開中です！\n\n👇過去のデータからAIが導き出した予想はこちら\n{site_url}"
-
-    # ③ 月〜金曜の朝 (本日抽選の予告)
+    # ② 月〜金曜の朝 (本日抽選の予告)
     elif today_weekday in [0, 1, 2, 3, 4] and current_hour < 19:
         x_send_flag = True
-        x_msg = f"【本日は #ナンバーズ 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n\n👇当サイトの最新AI予想をチェックして高額当選を狙いましょう！\n{site_url}"
+        x_msg = f"【本日は #ナンバーズ 抽選日🎯】\nいよいよ本日 {next_kai} 抽選！\n\n👇当サイトの最新AI予想をチェック！\n{site_url}"
 
-    # ④ 月〜金曜の夜 (抽選結果＆次回予想)
+    # ③ 月〜金曜の夜 (抽選結果速報 ※的中した時のみ配信！)
     elif today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
-        x_send_flag = True
         finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
         finished_kai = finished_record['target_kai']
         n3_res = finished_record.get('result_n3', 'ハズレ')
         n4_res = finished_record.get('result_n4', 'ハズレ')
         
-        # どちらかが「ストレート🎯」なら高額当選扱い
-        if "ストレート🎯" in n3_res or "ストレート🎯" in n4_res:
-            x_msg = f"🚨【特大ストレート的中ニュース】🚨\n本日発表の #ナンバーズ {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 ストレート的中 】👑🎉\nを見事達成しました！！！\n"
-            x_msg += f"・N4成績：{n4_res}\n・N3成績：{n3_res}\n\n👇歴史的瞬間の詳細と、次回({next_kai})の最新AI予想はこちら\n{site_url}"
+        # どちらかに「🎯」が含まれている場合（ストレート・ボックス・ミニなど）のみXへ投稿
+        if "🎯" in n3_res or "🎯" in n4_res:
+            x_send_flag = True
+            x_msg = f"🚨【#ナンバーズ 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・N4：{n4_res}\n・N3：{n3_res}\n\n👇次回({next_kai})の最新予想\n{site_url}"
         else:
-            x_msg = f"【#ナンバーズ 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI成績は\n・N4：{n4_res}\n・N3：{n3_res}\nでした✨\n\n👇詳細な出目分析と次回({next_kai})の最新AI予想はこちら\n{site_url}"
+            x_send_flag = False
+            print("💤 X投稿：本日はハズレのため、結果速報ポストをスキップしました。")
 
     # --- 配信の実行 ---
     

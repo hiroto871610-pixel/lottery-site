@@ -2455,36 +2455,41 @@ def build_html():
     x_send_flag = False
     x_msg = ""
 
-    # ① 木曜の朝 (明日の予告)
+    # ① 木曜の朝 (明日の予告) ※YouTubeの告知は別ファイルのためスキップ
     if today_weekday == 3 and current_hour < 19:
         x_send_flag = True
-        x_msg = f"【明日は #ロト7 抽選日🎯】\n明日 {next_kai} の最新AI予想を完全無料で公開中です！\n"
+        x_msg = f"【明日は #ロト7 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
         if carryover_text: x_msg += f"現在、{carryover_text}\n"
-        x_msg += f"\n👇最高12億円のチャンス！AIが導き出した予想はこちら\n{site_url}"
+        x_msg += f"👇最高12億円のチャンス！過去データからの予想\n{site_url}"
 
     # ② 金曜の朝 (本日抽選の予告)
     elif today_weekday == 4 and current_hour < 19:
         x_send_flag = True
-        x_msg = f"【本日は #ロト7 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n"
+        x_msg = f"【本日は #ロト7 抽選日🎯】\nいよいよ本日 {next_kai} 抽選！\n"
         if carryover_text: x_msg += f"{carryover_text}\n"
-        x_msg += f"\n👇当サイトの最新AI予想をチェックして高額当選を狙いましょう！\n{site_url}"
+        x_msg += f"👇当サイトの最新AI予想をチェック！\n{site_url}"
 
-    # ③ 金曜の夜 (抽選結果＆次回予想)
+    # ③ 金曜の夜 (抽選結果速報 ※的中した時のみ配信！)
     elif today_weekday == 4 and current_hour >= 19:
-        x_send_flag = True
         finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
         finished_kai = finished_record['target_kai']
         best_res = finished_record.get('best_result', 'ハズレ')
         
-        if any(prize in best_res for prize in ["1等", "2等", "3等"]):
-            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト7 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中させました！！！\n"
-            x_msg += f"\n👇歴史的瞬間の詳細と、次回({next_kai})の最新AI予想はこちら\n{site_url}"
+        # 「等」が含まれている場合（1等〜6等）のみXへ投稿
+        if "等" in best_res:
+            x_send_flag = True
+            # 1〜3等の場合（超高額的中）
+            if any(prize in best_res for prize in ["1等", "2等", "3等"]):
+                x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト7 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}"
+            # 4〜6等の場合（通常的中）
+            else:
+                x_msg = f"🚨【#ロト7 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・成績：【{best_res}】\n"
+                if carryover_text: x_msg += f"\n{carryover_text}\n"
+                x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}"
         else:
-            x_msg = f"【#ロト7 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI成績は【{best_res}】でした✨\n"
-            if carryover_text: x_msg += f"\n{carryover_text}\n"
-            x_msg += f"\n👇詳細な出目分析と次回({next_kai})の最新AI予想はこちら\n{site_url}"
-            
-    # ※ロト7のYouTube告知（日曜朝）はロト6側で行うため、ここでは設定しません。
+            # ハズレの場合はXへの投稿をスキップ
+            x_send_flag = False
+            print("💤 X投稿：本日はハズレのため、結果速報ポストをスキップしました。")
 
     # --- 配信の実行 ---
     
