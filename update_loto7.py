@@ -525,7 +525,6 @@ def add_pinned_comment(video_id, comment_text):
         youtube.comments().setModerationStatus(
             id=comment_id,
             moderationStatus="published",
-            ban=False
         ).execute()
         
         print("✅ 固定コメントの設置が完了しました！")
