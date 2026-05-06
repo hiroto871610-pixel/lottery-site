@@ -422,17 +422,38 @@ def upload_long_video():
         # 1. LINEへの配信
         post_to_line(sns_message)
 
+        # 画像URLを保持する変数（InstagramとXで画像を共有するため）
+        shared_img_url = ""
+
         # 2. Instagramへの画像（通常投稿）の配信
         if os.path.exists(ig_feed_path):
-            img_url = upload_image_to_server(ig_feed_path)
-            if img_url: 
-                post_to_instagram(img_url, sns_message)
+            shared_img_url = upload_image_to_server(ig_feed_path)
+            if shared_img_url: 
+                post_to_instagram(shared_img_url, sns_message)
 
         # 3. Instagramへの動画（リール投稿）の配信
         if os.path.exists(ig_reel_path):
             vid_url = upload_video_to_cloudinary(ig_reel_path)
             if vid_url: 
                 post_reel_to_instagram(vid_url, sns_message)
+                
+        # 4. ▼▼▼ 新規追加：X (Make + Buffer) への自動投稿処理 ▼▼▼
+        print("\n🐦 X（Twitter）への告知投稿（Make経由）を準備中...")
+        x_msg = f"【🎥AI予想 週間結果まとめ】\n今週のロト＆ナンバーズのAI予想成績をYouTubeで公開しました！✨\n\n👇最新のAI予想と結果動画はこちら\n{youtube_url}"
+        
+        make_webhook_url = "https://hook.eu1.make.com/t3ocgo5exift1rwnw8kaqhc9r6vrq724" # ユーザー指定のWebhook URL
+        payload = {
+            "text": x_msg,
+            "image_url": shared_img_url if shared_img_url else ""
+        }
+        try:
+            res = requests.post(make_webhook_url, json=payload, timeout=10)
+            if res.status_code == 200:
+                print("🎉 Xへの告知投稿リクエスト（Make送信）が完了しました！")
+            else:
+                print(f"❌ Makeへの送信エラー: {res.status_code}")
+        except Exception as e:
+            print(f"❌ Make通信エラー: {e}")
                 
         print("\n🚀🚀🚀 YouTubeへの全自動投稿フローが完璧に完了しました！ 🚀🚀🚀")
         

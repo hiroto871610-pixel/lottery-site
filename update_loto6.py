@@ -2416,6 +2416,7 @@ def build_html():
 
     # --- ⭐️ 自動ポスト・LINE配信用のメッセージを作成して実行 ⭐️ ---
     import datetime
+    import requests # Make送信用
     
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     today_weekday = now.weekday()
@@ -2427,7 +2428,7 @@ def build_html():
     msg = ""
     send_flag = False  # 初期値は「配信しない」
 
-    # ■【月曜日(0)】と【木曜日(3)】：抽選日当日の配信ロジック
+    # ■【月曜日(0)】と【木曜日(3)】：抽選日当日の配信ロジック (既存維持)
     if today_weekday in [0, 3]:
         send_flag = True
         
@@ -2447,11 +2448,9 @@ def build_html():
             is_high_prize = any(prize in best_res for prize in ["1等", "2等", "3等"])
             
             if is_high_prize:
-                # 🌟 【高額当選】豪華な特別メッセージ
                 msg = f"🚨【緊急・超特大ニュース】🚨\n\nなんと！本日発表の {finished_kai} で\n当サイトのAI予想が…\n\n🎉👑【 {best_res} 】👑🎉\n\nを超高額的中させました！！！\n"
                 msg += f"長年のデータ分析がついに完全一致✨\n歴史的瞬間の詳細と、次回({next_kai})の最新予想はこちら👇\n{site_url}"
 
-                # ------ トップページ表示用のメモを保存 ------
                 achievement_data = {
                     "lottery_name": "ロト6",
                     "kai": finished_kai,
@@ -2461,61 +2460,96 @@ def build_html():
                     json.dump(achievement_data, f, ensure_ascii=False)
             
             elif any(prize in best_res for prize in ["4等", "5等"]):
-                # 🎈 【通常当選】いつもの的中メッセージ
                 msg = f"【#ロト6 的中速報🎯】\n本日 {finished_kai} の結果発表！\n当サイトのAI予想が見事【{best_res}】を的中させました！\n"
                 if carryover_text:
                     msg += f"\n{carryover_text}\n"
                 msg += f"\n着実に利益を積み重ねています✨\n次回({next_kai})の最新予想はこちら👇\n{site_url}"
                 
             else:
-                # 💧 【ハズレ等】通常の速報メッセージ
                 msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n"
                 if carryover_text:
                     msg += f"\n{carryover_text}\n"
                 msg += f"\nデータは日々学習・進化中！次回({next_kai})の最新予想はこちら👇\n{site_url}"
 
-    # ■【水曜日(2)】と【土曜日(5)】：キャリーオーバー発生時のみ配信
+    # ■【水曜日(2)】と【土曜日(5)】：キャリーオーバー発生時のみ配信 (既存維持)
     elif today_weekday in [2, 5]:
-        # キャリーオーバーが発生しており、かつ「夜（19時以降）」の場合のみ送る
         if carryover_text and current_hour >= 19:
             send_flag = True
             msg = f"【#ロト6 キャリーオーバー発生中🔥】\n次回({next_kai})は高額当選の大チャンス！\n"
             msg += f"現在、{carryover_text}\n"
             msg += f"\n過去3年分のデータから導き出した最新AI予想はこちら👇\n{site_url}"
-
-    # ■ それ以外の曜日（火・金・日）：配信しない
     else:
         send_flag = False
 
     # ▼▼▼ 追加：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
     sns_send_flag = False
-    sns_msg = msg  # 基本はLINEと同じメッセージを使う
+    sns_msg = msg  
 
-    # 1. 抽選日当日 の 夜（月曜・木曜 の 19時以降）
     if today_weekday in [0, 3] and current_hour >= 19:
         sns_send_flag = True
-    
-    # 2. 抽選日の前日 の 夜（日曜・水曜 の 19時以降）
     elif today_weekday in [2, 6] and current_hour >= 19:
         sns_send_flag = True
-        # LINE送信用メッセージが空の場合（日曜など）は、SNS専用の告知メッセージを作成
         if not sns_msg:
             sns_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
             if carryover_text:
                 sns_msg += f"現在、{carryover_text}\n"
             sns_msg += f"\n過去の傾向からAIが導き出した最新予想はこちら👇\n{site_url}"
-    # ▲▲▲ ここまで ▲▲▲
 
-    # --- 配信の実行（LINEとSNSを完全に分離） ---
+    # ========================================================
+    # 🌟 新規追加：X (旧Twitter) 専用の配信判定とメッセージ作成
+    # ========================================================
+    x_send_flag = False
+    x_msg = ""
     
-    # ① LINEの送信処理（条件は一切変更なし）
+    # ① 日曜・水曜の朝 (明日の予告)  ←★ここをまとめました！
+    if today_weekday in [2, 6] and current_hour < 19:
+        x_send_flag = True
+        x_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を完全無料で公開中です！\n"
+        if carryover_text: x_msg += f"現在、{carryover_text}\n"
+        x_msg += f"\n👇過去のデータからAIが導き出した予想はこちら\n{site_url}"
+
+    # ② 月曜・木曜の朝 (本日抽選の予告)
+    elif today_weekday in [0, 3] and current_hour < 19:
+        x_send_flag = True
+        x_msg = f"【本日は #ロト6 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n"
+        if carryover_text: x_msg += f"{carryover_text}\n"
+        x_msg += f"\n👇当サイトの最新AI予想をチェックして高額当選を狙いましょう！\n{site_url}"
+
+    # ③ 月曜・木曜の朝 (本日抽選の予告)
+    elif today_weekday in [0, 3] and current_hour < 19:
+        x_send_flag = True
+        x_msg = f"【本日は #ロト6 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n"
+        if carryover_text: x_msg += f"{carryover_text}\n"
+        x_msg += f"\n👇当サイトの最新AI予想をチェックして高額当選を狙いましょう！\n{site_url}"
+
+    # ④ 月曜・木曜の夜 (抽選結果＆次回予想)
+    elif today_weekday in [0, 3] and current_hour >= 19:
+        x_send_flag = True
+        finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
+        finished_kai = finished_record['target_kai']
+        best_res = finished_record.get('best_result', 'ハズレ')
+        
+        if any(prize in best_res for prize in ["1等", "2等", "3等"]):
+            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト6 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中させました！！！\n"
+            x_msg += f"\n👇歴史的瞬間の詳細と、次回({next_kai})の最新AI予想はこちら\n{site_url}"
+        else:
+            x_msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI成績は【{best_res}】でした✨\n"
+            if carryover_text: x_msg += f"\n{carryover_text}\n"
+            x_msg += f"\n👇詳細な出目分析と次回({next_kai})の最新AI予想はこちら\n{site_url}"
+
+    # --- 配信の実行 ---
+    
+    # ① LINEの送信処理
     if send_flag and msg:
         post_to_line(msg)
         print("✅ LINEへの自動配信を実行しました。")
     else:
         print("💤 ロト6：LINE配信対象外のためスキップしました。")
 
-    # ② SNS（動画・画像・Threads）の送信処理
+    # 画像URLを保持する変数（SNSとXで画像を共有するため）
+    shared_image_url = ""
+
+    # ② 既存のSNS（動画・画像・Threads）の送信処理
     if sns_send_flag and sns_msg:
         print(f"📅 本日はSNS投稿タイミング（曜日:{today_weekday}、{current_hour}時台）のため、SNSへ投稿します。")
         post_to_threads(sns_msg)
@@ -2526,10 +2560,8 @@ def build_html():
         base_image = "base_image.png"     
         image_path = "loto6_result.jpg"
         
-        # 🌟 静止画の生成
         is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=global_confidence_rank)
 
-        # 🌟 動画の生成と各SNSへの投稿
         try:
             from create_reel import generate_loto6_reel
             is_carryover = "0円" not in carryover_text and "なし" not in carryover_text
@@ -2543,21 +2575,48 @@ def build_html():
             yt_title = "🎯 明日のロト6激アツAI予想！ #shorts"
             yt_tags = ["ロト6", "宝くじ", "AI予想", "ショート"]
             upload_to_youtube_shorts("reel_loto6.mp4", yt_title, caption, yt_tags)
-
             post_to_tiktok("reel_loto6.mp4", caption)
             
         except Exception as e:
             print(f"❌ 動画の自動生成・投稿エラー: {e}")
         
-        # 🌟 画像のInstagram投稿
         if is_created:
-            public_image_url = upload_image_to_server(image_path)
-            if public_image_url:
-                post_to_instagram(public_image_url, caption)
+            shared_image_url = upload_image_to_server(image_path)
+            if shared_image_url:
+                post_to_instagram(shared_image_url, caption)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
     else:
         print("💤 ロト6：SNS動画配信対象外のためスキップしました。")
+
+    # ③ 新規：X (Make + Buffer) の自動投稿処理
+    if x_send_flag and x_msg:
+        print(f"🐦 Xへの自動投稿（Make経由）を準備中...")
+        
+        # SNS処理で画像URLが作られていなければ、ここで画像を作成する（無駄な重複アップロードを防止）
+        if not shared_image_url:
+            yosou_a_list = history_record[0]['predictions'][0]
+            base_image = "base_image.png"     
+            image_path = "loto6_result.jpg"
+            is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=global_confidence_rank)
+            if is_created:
+                shared_image_url = upload_image_to_server(image_path)
+        
+        make_webhook_url = "https://hook.eu1.make.com/t3ocgo5exift1rwnw8kaqhc9r6vrq724"
+        payload = {
+            "text": x_msg,
+            "image_url": shared_image_url if shared_image_url else ""
+        }
+        try:
+            res = requests.post(make_webhook_url, json=payload, timeout=10)
+            if res.status_code == 200:
+                print("🎉 Xへの自動投稿リクエスト（Make送信）が完了しました！")
+            else:
+                print(f"❌ Makeへの送信エラー: {res.status_code}")
+        except Exception as e:
+            print(f"❌ Make通信エラー: {e}")
+    else:
+        print("💤 ロト6：X投稿の対象タイミングではないためスキップしました。")
 
     return html
 

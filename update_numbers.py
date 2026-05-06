@@ -2387,6 +2387,7 @@ def build_html():
 
     # --- ⭐️ 【改良版】自動ポスト・LINE配信ロジック ⭐️ ---
     import datetime
+    import requests # Make送信用
     
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     today_weekday = now.weekday()
@@ -2398,7 +2399,7 @@ def build_html():
     send_flag = False
     msg = ""
 
-    # ■ 平日 (月〜金) の処理（LINE用）
+    # ■ 平日 (月〜金) の処理（LINE用・既存維持）
     if today_weekday < 5:
         if current_hour < 19:
             pass 
@@ -2415,7 +2416,7 @@ def build_html():
                 msg += f"・ナンバーズ3：{n3_res}\n・ナンバーズ4：{n4_res}\n"
                 msg += f"\n的中した具体的な数字と、明日({next_kai})の最新予想はこちら👇\n{site_url}"
 
-    # ■ 土曜日 (5) の夜に週末通知（LINE用）
+    # ■ 土曜日 (5) の夜に週末通知（LINE用・既存維持）
     elif today_weekday == 5:
         if current_hour >= 19:
             send_flag = True
@@ -2433,38 +2434,72 @@ def build_html():
     # 抽選日は月〜金。SNS投稿はその「前日の夜（日・月・火・水・木）」に行う
     if today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
         sns_send_flag = True
-        # LINE送信用メッセージが空の場合は、SNS専用の告知メッセージを作成
         if not sns_msg:
             sns_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"
     # ▲▲▲ ここまで ▲▲▲
 
-    # --- 配信の実行（LINEとSNSを完全に分離） ---
+    # ========================================================
+    # 🌟 新規追加：X (旧Twitter) 専用の配信判定とメッセージ作成 (ナンバーズ版)
+    # ========================================================
+    x_send_flag = False
+    x_msg = ""
+
+    # ① 日曜の朝 (YouTube結果動画 ＋ 明日の予告)
+    if today_weekday == 6 and current_hour < 19:
+        x_send_flag = True
+        x_msg = f"【🎥AI予想 週間結果まとめ】\n今週のロト＆ナンバーズのAI予想成績をYouTubeで公開しました！✨\n\n明日は #ナンバーズ {next_kai} の抽選日🎯\n\n👇最新のAI予想と結果動画はこちら\n{site_url}"
+
+    # ② 日〜木曜の夜 (明日の予告)
+    elif today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
+        x_send_flag = True
+        x_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を完全無料で公開中です！\n\n👇過去のデータからAIが導き出した予想はこちら\n{site_url}"
+
+    # ③ 月〜金曜の朝 (本日抽選の予告)
+    elif today_weekday in [0, 1, 2, 3, 4] and current_hour < 19:
+        x_send_flag = True
+        x_msg = f"【本日は #ナンバーズ 抽選日🎯】\nいよいよ本日 {next_kai} の抽選日です！\n\n👇当サイトの最新AI予想をチェックして高額当選を狙いましょう！\n{site_url}"
+
+    # ④ 月〜金曜の夜 (抽選結果＆次回予想)
+    elif today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
+        x_send_flag = True
+        finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
+        finished_kai = finished_record['target_kai']
+        n3_res = finished_record.get('result_n3', 'ハズレ')
+        n4_res = finished_record.get('result_n4', 'ハズレ')
+        
+        # どちらかが「ストレート🎯」なら高額当選扱い
+        if "ストレート🎯" in n3_res or "ストレート🎯" in n4_res:
+            x_msg = f"🚨【特大ストレート的中ニュース】🚨\n本日発表の #ナンバーズ {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 ストレート的中 】👑🎉\nを見事達成しました！！！\n"
+            x_msg += f"・N4成績：{n4_res}\n・N3成績：{n3_res}\n\n👇歴史的瞬間の詳細と、次回({next_kai})の最新AI予想はこちら\n{site_url}"
+        else:
+            x_msg = f"【#ナンバーズ 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！\n当サイトのAI成績は\n・N4：{n4_res}\n・N3：{n3_res}\nでした✨\n\n👇詳細な出目分析と次回({next_kai})の最新AI予想はこちら\n{site_url}"
+
+    # --- 配信の実行 ---
     
-    # ① LINEの送信処理（条件は一切変更なし）
+    # ① LINEの送信処理
     if send_flag and msg:
         post_to_line(msg)
         print("✅ LINEへの自動配信を実行しました。")
     else:
         print("💤 ナンバーズ：LINE配信対象外のためスキップしました。")
 
-    # ② SNS（動画・画像・Threads・TikTok）の送信処理
+    # 画像URLを保持する変数（SNSとXで画像を共有するため）
+    shared_image_url = ""
+
+    # ② 既存のSNS（動画・画像・Threads・TikTok）の送信処理
     if sns_send_flag and sns_msg:
         print(f"📅 本日はSNS投稿タイミング（曜日:{today_weekday}、{current_hour}時台）のため、SNSへ投稿します。")
         post_to_threads(sns_msg)
         
         base_image = "base_image.png"     
         image_path = "numbers_result.jpg"
-        
-        # 数字を職人に渡すために取り出す
         n4_yosou_a = history_record[0]['n4_preds'][0]
         n3_yosou_a = history_record[0]['n3_preds'][0]
-        
         caption = f"🎯最新のナンバーズ AI予想です！\n\n{sns_msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
-        # 🌟 静止画の生成
+        # ★ 安全対策：ナンバーズ専用の引数渡し
         is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path, target_kai=next_kai, target_date=next_date_str, n4_rank=n4_rank, n3_rank=n3_rank)
 
-        # 🌟 動画の生成と各SNSへの投稿
         try:
             from create_reel import generate_numbers_reel
             generate_numbers_reel(n4_yosou=n4_yosou_a, n3_yosou=n3_yosou_a, target_kai=next_kai, target_date=next_date_str)
@@ -2477,21 +2512,49 @@ def build_html():
             yt_title = "🎯 明日のナンバーズ激アツAI予想！ #shorts"
             yt_tags = ["ナンバーズ", "宝くじ", "AI予想", "ショート"]
             upload_to_youtube_shorts("reel_numbers.mp4", yt_title, caption, yt_tags)
-
             post_to_tiktok("reel_numbers.mp4", caption)
             
         except Exception as e:
             print(f"❌ 動画の自動生成・投稿エラー: {e}")
             
-        # 🌟 画像のInstagram投稿
         if is_created:
-            public_image_url = upload_image_to_server(image_path)
-            if public_image_url:
-                post_to_instagram(public_image_url, caption)
+            shared_image_url = upload_image_to_server(image_path)
+            if shared_image_url:
+                post_to_instagram(shared_image_url, caption)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
     else:
         print("💤 ナンバーズ：SNS動画配信対象外のためスキップしました。")
+
+    # ③ 新規：X (Make + Buffer) の自動投稿処理
+    if x_send_flag and x_msg:
+        print(f"🐦 Xへの自動投稿（Make経由）を準備中...")
+        
+        if not shared_image_url:
+            n4_yosou_a = history_record[0]['n4_preds'][0]
+            n3_yosou_a = history_record[0]['n3_preds'][0]
+            base_image = "base_image.png"     
+            image_path = "numbers_result.jpg"
+            # ★ 安全対策：ナンバーズ専用の引数渡し
+            is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path, target_kai=next_kai, target_date=next_date_str, n4_rank=n4_rank, n3_rank=n3_rank)
+            if is_created:
+                shared_image_url = upload_image_to_server(image_path)
+        
+        make_webhook_url = "https://hook.eu1.make.com/t3ocgo5exift1rwnw8kaqhc9r6vrq724" # ユーザー指定のWebhook URL
+        payload = {
+            "text": x_msg,
+            "image_url": shared_image_url if shared_image_url else ""
+        }
+        try:
+            res = requests.post(make_webhook_url, json=payload, timeout=10)
+            if res.status_code == 200:
+                print("🎉 Xへの自動投稿リクエスト（Make送信）が完了しました！")
+            else:
+                print(f"❌ Makeへの送信エラー: {res.status_code}")
+        except Exception as e:
+            print(f"❌ Make通信エラー: {e}")
+    else:
+        print("💤 ナンバーズ：X投稿の対象タイミングではないためスキップしました。")
 
     return html
 
