@@ -304,6 +304,7 @@ def build_index_html():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="p:domain_verify" content="b6a1103d19d23b8a2a3c377f1352fb0c"/>
     <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
     <title>ロト＆ナンバーズ攻略局🎯完全無料のAI予想 | ロト7・ロト6・ナンバーズ</title>
     <link rel="icon" type="image/png" href="favicon.icon.png">

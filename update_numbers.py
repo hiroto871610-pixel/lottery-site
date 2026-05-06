@@ -842,6 +842,8 @@ def generate_numbers_detail_page(result_data):
     <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="description" content="{result_data.get('round', '')}のナンバーズ3・ナンバーズ4の当せん金額・口数などの詳細データを公開しています。">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
+    <meta name="p:domain_verify" content="b6a1103d19d23b8a2a3c377f1352fb0c"/>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
@@ -1481,6 +1483,8 @@ def generate_archive_detail_pages(history_record):
     <link rel="icon" type="image/png" href="../favicon.icon.png">
     <link rel="apple-touch-icon" href="../favicon.icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="p:domain_verify" content="b6a1103d19d23b8a2a3c377f1352fb0c"/>
+    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
@@ -1739,6 +1743,7 @@ def generate_archive_index_page(history_record):
     <link rel="icon" type="image/png" href="favicon.icon.png">
     <link rel="apple-touch-icon" href="favicon.icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; }}
         header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
