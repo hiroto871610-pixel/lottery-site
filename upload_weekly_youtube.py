@@ -441,7 +441,7 @@ def upload_long_video():
         print("\n🐦 X（Twitter）への告知投稿（Make経由）を準備中...")
         x_msg = f"【🎥AI予想 週間結果まとめ】\n今週のロト＆ナンバーズのAI予想成績をYouTubeで公開しました！✨\n\n👇最新のAI予想と結果動画はこちら\n{youtube_url}"
         
-        make_webhook_url = "https://hook.eu1.make.com/t3ocgo5exift1rwnw8kaqhc9r6vrq724" # ユーザー指定のWebhook URL
+        make_webhook_url = "https://hook.eu1.make.com/fdih3wfbnmazwrgdb1l2j43fdj2z5wgc" # ユーザー指定のWebhook URL
         payload = {
             "text": x_msg,
             "image_url": shared_img_url if shared_img_url else ""
