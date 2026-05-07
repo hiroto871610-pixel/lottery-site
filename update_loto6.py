@@ -2532,7 +2532,7 @@ def build_html():
     x_msg = ""
 
     # ① 日曜・水曜の朝 (明日の予告) ※YouTubeの告知は別ファイルで自動実行されます
-    if today_weekday in [2, 6] and current_hour > 19:
+    if today_weekday in [2, 6] and current_hour < 19:
         x_send_flag = True
         x_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
         if carryover_text: x_msg += f"現在、{carryover_text}\n"
