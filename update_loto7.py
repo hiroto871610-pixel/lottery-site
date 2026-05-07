@@ -2473,7 +2473,7 @@ def build_html():
 
     if today_weekday == 4 and current_hour >= 19:
         sns_send_flag = True
-    elif today_weekday == 3 and current_hour >= 19:
+    elif today_weekday == 3 and current_hour < 19:
         sns_send_flag = True
         if not sns_msg:
             sns_msg = f"【明日は #ロト7 抽選日🎯】\n最高12億円のチャンス！明日 {next_kai} の最新予想を無料公開中。\n"
