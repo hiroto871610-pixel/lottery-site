@@ -2462,7 +2462,7 @@ def build_html():
     sns_msg = msg  
 
     # 抽選日は月〜金。SNS投稿はその「前日の夜（日・月・火・水・木）」に行う
-    if today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
+    if today_weekday in [6, 0, 1, 2, 3] and current_hour < 19:
         sns_send_flag = True
         if not sns_msg:
             sns_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"
