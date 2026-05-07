@@ -1382,17 +1382,16 @@ except ImportError:
 def generate_hybrid_predictions(X_train, y_train, X_latest):
     print("🧠 ハイブリッドAIによる予測を開始（動的重み付け＋Optunaチューニング）...")
     
-    # --- 1. 動的重み付け（アンサンブル）のための検証データ分割 ---
-    # 直近の5回分（5回 × 43数字 = 215サンプル）を「AIの現在の調子」をテストするために取り分ける
+    # --- 1. 動的重み付けのための検証データ分割 (ロト6: 5回分 = 5 * 43) ---
     val_samples = 5 * 43
     if len(X_train) > val_samples * 2:
         X_t, y_t = X_train[:-val_samples], y_train[:-val_samples]
         X_v, y_v = X_train[-val_samples:], y_train[-val_samples:]
     else:
         X_t, y_t = X_train, y_train
-        X_v, y_v = X_train, y_train # データ不足時は分割しない
+        X_v, y_v = X_train, y_train
 
-    # --- 2. Random Forest (Optunaによる自動調整) ---
+    # --- 2. Random Forest (Optunaチューニング) ---
     best_rf_params = {'n_estimators': 100, 'random_state': 42}
     if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
         def objective_rf(trial):
@@ -1402,18 +1401,19 @@ def generate_hybrid_predictions(X_train, y_train, X_latest):
             clf.fit(X_t, y_t)
             return clf.score(X_v, y_v)
         study_rf = optuna.create_study(direction='maximize')
-        study_rf.optimize(objective_rf, n_trials=5) # サーバーの負担を考慮し5回に限定
+        study_rf.optimize(objective_rf, n_trials=5)
         best_rf_params.update(study_rf.best_params)
         
     rf_model = RandomForestClassifier(**best_rf_params)
     rf_model.fit(X_train, y_train)
-    prob_rf_raw = rf_model.predict_proba(X_latest)[0]
-    prob_rf = np.zeros(44) # ロト6は1〜43
-    for idx, cls in enumerate(rf_model.classes_):
-        if 1 <= int(cls) <= 43:
-            prob_rf[int(cls)] = prob_rf_raw[idx]
     
-    # --- 3. XGBoost (Optunaによる自動調整) ---
+    # 43個の数字それぞれの確率を取得
+    rf_preds = rf_model.predict_proba(X_latest)
+    prob_rf = np.zeros(44)
+    for i in range(43):
+        prob_rf[i+1] = rf_preds[i, 1] if rf_preds.shape[1] > 1 else 0
+    
+    # --- 3. XGBoost (Optunaチューニング) ---
     best_xgb_params = {'use_label_encoder': False, 'eval_metric': 'logloss', 'random_state': 42}
     if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
         def objective_xgb(trial):
@@ -1428,106 +1428,82 @@ def generate_hybrid_predictions(X_train, y_train, X_latest):
 
     xgb_model = XGBClassifier(**best_xgb_params)
     xgb_model.fit(X_train, y_train)
-    prob_xgb_raw = xgb_model.predict_proba(X_latest)[0]
+    
+    xgb_preds = xgb_model.predict_proba(X_latest)
     prob_xgb = np.zeros(44)
-    if hasattr(xgb_model, 'classes_'):
-        for idx, cls in enumerate(xgb_model.classes_):
-            if 1 <= int(cls) <= 43:
-                prob_xgb[int(cls)] = prob_xgb_raw[idx]
+    for i in range(43):
+        prob_xgb[i+1] = xgb_preds[i, 1] if xgb_preds.shape[1] > 1 else 0
 
-    # --- 4. LSTM ---
+    # --- 4. LSTM (データの形を 43, 1, 3 に修正) ---
     X_train_3d = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
-    X_latest_3d = X_latest.reshape((1, 1, X_latest.shape[1]))
+    X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
+    
     lstm_model = Sequential([
         LSTM(64, activation='relu', input_shape=(1, X_train.shape[1])),
-        Dense(44, activation='softmax') # ロト6対応
+        Dense(1, activation='sigmoid')
     ])
-    lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+    lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
     lstm_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
-    prob_lstm = lstm_model.predict(X_latest_3d)[0]
+    
+    lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
+    prob_lstm = np.zeros(44)
+    for i in range(43):
+        prob_lstm[i+1] = lstm_preds[i]
 
-    # --- 5. AIの「調子」による動的な重み付け ---
+    # --- 5. 動的な重み付け ---
     weight_rf, weight_xgb, weight_lstm = 0.33, 0.33, 0.34
     if len(X_t) != len(X_v):
         score_rf = rf_model.score(X_v, y_v)
         score_xgb = xgb_model.score(X_v, y_v)
-        
-        # LSTMのスコア計算
         X_v_3d = X_v.reshape((X_v.shape[0], 1, X_v.shape[1]))
-        lstm_preds = np.argmax(lstm_model.predict(X_v_3d, verbose=0), axis=1)
-        score_lstm = np.mean(lstm_preds == y_v)
+        lstm_v_preds = (lstm_model.predict(X_v_3d, verbose=0).flatten() > 0.5).astype(int)
+        score_lstm = np.mean(lstm_v_preds == y_v)
 
-        # 直近5回のテスト結果の正答率に基づいて発言権（重み）を変える
         total_score = score_rf + score_xgb + score_lstm + 0.0001
         weight_rf = score_rf / total_score
         weight_xgb = score_xgb / total_score
         weight_lstm = score_lstm / total_score
-        print(f"📊 各AIの調子(重み): RF={weight_rf:.2f}, XGB={weight_xgb:.2f}, LSTM={weight_lstm:.2f}")
 
-    # 最終確率の統合
     final_prob = (prob_rf * weight_rf) + (prob_xgb * weight_xgb) + (prob_lstm * weight_lstm)
 
-    # ランク判定（ロト6なので上位6個の一致度で判定）
+    # ランク判定 (ロト6: 上位6個)
     top6_rf = set(np.argsort(prob_rf)[::-1][:6])
     top6_xgb = set(np.argsort(prob_xgb)[::-1][:6])
     top6_lstm = set(np.argsort(prob_lstm)[::-1][:6])
-    agreed_numbers = top6_rf & top6_xgb & top6_lstm
+    agreed = top6_rf & top6_xgb & top6_lstm
 
-    if len(agreed_numbers) >= 3:
-        confidence_rank = "Sランク"
-        confidence_msg = "🔥 激アツ！絶好調のAI同士の予測が完全に一致しました！"
+    if len(agreed) >= 3:
+        rank, msg = "Sランク", "🔥 激アツ！AI同士の予測が完全に一致しました！"
     elif len(top6_rf & top6_xgb) >= 3 or len(top6_rf & top6_lstm) >= 3:
-        confidence_rank = "Aランク"
-        confidence_msg = "✨ チャンス！複数のAIが同じ傾向を示しています。"
+        rank, msg = "Aランク", "✨ チャンス！複数のAIが同じ傾向を示しています。"
     else:
-        confidence_rank = "Bランク"
-        confidence_msg = "⚠️ 波乱含み。AI間で意見が分かれており、荒れる可能性があります。"
+        rank, msg = "Bランク", "⚠️ 波乱含み。AI間で意見が分かれています。"
 
-    # --- 6. 5000パターンから最強の組み合わせを抽出 ---
+    # --- 6. 5000パターン抽出 ---
     predictions = []
     num_probs = {n: final_prob[n] for n in range(1, 44)}
-    top3_nums_int = sorted(num_probs, key=num_probs.get, reverse=True)[:3]
-    top_nums_str = "、".join([str(i).zfill(2) for i in top3_nums_int])
+    top3_nums = sorted(num_probs, key=num_probs.get, reverse=True)[:3]
+    top_nums_str = "、".join([str(i).zfill(2) for i in top3_nums])
 
     numbers_pool = list(range(1, 44))
-    weights = [num_probs[n] + 0.0001 for n in numbers_pool]
-    weights = np.array(weights) / sum(weights)
+    weights = np.array([num_probs[n] + 0.0001 for n in numbers_pool])
+    weights /= weights.sum()
 
     candidates = []
     for _ in range(5000):
-        # ロト6のため size=6 に変更
-        cand = list(np.random.choice(numbers_pool, size=6, replace=False, p=weights))
-        cand.sort()
-        # そのパターンの「総合的な確率（スコア）」を計算
+        cand = sorted(list(np.random.choice(numbers_pool, size=6, replace=False, p=weights)))
         score = sum(num_probs[n] for n in cand)
         candidates.append({"nums": cand, "score": score})
 
-    # スコアが高い順に並び替え
     candidates.sort(key=lambda x: x["score"], reverse=True)
     seen = []
     
-    # 予想A: 特注HOT数字をすべて含む、最もスコアが高い最強パターン
     for cand in candidates:
-        if all(t in cand["nums"] for t in top3_nums_int):
+        if all(t in cand["nums"] for t in top3_nums):
             predictions.append([str(n).zfill(2) for n in cand["nums"]])
             seen.append(cand["nums"])
             break
             
-    # 予想B: 2つ含むパターン
-    for cand in candidates:
-        if sum(1 for t in top3_nums_int if t in cand["nums"]) == 2 and cand["nums"] not in seen:
-            predictions.append([str(n).zfill(2) for n in cand["nums"]])
-            seen.append(cand["nums"])
-            break
-
-    # 予想C: 1つ含むパターン
-    for cand in candidates:
-        if sum(1 for t in top3_nums_int if t in cand["nums"]) == 1 and cand["nums"] not in seen:
-            predictions.append([str(n).zfill(2) for n in cand["nums"]])
-            seen.append(cand["nums"])
-            break
-
-    # 予想D〜E: 残りの候補でスコアが高いもの
     for cand in candidates:
         if cand["nums"] not in seen:
             predictions.append([str(n).zfill(2) for n in cand["nums"]])
@@ -1535,7 +1511,7 @@ def generate_hybrid_predictions(X_train, y_train, X_latest):
         if len(predictions) == 5:
             break
 
-    return predictions, confidence_rank, confidence_msg, top_nums_str
+    return predictions, rank, msg, top_nums_str
 
 def generate_advanced_predictions(history_data):
     print("🧠 特徴量（ハマり期間・引っ張り等）を抽出し、学習データを生成中...")
