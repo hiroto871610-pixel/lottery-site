@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import re
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
