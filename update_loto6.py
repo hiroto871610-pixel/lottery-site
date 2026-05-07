@@ -95,22 +95,46 @@ def generate_hybrid_predictions(X_train, y_train, X_latest):
     for i in range(43):
         prob_xgb[i+1] = xgb_preds[i, 1] if xgb_preds.shape[1] > 1 else 0
 
-    # --- 4. LSTM (ディープラーニング) ---
-    # ロト6の全数字(43個)を独立して扱えるよう、(43, 1, 3)の形にリシェイプ
+    # --- 4. Transformer (LSTMから最新鋭モデルへ換装：ロト6版) ---
+    from tensorflow.keras import layers, Model
+    
+    # データの形をTransformer用に整える
     X_train_3d = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
     X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
     
-    lstm_model = Sequential([
-        LSTM(64, activation='relu', input_shape=(1, X_train.shape[1])),
-        Dense(1, activation='sigmoid') # 各数字が出る(1)か出ない(0)かの判定
-    ])
-    lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
-    lstm_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
+    # Transformerブロックの構築（Keras 関数型API）
+    inputs = layers.Input(shape=(X_train_3d.shape[1], X_train_3d.shape[2]))
     
-    lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
-    prob_lstm = np.zeros(44)
-    for i in range(43):
+    # 1. Multi-Head Attention層（どの特徴量に注目すべきかを学習）
+    attention_output = layers.MultiHeadAttention(num_heads=2, key_dim=32)(inputs, inputs)
+    attention_output = layers.Dropout(0.1)(attention_output)
+    out1 = layers.LayerNormalization(epsilon=1e-6)(inputs + attention_output)
+    
+    # 2. Feed Forward層（情報の整理と抽出）
+    ffn_output = layers.Dense(64, activation="relu")(out1)
+    ffn_output = layers.Dense(X_train_3d.shape[2])(ffn_output)
+    ffn_output = layers.Dropout(0.1)(ffn_output)
+    out2 = layers.LayerNormalization(epsilon=1e-6)(out1 + ffn_output)
+    
+    # 3. 出力層（バイナリ分類）
+    x = layers.GlobalAveragePooling1D()(out2)
+    outputs = layers.Dense(1, activation="sigmoid")(x)
+    
+    # モデルのコンパイル
+    transformer_model = Model(inputs=inputs, outputs=outputs)
+    transformer_model.compile(optimizer='adam', loss='binary_crossentropy')
+    
+    # 学習の実行
+    transformer_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
+    
+    # 予測の実行（変数名は他との互換性のため prob_lstm のままにしています）
+    lstm_preds = transformer_model.predict(X_latest_3d, verbose=0).flatten()
+    prob_lstm = np.zeros(44) # ★ロト6用に44に調整済み
+    for i in range(43):      # ★ロト6用に43に調整済み
         prob_lstm[i+1] = lstm_preds[i]
+
+    # ※動的重み付けのテスト用にモデル変数を上書き
+    lstm_model = transformer_model
 
     # --- 5. AIの「調子」による動的な重み付け ---
     weight_rf, weight_xgb, weight_lstm = 0.33, 0.33, 0.34

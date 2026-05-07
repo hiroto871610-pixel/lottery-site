@@ -1286,20 +1286,45 @@ def generate_advanced_predictions(history_data, length, win_key):
             if xgb_preds.shape[1] > 1:
                 for i in range(10): prob_xgb[i] = xgb_preds[i, 1]
 
-        # --- LSTM (ディープラーニング) ---
+        # --- Transformer (LSTMから最新鋭モデルへ換装：ナンバーズ版) ---
+        from tensorflow.keras import layers, Model
+        
         prob_lstm = np.zeros(10)
         lstm_model = None
         if can_train:
             X_3d = X.reshape((X.shape[0], 1, X.shape[1]))
             X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
-            lstm_model = Sequential([
-                LSTM(32, activation='relu', input_shape=(1, X.shape[1])),
-                Dense(1, activation='sigmoid')
-            ])
-            lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
-            lstm_model.fit(X_3d, y, epochs=5, verbose=0)
-            lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
-            for i in range(10): prob_lstm[i] = lstm_preds[i]
+            
+            # Transformerブロック（ナンバーズ用にニューロン数を軽量化）
+            inputs = layers.Input(shape=(X_3d.shape[1], X_3d.shape[2]))
+            
+            # 1. Attention層（相関関係の発見）
+            attention_output = layers.MultiHeadAttention(num_heads=2, key_dim=16)(inputs, inputs)
+            attention_output = layers.Dropout(0.1)(attention_output)
+            out1 = layers.LayerNormalization(epsilon=1e-6)(inputs + attention_output)
+            
+            # 2. Feed Forward層
+            ffn_output = layers.Dense(32, activation="relu")(out1)
+            ffn_output = layers.Dense(X_3d.shape[2])(ffn_output)
+            ffn_output = layers.Dropout(0.1)(ffn_output)
+            out2 = layers.LayerNormalization(epsilon=1e-6)(out1 + ffn_output)
+            
+            # 3. 出力層（0〜9の各数字が出る確率）
+            x = layers.GlobalAveragePooling1D()(out2)
+            outputs = layers.Dense(1, activation="sigmoid")(x)
+            
+            transformer_model = Model(inputs=inputs, outputs=outputs)
+            transformer_model.compile(optimizer='adam', loss='binary_crossentropy')
+            
+            # サーバー負担軽減のため epochs=5 で高速学習
+            transformer_model.fit(X_3d, y, epochs=5, verbose=0)
+            
+            lstm_preds = transformer_model.predict(X_latest_3d, verbose=0).flatten()
+            for i in range(10): 
+                prob_lstm[i] = lstm_preds[i]
+                
+            # 動的重み付けのテスト用に変数を引き継ぎ
+            lstm_model = transformer_model
 
         # --- AIの「調子」による動的な重み付け ---
         weight_rf, weight_xgb, weight_lstm = 0.33, 0.33, 0.34
