@@ -1140,74 +1140,155 @@ def analyze_digit_trends(history_data, win_key):
     cold = list(reversed(sorted_counts))[:3] # 下位3つ
     return hot, cold
 
-# --- 3. 複合アルゴリズム予想生成（★機械学習ハイブリッド版・ナンバーズ専用） ---
+# --- 3. 複合アルゴリズム予想生成（★最新AIハイブリッド版・ナンバーズ専用） ---
 def generate_advanced_predictions(history_data, length, win_key):
     import numpy as np
     from xgboost import XGBClassifier
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.layers import LSTM, Dense
+    try:
+        import optuna
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        OPTUNA_AVAILABLE = True
+    except ImportError:
+        OPTUNA_AVAILABLE = False
+        print("⚠️ Optunaがインストールされていません。デフォルト値で進行します。")
 
-    print(f"🧠 ナンバーズ{length} ハイブリッドAI（RF + XGB + LSTM）予測を開始します...")
+    print(f"🧠 ナンバーズ{length} ハイブリッドAI（特徴量追加・動的重み付け・Optuna）予測を開始します...")
     if not history_data or len(history_data) < 20:
         return [], "Bランク", "データ不足のため基本予想", ""
 
     draws = [[int(n) for n in d[win_key]] for d in reversed(history_data)]
     
-    # --- 1. 共起性行列 ---
+    # --- 1. 共起性行列（一緒に引かれやすい数字の組み合わせ） ---
     pair_counts = Counter()
     for draw in draws:
         for pair in itertools.combinations(sorted(draw), 2):
             pair_counts[pair] += 1
 
-    # --- 2 & 3. 桁ごとのハイブリッドAI構築 ---
     pos_ml_scores = []
     window_size = 10 
     
-    # ★追加：全桁の中で一番確率が高い数字を記憶する変数
+    # ★全桁の中で一番確率が高い「特注HOT数字」を記憶する変数
     best_overall_pos = 0
     best_overall_digit = 0
     best_overall_score = -1
 
+    # --- 2. 各桁ごとにAIモデルを構築（特徴量＋Optuna＋動的重み付け） ---
     for pos in range(length):
         features = []
         labels = []
         pos_sequence = [draw[pos] for draw in draws]
         
+        # 💡 特徴量エンジニアリング（学習データを増やす）
         for i in range(window_size, len(pos_sequence) - 1):
             past_window = pos_sequence[i-window_size:i]
             past_counts = Counter(past_window)
             
-            target_digit = pos_sequence[i] 
-            for num in range(10): # ナンバーズは0〜9
-                features.append([past_counts.get(num, 0)])
+            target_digit = pos_sequence[i]
+            last_digit = pos_sequence[i-1]
+            
+            # 各数字の「ハマり期間」を計算
+            missing_durations = {}
+            for num in range(10):
+                dur = 0
+                for step in range(1, i + 1):
+                    if pos_sequence[i - step] == num:
+                        break
+                    dur += 1
+                missing_durations[num] = dur
+                
+            for num in range(10):
+                # ★追加した特徴量：①出現回数、②ハマり期間、③前回出現フラグ（引っ張り）
+                feature = [
+                    past_counts.get(num, 0),
+                    missing_durations[num],
+                    1 if num == last_digit else 0
+                ]
+                features.append(feature)
                 labels.append(1 if num == target_digit else 0)
 
         X = np.array(features)
         y = np.array(labels)
 
+        # 最新の入力データ (X_latest) の作成
         latest_window = pos_sequence[-window_size:]
         latest_counts = Counter(latest_window)
-        X_latest = np.array([[latest_counts.get(num, 0)] for num in range(10)])
+        last_digit_latest = pos_sequence[-1]
+        missing_durations_latest = {}
+        for num in range(10):
+            dur = 0
+            for step in range(1, len(pos_sequence) + 1):
+                if pos_sequence[-step] == num:
+                    break
+                dur += 1
+            missing_durations_latest[num] = dur
+            
+        X_latest_list = []
+        for num in range(10):
+            X_latest_list.append([
+                latest_counts.get(num, 0),
+                missing_durations_latest[num],
+                1 if num == last_digit_latest else 0
+            ])
+        X_latest = np.array(X_latest_list)
 
-        can_train = len(np.unique(y)) > 1
+        # --- 動的重み付けのための検証データ分割 ---
+        val_samples = 5 * 10 # 直近5回分 × 10数字(0~9) = 50サンプル
+        if len(X) > val_samples * 2:
+            X_t, y_t = X[:-val_samples], y[:-val_samples]
+            X_v, y_v = X[-val_samples:], y[-val_samples:]
+        else:
+            X_t, y_t = X, y
+            X_v, y_v = X, y
 
+        can_train = len(np.unique(y_t)) > 1
+
+        # --- Random Forest (Optunaチューニング) ---
         prob_rf = np.zeros(10)
+        best_rf_params = {'n_estimators': 100, 'random_state': 42, 'class_weight': 'balanced'}
         if can_train:
-            rf_model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
+            if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
+                def objective_rf(trial):
+                    n_est = trial.suggest_int('n_estimators', 50, 150)
+                    depth = trial.suggest_int('max_depth', 3, 10)
+                    clf = RandomForestClassifier(n_estimators=n_est, max_depth=depth, random_state=42, class_weight="balanced")
+                    clf.fit(X_t, y_t)
+                    return clf.score(X_v, y_v)
+                study_rf = optuna.create_study(direction='maximize')
+                study_rf.optimize(objective_rf, n_trials=3) # 各桁で回すため3回に軽量化
+                best_rf_params.update(study_rf.best_params)
+            
+            rf_model = RandomForestClassifier(**best_rf_params)
             rf_model.fit(X, y)
             rf_preds = rf_model.predict_proba(X_latest)
             if rf_preds.shape[1] > 1:
                 for i in range(10): prob_rf[i] = rf_preds[i, 1]
 
+        # --- XGBoost (Optunaチューニング) ---
         prob_xgb = np.zeros(10)
+        best_xgb_params = {'use_label_encoder': False, 'eval_metric': 'logloss', 'random_state': 42}
         if can_train:
-            xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+            if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
+                def objective_xgb(trial):
+                    depth = trial.suggest_int('max_depth', 3, 8)
+                    lr = trial.suggest_float('learning_rate', 0.01, 0.2, log=True)
+                    clf = XGBClassifier(max_depth=depth, learning_rate=lr, use_label_encoder=False, eval_metric='logloss', random_state=42)
+                    clf.fit(X_t, y_t)
+                    return clf.score(X_v, y_v)
+                study_xgb = optuna.create_study(direction='maximize')
+                study_xgb.optimize(objective_xgb, n_trials=3)
+                best_xgb_params.update(study_xgb.best_params)
+
+            xgb_model = XGBClassifier(**best_xgb_params)
             xgb_model.fit(X, y)
             xgb_preds = xgb_model.predict_proba(X_latest)
             if xgb_preds.shape[1] > 1:
                 for i in range(10): prob_xgb[i] = xgb_preds[i, 1]
 
+        # --- LSTM (ディープラーニング) ---
         prob_lstm = np.zeros(10)
+        lstm_model = None
         if can_train:
             X_3d = X.reshape((X.shape[0], 1, X.shape[1]))
             X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
@@ -1220,11 +1301,25 @@ def generate_advanced_predictions(history_data, length, win_key):
             lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
             for i in range(10): prob_lstm[i] = lstm_preds[i]
 
-        final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
+        # --- AIの「調子」による動的な重み付け ---
+        weight_rf, weight_xgb, weight_lstm = 0.33, 0.33, 0.34
+        if can_train and len(X_t) != len(X_v):
+            score_rf = rf_model.score(X_v, y_v)
+            score_xgb = xgb_model.score(X_v, y_v)
+            X_v_3d = X_v.reshape((X_v.shape[0], 1, X_v.shape[1]))
+            lstm_v_preds = (lstm_model.predict(X_v_3d, verbose=0).flatten() > 0.5).astype(int)
+            score_lstm = np.mean(lstm_v_preds == y_v)
+            
+            total_score = score_rf + score_xgb + score_lstm + 0.0001
+            weight_rf = score_rf / total_score
+            weight_xgb = score_xgb / total_score
+            weight_lstm = score_lstm / total_score
+
+        final_prob = (prob_rf * weight_rf) + (prob_xgb * weight_xgb) + (prob_lstm * weight_lstm)
         ml_scores = {num: prob for num, prob in enumerate(final_prob)}
         pos_ml_scores.append(ml_scores)
         
-        # ★ここで「この桁で一番強い数字」をチェックし、全体ベストを更新する
+        # 全桁を通じて一番強い数字（特注HOT数字）を記録する
         for num, prob in ml_scores.items():
             if prob > best_overall_score:
                 best_overall_score = prob
@@ -1234,70 +1329,73 @@ def generate_advanced_predictions(history_data, length, win_key):
     # ★特注HOT数字のテキストを作成
     top_nums_str = f"{best_overall_pos+1}桁目の「{best_overall_digit}」"
 
-    # --- 4. ハイブリッド選定 ---
+    # --- 3. 5000パターンから最強の組み合わせを抽出 ---
     predictions = []
     seen, seen_box = set(), set()
     digits = list(range(10))
     candidates = []
 
-    # ★修正：予想生成時に、本命(一番最初)の予想には必ずHOT数字を組み込む！
-    for i in range(5000): 
+    for _ in range(5000): 
         cand = []
         for pos in range(length):
-            # 本命(0番目)の生成時は、ベストな桁を強制的に固定する
-            if i < 100 and pos == best_overall_pos:
-                cand.append(best_overall_digit)
+            weights = [pos_ml_scores[pos][n] for n in digits]
+            if sum(weights) > 0:
+                cand.append(random.choices(digits, weights=weights)[0])
             else:
-                weights = [pos_ml_scores[pos][n] for n in digits]
-                if sum(weights) > 0:
-                    cand.append(random.choices(digits, weights=weights)[0])
-                else:
-                    cand.append(random.choice(digits))
-        candidates.append(cand)
-
-    valid_candidates = []
-    for cand in candidates:
+                cand.append(random.choice(digits))
+        
+        # そのパターンの「総合的な期待値スコア」を計算
         base_score = sum(pos_ml_scores[pos][cand[pos]] for pos in range(length))
         pair_bonus = sum(pair_counts.get(pair, 0) for pair in itertools.combinations(sorted(cand), 2))
+        final_score = base_score + (pair_bonus * 0.01)
         
-        # 本命予想(HOT数字入り)を優先的に採用するため、スコアに強力なボーナスを与える
-        if cand[best_overall_pos] == best_overall_digit:
-            base_score += 10.0 # 圧倒的ボーナス
-            
-        final_score = base_score + (pair_bonus * 0.05)
-        
+        # トリプル・クアッド除外 (同じ数字が3つ以上は出にくいため)
         counts = Counter(cand)
-        if any(v >= 3 for v in counts.values()): # トリプル以上を除外
+        if any(v >= 3 for v in counts.values()): 
             continue
             
-        valid_candidates.append((final_score, cand))
+        candidates.append({"nums": cand, "score": final_score})
 
-    # スコアが高い順（HOT数字入りが必ず上位に来る）にソート
-    valid_candidates.sort(key=lambda x: x[0], reverse=True)
+    # スコアが高い順に並び替え
+    candidates.sort(key=lambda x: x["score"], reverse=True)
     
-    for score, cand in valid_candidates:
-        cand_str = "".join(map(str, cand))
+    # 【予想A】: 特注HOT数字を組み込みつつ、総合スコアが最も高い最強パターン
+    for cand in candidates:
+        if cand["nums"][best_overall_pos] == best_overall_digit:
+            cand_str = "".join(map(str, cand["nums"]))
+            box_str = "".join(sorted(cand_str))
+            if cand_str not in seen and box_str not in seen_box:
+                predictions.append(cand_str)
+                seen.add(cand_str)
+                seen_box.add(box_str)
+                break
+                
+    # 【予想B〜E】: 残りの候補でスコアが高いもの
+    for cand in candidates:
+        cand_str = "".join(map(str, cand["nums"]))
         box_str = "".join(sorted(cand_str))
         if cand_str not in seen and box_str not in seen_box:
+            predictions.append(cand_str)
             seen.add(cand_str)
             seen_box.add(box_str)
-            predictions.append(cand_str)
-        if len(predictions) == 5: break
+        if len(predictions) == 5:
+            break
 
+    # 万が一5つに満たない場合の保険
     while len(predictions) < 5:
         cand_str = "".join(str(random.randint(0,9)) for _ in range(length))
         if cand_str not in seen:
             seen.add(cand_str)
             predictions.append(cand_str)
 
-    # 自信度の判定
+    # 自信度の判定（各桁の最大確率の平均値で判定）
     avg_max_score = np.mean([max(pos_ml_scores[pos].values()) for pos in range(length)])
-    if avg_max_score > 0.4:
+    if avg_max_score > 0.35:
         rank, msg = "Sランク", f"🔥 激アツ！AIがナンバーズ{length}の強い偏りを検知！"
-    elif avg_max_score > 0.25:
+    elif avg_max_score > 0.20:
         rank, msg = "Aランク", f"✨ チャンス！ナンバーズ{length}の当選パターンが明確です。"
     else:
-        rank, msg = "Bランク", f"⚠️ 過去データが分散。波乱の可能性があります。"
+        rank, msg = "Bランク", f"⚠️ 波乱の可能性。AI間の意見が分かれています。"
     
     return predictions, rank, msg, top_nums_str
     
@@ -2462,7 +2560,7 @@ def build_html():
     sns_msg = msg  
 
     # 抽選日は月〜金。SNS投稿はその「前日の夜（日・月・火・水・木）」に行う
-    if today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
+    if today_weekday in [6, 0, 1, 2, 3] and current_hour < 19:
         sns_send_flag = True
         if not sns_msg:
             sns_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"

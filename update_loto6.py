@@ -38,86 +38,164 @@ JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID")
 JSONBIN_API_KEY = os.environ.get("JSONBIN_API_KEY")
 JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else ""
 
-def generate_hybrid_predictions(X_train, y_train, X_latest, window_size=10, num_predictions=5):
-    import numpy as np
-    print("🧠 ロト6 ハイブリッドAI予測を開始します...")
+def generate_hybrid_predictions(X_train, y_train, X_latest):
+    print("🧠 ハイブリッドAIによる予測を開始（動的重み付け＋Optunaチューニング）...")
+    
+    # --- 1. 動的重み付け（アンサンブル）のための検証データ分割 ---
+    # ロト6は1〜43の数字なので、直近5回分 = 5 * 43 = 215サンプル
+    val_samples = 5 * 43
+    if len(X_train) > val_samples * 2:
+        X_t, y_t = X_train[:-val_samples], y_train[:-val_samples]
+        X_v, y_v = X_train[-val_samples:], y_train[-val_samples:]
+    else:
+        X_t, y_t = X_train, y_train
+        X_v, y_v = X_train, y_train # データ不足時は分割しない
 
-    # ① Random Forest (0か1かの確率を取得)
-    rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+    # --- 2. Random Forest (Optunaによる自動調整) ---
+    best_rf_params = {'n_estimators': 100, 'random_state': 42}
+    if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
+        def objective_rf(trial):
+            n_est = trial.suggest_int('n_estimators', 50, 150)
+            depth = trial.suggest_int('max_depth', 3, 10)
+            clf = RandomForestClassifier(n_estimators=n_est, max_depth=depth, random_state=42)
+            clf.fit(X_t, y_t)
+            return clf.score(X_v, y_v)
+        study_rf = optuna.create_study(direction='maximize')
+        study_rf.optimize(objective_rf, n_trials=5)
+        best_rf_params.update(study_rf.best_params)
+        
+    rf_model = RandomForestClassifier(**best_rf_params)
     rf_model.fit(X_train, y_train)
+    
+    # 各数字(1~43)の「出る確率」を取得
     rf_preds = rf_model.predict_proba(X_latest)
-    
     prob_rf = np.zeros(44)
-    # クラス「1(当選)」の確率を抽出
-    if rf_preds.shape[1] > 1:
-        for i in range(43):
-            prob_rf[i+1] = rf_preds[i, 1]
-    else:
-        for i in range(43):
-            prob_rf[i+1] = rf_preds[i, 0]
-
-    # ② XGBoost
-    xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
-    xgb_model.fit(X_train, y_train)
-    xgb_preds = xgb_model.predict_proba(X_latest)
+    for i in range(43):
+        prob_rf[i+1] = rf_preds[i, 1] if rf_preds.shape[1] > 1 else 0
     
-    prob_xgb = np.zeros(44)
-    if xgb_preds.shape[1] > 1:
-        for i in range(43):
-            prob_xgb[i+1] = xgb_preds[i, 1]
-    else:
-        for i in range(43):
-            prob_xgb[i+1] = xgb_preds[i, 0]
+    # --- 3. XGBoost (Optunaによる自動調整) ---
+    best_xgb_params = {'use_label_encoder': False, 'eval_metric': 'logloss', 'random_state': 42}
+    if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
+        def objective_xgb(trial):
+            depth = trial.suggest_int('max_depth', 3, 8)
+            lr = trial.suggest_float('learning_rate', 0.01, 0.2, log=True)
+            clf = XGBClassifier(max_depth=depth, learning_rate=lr, use_label_encoder=False, eval_metric='logloss', random_state=42)
+            clf.fit(X_t, y_t)
+            return clf.score(X_v, y_v)
+        study_xgb = optuna.create_study(direction='maximize')
+        study_xgb.optimize(objective_xgb, n_trials=5)
+        best_xgb_params.update(study_xgb.best_params)
 
-    # ③ LSTM (二値分類モデルとして構築)
+    xgb_model = XGBClassifier(**best_xgb_params)
+    xgb_model.fit(X_train, y_train)
+    
+    # 各数字(1~43)の「出る確率」を取得
+    xgb_preds = xgb_model.predict_proba(X_latest)
+    prob_xgb = np.zeros(44)
+    for i in range(43):
+        prob_xgb[i+1] = xgb_preds[i, 1] if xgb_preds.shape[1] > 1 else 0
+
+    # --- 4. LSTM (ディープラーニング) ---
+    # ロト6の全数字(43個)を独立して扱えるよう、(43, 1, 3)の形にリシェイプ
     X_train_3d = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
     X_latest_3d = X_latest.reshape((X_latest.shape[0], 1, X_latest.shape[1]))
-
+    
     lstm_model = Sequential([
         LSTM(64, activation='relu', input_shape=(1, X_train.shape[1])),
-        Dense(1, activation='sigmoid') # 0か1の確率を出力
+        Dense(1, activation='sigmoid') # 各数字が出る(1)か出ない(0)かの判定
     ])
     lstm_model.compile(optimizer='adam', loss='binary_crossentropy')
     lstm_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
-    lstm_preds = lstm_model.predict(X_latest_3d).flatten()
     
+    lstm_preds = lstm_model.predict(X_latest_3d, verbose=0).flatten()
     prob_lstm = np.zeros(44)
     for i in range(43):
         prob_lstm[i+1] = lstm_preds[i]
 
-    # 統合と自信度計算
-    final_prob = (prob_rf + prob_xgb + prob_lstm) / 3.0
-    
+    # --- 5. AIの「調子」による動的な重み付け ---
+    weight_rf, weight_xgb, weight_lstm = 0.33, 0.33, 0.34
+    if len(X_t) != len(X_v):
+        score_rf = rf_model.score(X_v, y_v)
+        score_xgb = xgb_model.score(X_v, y_v)
+        
+        # LSTMの直近正答率をテスト
+        X_v_3d = X_v.reshape((X_v.shape[0], 1, X_v.shape[1]))
+        lstm_v_preds = (lstm_model.predict(X_v_3d, verbose=0).flatten() > 0.5).astype(int)
+        score_lstm = np.mean(lstm_v_preds == y_v)
+
+        total_score = score_rf + score_xgb + score_lstm + 0.0001
+        weight_rf = score_rf / total_score
+        weight_xgb = score_xgb / total_score
+        weight_lstm = score_lstm / total_score
+        print(f"📊 各AIの調子(重み): RF={weight_rf:.2f}, XGB={weight_xgb:.2f}, LSTM={weight_lstm:.2f}")
+
+    # 最終確率の統合
+    final_prob = (prob_rf * weight_rf) + (prob_xgb * weight_xgb) + (prob_lstm * weight_lstm)
+
+    # ランク判定（ロト6上位6個の一致度）
     top6_rf = set(np.argsort(prob_rf)[::-1][:6])
     top6_xgb = set(np.argsort(prob_xgb)[::-1][:6])
     top6_lstm = set(np.argsort(prob_lstm)[::-1][:6])
-    agreed = top6_rf & top6_xgb & top6_lstm
+    agreed_numbers = top6_rf & top6_xgb & top6_lstm
 
-    if len(agreed) >= 4:
-        rank, msg = "Sランク", "🔥 激アツ！3つのAI予測がロト6で完全に一致！"
+    if len(agreed_numbers) >= 3:
+        confidence_rank = "Sランク"
+        confidence_msg = "🔥 激アツ！絶好調のAI同士の予測が完全に一致しました！"
     elif len(top6_rf & top6_xgb) >= 3 or len(top6_rf & top6_lstm) >= 3:
-        rank, msg = "Aランク", "✨ チャンス！複数のAIが同じ当選パターンを検知。"
+        confidence_rank = "Aランク"
+        confidence_msg = "✨ チャンス！複数のAIが同じ傾向を示しています。"
     else:
-        rank, msg = "Bランク", "⚠️ AIの意見が分散中。波乱の可能性があります。"
+        confidence_rank = "Bランク"
+        confidence_msg = "⚠️ 波乱含み。AI間で意見が分かれており、荒れる可能性があります。"
 
-    # 予想生成
+    # --- 6. 5000パターンから最強の組み合わせを抽出 ---
     predictions = []
-    weights = final_prob[1:44] + 0.0001
-    weights /= weights.sum()
-    numbers_pool = np.arange(1, 44)
+    num_probs = {n: final_prob[n] for n in range(1, 44)}
+    top3_nums_int = sorted(num_probs, key=num_probs.get, reverse=True)[:3]
+    top_nums_str = "、".join([str(i).zfill(2) for i in top3_nums_int])
 
-    for _ in range(num_predictions):
-        pred_nums = np.random.choice(numbers_pool, size=6, replace=False, p=weights)
-        pred_nums.sort()
-        predictions.append([str(n).zfill(2) for n in pred_nums])
+    numbers_pool = list(range(1, 44))
+    weights = [num_probs[n] + 0.0001 for n in numbers_pool]
+    weights = np.array(weights) / sum(weights)
 
-    # ▼▼▼ 追加：AIが最も確率が高いと判断した3つの数字を抽出 ▼▼▼
-    top3_indices = np.argsort(final_prob)[::-1]
-    top_nums = [str(i).zfill(2) for i in top3_indices if 1 <= i <= 43][:3]
-    top_nums_str = "、".join(top_nums)
-    # ▲▲▲ ここまで ▲▲▲
+    candidates = []
+    for _ in range(5000):
+        cand = list(np.random.choice(numbers_pool, size=6, replace=False, p=weights))
+        cand.sort()
+        score = sum(num_probs[n] for n in cand)
+        candidates.append({"nums": cand, "score": score})
 
-    return predictions, rank, msg, top_nums_str
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+    seen = []
+    
+    # 予想A: 特注HOT数字をすべて含む最強パターン
+    for cand in candidates:
+        if all(t in cand["nums"] for t in top3_nums_int):
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+            break
+            
+    # 予想B〜C: 条件を緩めて抽出
+    for cand in candidates:
+        if sum(1 for t in top3_nums_int if t in cand["nums"]) == 2 and cand["nums"] not in seen:
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+            break
+    for cand in candidates:
+        if sum(1 for t in top3_nums_int if t in cand["nums"]) == 1 and cand["nums"] not in seen:
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+            break
+
+    # 予想D〜E: 純粋なスコア上位
+    for cand in candidates:
+        if cand["nums"] not in seen:
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+        if len(predictions) == 5:
+            break
+
+    return predictions, confidence_rank, confidence_msg, top_nums_str
 
 import time # リトライの待機用に追加
 
@@ -1289,108 +1367,245 @@ def analyze_trends(history_data):
     
     return hot, cold
 
-# --- 3. 複合アルゴリズム予想生成（★機械学習ハイブリッド版に刷新） ---
+# =========================================================
+# 🧠 最新AIアルゴリズム（特徴量追加・動的重み付け・Optuna・5000パターン抽出）[ロト6版]
+# =========================================================
+import numpy as np
+try:
+    import optuna
+    optuna.logging.set_verbosity(optuna.logging.WARNING) # ログを静かにしてエラーを防ぐ
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_AVAILABLE = False
+    print("⚠️ Optunaがインストールされていません。デフォルト値で進行します。")
+
+def generate_hybrid_predictions(X_train, y_train, X_latest):
+    print("🧠 ハイブリッドAIによる予測を開始（動的重み付け＋Optunaチューニング）...")
+    
+    # --- 1. 動的重み付け（アンサンブル）のための検証データ分割 ---
+    # 直近の5回分（5回 × 43数字 = 215サンプル）を「AIの現在の調子」をテストするために取り分ける
+    val_samples = 5 * 43
+    if len(X_train) > val_samples * 2:
+        X_t, y_t = X_train[:-val_samples], y_train[:-val_samples]
+        X_v, y_v = X_train[-val_samples:], y_train[-val_samples:]
+    else:
+        X_t, y_t = X_train, y_train
+        X_v, y_v = X_train, y_train # データ不足時は分割しない
+
+    # --- 2. Random Forest (Optunaによる自動調整) ---
+    best_rf_params = {'n_estimators': 100, 'random_state': 42}
+    if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
+        def objective_rf(trial):
+            n_est = trial.suggest_int('n_estimators', 50, 150)
+            depth = trial.suggest_int('max_depth', 3, 10)
+            clf = RandomForestClassifier(n_estimators=n_est, max_depth=depth, random_state=42)
+            clf.fit(X_t, y_t)
+            return clf.score(X_v, y_v)
+        study_rf = optuna.create_study(direction='maximize')
+        study_rf.optimize(objective_rf, n_trials=5) # サーバーの負担を考慮し5回に限定
+        best_rf_params.update(study_rf.best_params)
+        
+    rf_model = RandomForestClassifier(**best_rf_params)
+    rf_model.fit(X_train, y_train)
+    prob_rf_raw = rf_model.predict_proba(X_latest)[0]
+    prob_rf = np.zeros(44) # ロト6は1〜43
+    for idx, cls in enumerate(rf_model.classes_):
+        if 1 <= int(cls) <= 43:
+            prob_rf[int(cls)] = prob_rf_raw[idx]
+    
+    # --- 3. XGBoost (Optunaによる自動調整) ---
+    best_xgb_params = {'use_label_encoder': False, 'eval_metric': 'logloss', 'random_state': 42}
+    if OPTUNA_AVAILABLE and len(X_t) != len(X_v):
+        def objective_xgb(trial):
+            depth = trial.suggest_int('max_depth', 3, 8)
+            lr = trial.suggest_float('learning_rate', 0.01, 0.2, log=True)
+            clf = XGBClassifier(max_depth=depth, learning_rate=lr, use_label_encoder=False, eval_metric='logloss', random_state=42)
+            clf.fit(X_t, y_t)
+            return clf.score(X_v, y_v)
+        study_xgb = optuna.create_study(direction='maximize')
+        study_xgb.optimize(objective_xgb, n_trials=5)
+        best_xgb_params.update(study_xgb.best_params)
+
+    xgb_model = XGBClassifier(**best_xgb_params)
+    xgb_model.fit(X_train, y_train)
+    prob_xgb_raw = xgb_model.predict_proba(X_latest)[0]
+    prob_xgb = np.zeros(44)
+    if hasattr(xgb_model, 'classes_'):
+        for idx, cls in enumerate(xgb_model.classes_):
+            if 1 <= int(cls) <= 43:
+                prob_xgb[int(cls)] = prob_xgb_raw[idx]
+
+    # --- 4. LSTM ---
+    X_train_3d = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
+    X_latest_3d = X_latest.reshape((1, 1, X_latest.shape[1]))
+    lstm_model = Sequential([
+        LSTM(64, activation='relu', input_shape=(1, X_train.shape[1])),
+        Dense(44, activation='softmax') # ロト6対応
+    ])
+    lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+    lstm_model.fit(X_train_3d, y_train, epochs=10, verbose=0)
+    prob_lstm = lstm_model.predict(X_latest_3d)[0]
+
+    # --- 5. AIの「調子」による動的な重み付け ---
+    weight_rf, weight_xgb, weight_lstm = 0.33, 0.33, 0.34
+    if len(X_t) != len(X_v):
+        score_rf = rf_model.score(X_v, y_v)
+        score_xgb = xgb_model.score(X_v, y_v)
+        
+        # LSTMのスコア計算
+        X_v_3d = X_v.reshape((X_v.shape[0], 1, X_v.shape[1]))
+        lstm_preds = np.argmax(lstm_model.predict(X_v_3d, verbose=0), axis=1)
+        score_lstm = np.mean(lstm_preds == y_v)
+
+        # 直近5回のテスト結果の正答率に基づいて発言権（重み）を変える
+        total_score = score_rf + score_xgb + score_lstm + 0.0001
+        weight_rf = score_rf / total_score
+        weight_xgb = score_xgb / total_score
+        weight_lstm = score_lstm / total_score
+        print(f"📊 各AIの調子(重み): RF={weight_rf:.2f}, XGB={weight_xgb:.2f}, LSTM={weight_lstm:.2f}")
+
+    # 最終確率の統合
+    final_prob = (prob_rf * weight_rf) + (prob_xgb * weight_xgb) + (prob_lstm * weight_lstm)
+
+    # ランク判定（ロト6なので上位6個の一致度で判定）
+    top6_rf = set(np.argsort(prob_rf)[::-1][:6])
+    top6_xgb = set(np.argsort(prob_xgb)[::-1][:6])
+    top6_lstm = set(np.argsort(prob_lstm)[::-1][:6])
+    agreed_numbers = top6_rf & top6_xgb & top6_lstm
+
+    if len(agreed_numbers) >= 3:
+        confidence_rank = "Sランク"
+        confidence_msg = "🔥 激アツ！絶好調のAI同士の予測が完全に一致しました！"
+    elif len(top6_rf & top6_xgb) >= 3 or len(top6_rf & top6_lstm) >= 3:
+        confidence_rank = "Aランク"
+        confidence_msg = "✨ チャンス！複数のAIが同じ傾向を示しています。"
+    else:
+        confidence_rank = "Bランク"
+        confidence_msg = "⚠️ 波乱含み。AI間で意見が分かれており、荒れる可能性があります。"
+
+    # --- 6. 5000パターンから最強の組み合わせを抽出 ---
+    predictions = []
+    num_probs = {n: final_prob[n] for n in range(1, 44)}
+    top3_nums_int = sorted(num_probs, key=num_probs.get, reverse=True)[:3]
+    top_nums_str = "、".join([str(i).zfill(2) for i in top3_nums_int])
+
+    numbers_pool = list(range(1, 44))
+    weights = [num_probs[n] + 0.0001 for n in numbers_pool]
+    weights = np.array(weights) / sum(weights)
+
+    candidates = []
+    for _ in range(5000):
+        # ロト6のため size=6 に変更
+        cand = list(np.random.choice(numbers_pool, size=6, replace=False, p=weights))
+        cand.sort()
+        # そのパターンの「総合的な確率（スコア）」を計算
+        score = sum(num_probs[n] for n in cand)
+        candidates.append({"nums": cand, "score": score})
+
+    # スコアが高い順に並び替え
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+    seen = []
+    
+    # 予想A: 特注HOT数字をすべて含む、最もスコアが高い最強パターン
+    for cand in candidates:
+        if all(t in cand["nums"] for t in top3_nums_int):
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+            break
+            
+    # 予想B: 2つ含むパターン
+    for cand in candidates:
+        if sum(1 for t in top3_nums_int if t in cand["nums"]) == 2 and cand["nums"] not in seen:
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+            break
+
+    # 予想C: 1つ含むパターン
+    for cand in candidates:
+        if sum(1 for t in top3_nums_int if t in cand["nums"]) == 1 and cand["nums"] not in seen:
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+            break
+
+    # 予想D〜E: 残りの候補でスコアが高いもの
+    for cand in candidates:
+        if cand["nums"] not in seen:
+            predictions.append([str(n).zfill(2) for n in cand["nums"]])
+            seen.append(cand["nums"])
+        if len(predictions) == 5:
+            break
+
+    return predictions, confidence_rank, confidence_msg, top_nums_str
+
 def generate_advanced_predictions(history_data):
-    print("🧠 AI（Random Forest）が過去の傾向と数字の共起性を学習中...")
+    print("🧠 特徴量（ハマり期間・引っ張り等）を抽出し、学習データを生成中...")
     if not history_data or len(history_data) < 20:
-        return [] 
+        return [], "Cランク", "データ不足です", ""
 
     main_draws = [list(map(int, d['main'])) for d in reversed(history_data)]
     
-    # --- 1. 共起性行列（ペア相性）の作成 ---
-    pair_counts = Counter()
-    for draw in main_draws:
-        for pair in itertools.combinations(sorted(draw), 2):
-            pair_counts[pair] += 1
-
-    # --- 2. 機械学習のためのデータセット作成 ---
     features = []
     labels = []
     window_size = 10 
     
-    for i in range(window_size, len(main_draws) - 1):
+    # --- 💡 特徴量エンジニアリング（学習データを増やす） ---
+    for i in range(window_size, len(main_draws)):
+        target_draw = main_draws[i] 
         past_window = [num for draw in main_draws[i-window_size:i] for num in draw]
         past_counts = Counter(past_window)
+        last_draw = main_draws[i-1]
         
-        target_draw = main_draws[i] 
-        for num in range(1, 44): # ★ロト6は1〜43
-            feature = [past_counts.get(num, 0)]
+        # 各数字の「ハマり期間」（何回連続で出ていないか）を計算
+        missing_durations = {}
+        for num in range(1, 44):
+            dur = 0
+            for step in range(1, i + 1):
+                if num in main_draws[i - step]:
+                    break
+                dur += 1
+            missing_durations[num] = dur
+
+        for num in range(1, 44):
+            # ★追加した特徴量：①出現回数、②ハマり期間、③前回出現フラグ（引っ張り）
+            feature = [
+                past_counts.get(num, 0),    
+                missing_durations[num],     
+                1 if num in last_draw else 0 
+            ]
             features.append(feature)
             labels.append(1 if num in target_draw else 0)
 
-    X = np.array(features)
-    y = np.array(labels)
-
-    # =========================================================
-    # ▼▼▼ 古いコード（次回の予測スコアを算出 など）を消してこれに書き換える ▼▼▼
-    # =========================================================
-    # 1. 次回の予測用データ(43個の数字の出現回数)を作る
-    latest_window = [num for draw in main_draws[-window_size:] for num in draw]
-    latest_counts = Counter(latest_window)
-    next_features = np.array([[latest_counts.get(num, 0)] for num in range(1, 44)])
-
-    # 2. 新しいAIを呼び出す（next_features を渡す）
-    global global_confidence_rank, global_confidence_msg
-    predictions, global_confidence_rank, global_confidence_msg, top_nums_str = generate_hybrid_predictions(X, y, next_features)
-
-    return predictions, global_confidence_rank, global_confidence_msg, top_nums_str
-    # =========================================================
-    # ▲▲▲ ここまで ▲▲▲
-
-    # --- 4. 次回の予測スコアを算出 ---
-    latest_window = [num for draw in main_draws[-window_size:] for num in draw]
-    latest_counts = Counter(latest_window)
+    import numpy as np
+    X_train = np.array(features)
+    y_train = np.array(labels)
     
-    next_features = np.array([[latest_counts.get(num, 0)] for num in range(1, 44)]) # ★ロト6は1〜43
-    probabilities = model.predict_proba(next_features)[:, 1] 
+    # --- 最新の予測用入力データ (X_latest) の作成 ---
+    last_idx = len(main_draws)
+    past_window_latest = [num for draw in main_draws[last_idx-window_size:last_idx] for num in draw]
+    past_counts_latest = Counter(past_window_latest)
+    last_draw_latest = main_draws[-1]
     
-    ml_scores = {num: prob for num, prob in enumerate(probabilities, start=1)}
-
-    # --- 5. ハイブリッド選定（MLスコア × 共起性） ---
-    predictions = []
-    seen = set()
-    
-    numbers = list(range(1, 44)) # ★ロト6は1〜43
-    weights = [ml_scores[n] for n in numbers]
-
-    candidates = []
-    for _ in range(3000): # 3000パターン生成
-        cand = []
-        pool_nums = list(numbers)
-        pool_weights = list(weights)
-        for _ in range(6): # ★ロト6は6個選ぶ
-            if sum(pool_weights) > 0:
-                choice = random.choices(pool_nums, weights=pool_weights)[0]
-            else:
-                choice = random.choice(pool_nums)
-            cand.append(choice)
-            idx = pool_nums.index(choice)
-            pool_nums.pop(idx)
-            pool_weights.pop(idx)
-        cand.sort()
-        candidates.append(cand)
-
-    valid_candidates = []
-    for cand in candidates:
-        base_score = sum(ml_scores[n] for n in cand)
+    missing_durations_latest = {}
+    for num in range(1, 44):
+        dur = 0
+        for step in range(1, last_idx + 1):
+            if num in main_draws[last_idx - step]:
+                break
+            dur += 1
+        missing_durations_latest[num] = dur
         
-        pair_bonus = 0
-        for pair in itertools.combinations(cand, 2):
-            pair_bonus += pair_counts.get(pair, 0)
-            
-        final_score = base_score + (pair_bonus * 0.05)
-        valid_candidates.append((final_score, cand))
-
-    valid_candidates.sort(key=lambda x: x[0], reverse=True)
-    for score, cand in valid_candidates:
-        t_cand = tuple(cand)
-        if t_cand not in seen:
-            seen.add(t_cand)
-            predictions.append([str(n).zfill(2) for n in cand])
-        if len(predictions) == 5:
-            break
-
-    return predictions
+    X_latest_list = []
+    for num in range(1, 44):
+        X_latest_list.append([
+            past_counts_latest.get(num, 0),
+            missing_durations_latest[num],
+            1 if num in last_draw_latest else 0
+        ])
+    X_latest = np.array(X_latest_list)
+    
+    # ハイブリッドAIに投げる
+    return generate_hybrid_predictions(X_train, y_train, X_latest)
+# =========================================================
 
 def manage_history(latest_data, new_predictions):
     # ▼▼▼ 変更点①：ローカルファイルの読み込み処理を削除し、JSONBinから取得 ▼▼▼
@@ -2517,7 +2732,7 @@ def build_html():
 
     if today_weekday in [0, 3] and current_hour >= 19:
         sns_send_flag = True
-    elif today_weekday in [2, 6] and current_hour >= 19:
+    elif today_weekday in [2, 6] and current_hour < 19:
         sns_send_flag = True
         if not sns_msg:
             sns_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
