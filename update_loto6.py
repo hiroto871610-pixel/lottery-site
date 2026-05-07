@@ -2805,7 +2805,7 @@ def build_html():
         base_image = "base_image.png"     
         image_path = "loto6_result.jpg"
         
-        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=global_confidence_rank)
+        is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=confidence_rank)
 
         try:
             from create_reel import generate_loto6_reel
@@ -2843,7 +2843,7 @@ def build_html():
             yosou_a_list = history_record[0]['predictions'][0]
             base_image = "base_image.png"     
             image_path = "loto6_result.jpg"
-            is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=global_confidence_rank)
+            is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=confidence_rank)
             if is_created:
                 shared_image_url = upload_image_to_server(image_path)
         
