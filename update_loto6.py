@@ -2768,19 +2768,17 @@ def build_html():
         # 「等」が含まれている場合（1等〜5等）のみXへ投稿
         if "等" in best_res:
             x_send_flag = True
-            # 1〜3等の場合（超高額的中）
-            if any(prize in best_res for prize in ["1等", "2等", "3等"]):
-                x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト6 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}"
-            # 4〜5等の場合（通常的中）
-            else:
-                x_msg = f"🚨【#ロト6 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・成績：【{best_res}】\n"
-                if carryover_text: x_msg += f"\n{carryover_text}\n"
-                x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}"
+        if any(prize in best_res for prize in ["1等", "2等", "3等"]):
+            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト6 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}"
+        elif "等" in best_res:
+            x_msg = f"🚨【#ロト6 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・成績：【{best_res}】\n"
+            if carryover_text: x_msg += f"\n{carryover_text}\n"
+            x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}"
         else:
-            # ハズレの場合はXへの投稿をスキップ
-            x_send_flag = False
-            print("💤 X投稿：本日はハズレのため、結果速報ポストをスキップしました。")
-
+            # ハズレの場合の正直なメッセージ
+            x_msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！"
+            if carryover_text: x_msg += f"\n{carryover_text}\n"
+            x_msg += f"\nAIはさらに学習し進化します！次回({next_kai})の最新予想はこちら👇\n{site_url}"
     # --- 配信の実行 ---
     
     # ① LINEの送信処理

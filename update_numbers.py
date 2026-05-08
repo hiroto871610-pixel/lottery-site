@@ -2619,8 +2619,9 @@ def build_html():
             x_send_flag = True
             x_msg = f"🚨【#ナンバーズ 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・N4：{n4_res}\n・N3：{n3_res}\n\n👇次回({next_kai})の最新予想\n{site_url}"
         else:
-            x_send_flag = False
-            print("💤 X投稿：本日はハズレのため、結果速報ポストをスキップしました。")
+            # ハズレの場合の正直なメッセージ
+            x_msg = f"【#ナンバーズ 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！"
+            x_msg += f"\nAIはさらに学習し進化します！次回({next_kai})の最新予想はこちら👇\n{site_url}"
 
     # --- 配信の実行 ---
     

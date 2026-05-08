@@ -27,7 +27,7 @@ def fetch_history_from_jsonbin(bin_id):
     return []
 
 # =========================================================
-# 💰 i-mobile 広告共通パーツ（削減せず全て維持）
+# 💰 i-mobile 広告共通パーツ
 # =========================================================
 imobile_overlay = """
 <div style="position:fixed; bottom:0;left:0;right:0;width:100%;background: rgba(0, 0, 0, 0.7); z-index:99998;text-align:center;transform:translate3d(0, 0, 0);">
@@ -62,9 +62,7 @@ def fetch_microcms_news():
             data = res.json()
             news_list = []
             for item in data.get("contents", []):
-                # publishedAt (例: 2026-05-01T10:00:00Z) の日付部分だけ取得
                 date_str = item.get("publishedAt", "")[:10]
-                # セレクトフィールドがリストで返る場合と単体の場合を考慮
                 tag_val = item.get("tag", ["info"])
                 tag = tag_val[0] if isinstance(tag_val, list) else tag_val
                 
@@ -84,7 +82,7 @@ def fetch_microcms_news():
 def get_carryover(lottery_type):
     """楽天宝くじのページから【最新回】のキャリーオーバーを正確に取得する"""
     if lottery_type not in ["loto6", "loto7"]:
-        return "" # ナンバーズにはキャリーオーバーがないため空白を返す
+        return "" 
 
     url = f"https://takarakuji.rakuten.co.jp/backnumber/{lottery_type}/"
     try:
@@ -92,11 +90,9 @@ def get_carryover(lottery_type):
         res.encoding = 'euc-jp'
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # 「本数字」と「1等」が含まれている最初のテーブル（＝最新回の結果）だけを探す
         for table in soup.find_all('table'):
             text = table.get_text()
             if '本数字' in text and '1等' in text:
-                # 最新回のテーブルが見つかったら、その中だけでキャリーオーバーを探す
                 if 'キャリーオーバー' in text:
                     for tr in table.find_all('tr'):
                         if 'キャリーオーバー' in tr.get_text():
@@ -105,8 +101,6 @@ def get_carryover(lottery_type):
                                 val = tds[-1].get_text(strip=True)
                                 if val and "0円" not in val:
                                     return f"💰 キャリーオーバー発生中！ ({val})"
-                
-                # 最新テーブルを調べ終わったら、過去のテーブルは見ずに即終了する（誤飲防止）
                 break
     except Exception as e:
         print(f"⚠️ キャリーオーバー取得エラー: {e}")
@@ -114,11 +108,10 @@ def get_carryover(lottery_type):
     return "キャリーオーバー：なし"
 
 def generate_auto_result_news():
-    """JSONBinの履歴(インデックス1＝最新の確定結果)を確認し、抽選速報を自動作成する"""
+    """JSONBinの履歴から抽選速報を自動作成する"""
     auto_news = []
     today_str = datetime.date.today().strftime("%Y-%m-%d")
 
-    # ロト7の速報
     l7_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID_LOTO7"))
     if l7_history and len(l7_history) > 1 and l7_history[1].get('status') == 'finished':
         latest = l7_history[1]
@@ -131,10 +124,9 @@ def generate_auto_result_news():
             "title": f"【速報】ロト7 {kai_str} 抽選結果とAI予想成績",
             "content": f"ロト7 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{latest.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
             "archive_link": f"../archive/loto7_{kai_num}.html",
-            "unique_id": f"loto7_{kai_num}" # 重複生成防止用のID
+            "unique_id": f"loto7_{kai_num}" 
         })
 
-    # ロト6の速報
     l6_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID"))
     if l6_history and len(l6_history) > 1 and l6_history[1].get('status') == 'finished':
         latest = l6_history[1]
@@ -150,7 +142,6 @@ def generate_auto_result_news():
             "unique_id": f"loto6_{kai_num}"
         })
 
-    # ナンバーズの速報
     nm_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID_NUMBERS"))
     if nm_history and len(nm_history) > 1 and nm_history[1].get('status') == 'finished':
         latest = nm_history[1]
@@ -166,6 +157,107 @@ def generate_auto_result_news():
         })
 
     return auto_news
+
+def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, border_color):
+    """ニュースの個別記事ページを生成する（フルデザイン版）"""
+    archive_btn = f'<div style="margin-top: 30px; text-align: center;"><a href="{item.get("archive_link", "#")}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">🎯 この回の詳細分析を見る ＞</a></div>' if 'archive_link' in item else ''
+    
+    html = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
+    <title>{item['title']} | ロト＆ナンバーズ攻略局🎯</title>
+    <link rel="icon" type="image/png" href="../favicon.icon.png">
+    <link rel="apple-touch-icon" href="../favicon.icon.png">
+    <style>
+        body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; line-height: 1.6; }}
+        header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
+        nav {{ display: flex; justify-content: center; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; flex-wrap: wrap; z-index: 10; }}
+        nav a {{ color: #1e3a8a; padding: 14px 15px; font-size: 15px; text-decoration: none; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s; }}
+        nav a.active {{ border-bottom: 3px solid #1e3a8a; color: #1e3a8a; }}
+        nav a:hover {{ background-color: #f0f4f8; }}
+        .container {{ max-width: 800px; margin: 30px auto; padding: 0 20px; }}
+        .news-box {{ background: {bg_color}; border: 1px solid {border_color}; border-radius: 12px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
+        footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
+        .footer-links {{ margin-bottom: 15px; }}
+        .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
+        .footer-links a:hover {{ color: white; text-decoration: underline; }}
+        .ad-pc {{ display: block; }} .ad-sp {{ display: none; }}
+        @media (max-width: 600px) {{ 
+            .ad-pc {{ display: none; }} .ad-sp {{ display: block; }} 
+            nav {{ padding: 0 2px; }}
+            nav a {{ font-size: 12px; padding: 10px 5px; letter-spacing: -0.5px; }}
+        }}
+    </style>
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;">
+            <img src="../Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+            <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">NEWS・的中速報</div>
+        </a>
+    </header>
+    <nav>
+        <a href="../index.html">トップ</a>
+        <a href="../loto7.html">ロト7</a>
+        <a href="../loto6.html">ロト6</a>
+        <a href="../numbers.html">ナンバーズ</a>
+        <a href="../jumbo.html">ジャンボ</a>
+        <a href="../column.html">攻略ガイド🔰</a>
+        <a href="../horoscope.html">占い🔮</a>
+        <a href="../archive.html" >YOUTUBE🎥</a>
+        <a href="../news.html" class="active">NEWS📰</a>
+    </nav>
+
+    <div class="container">
+        <a href="../news.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ NEWS一覧に戻る</a>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
+        </div>
+
+        <div class="news-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed {border_color}; padding-bottom: 15px; margin-bottom: 20px;">
+                {tag_html}
+                <span style="color: #64748b; font-weight: bold;">{date_str}</span>
+            </div>
+            <h1 style="color: #1e293b; font-size: 24px; margin-top: 0;">{item['title']}</h1>
+            <div style="font-size: 16px; line-height: 1.8; color: #475569; white-space: pre-wrap;">
+                {item['content']}
+            </div>
+            
+            {archive_btn}
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
+            <div class="ad-pc">{imobile_ad3_pc}</div>
+            <div class="ad-sp">{imobile_ad3_sp}</div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="footer-links">
+            <a href="../about.html">運営者情報</a> |
+            <a href="../privacy.html">プライバシーポリシー</a> | 
+            <a href="../disclaimer.html">免責事項</a> | 
+            <a href="../contact.html">お問い合わせ</a>
+        </div>
+        <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
+        <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
+    </footer>
+
+    {imobile_overlay}
+</body>
+</html>"""
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(html)
+
 
 def build_news_html():
     print("🔄 NEWS・速報ページを生成中...")
@@ -217,7 +309,6 @@ def build_news_html():
         </div>
         """
 
-        # 個別ページの生成
         if not os.path.exists(file_path):
             generate_single_news_page(item, file_path, date_str, tag_html, bg_color, border_color)
 
@@ -306,14 +397,6 @@ def build_news_html():
 </body>
 </html>"""
 
-    # 広告の置換処理
-    html = html.replace("{imobile_ad2_pc}", imobile_ad2_pc)
-    html = html.replace("{imobile_ad2_sp}", imobile_ad2_sp)
-    html = html.replace("{imobile_ad3_pc}", imobile_ad3_pc)
-    html = html.replace("{imobile_ad3_sp}", imobile_ad3_sp)
-    html = html.replace("{imobile_overlay}", imobile_overlay)
-
     with open("news.html", "w", encoding="utf-8") as f:
         f.write(html_content)
     print("✅ NEWS一覧ページ(news.html)の生成が完了しました！")
-

@@ -847,7 +847,7 @@ def create_lucky_day_story(date_str, event_name):
     
     # 白い枠で囲ったメッセージ
     draw.rounded_rectangle([100, 1200, 980, 1600], radius=30, outline=(255, 255, 255), width=8)
-    promo_text = "AIの最新予想を使って\n高額当選を狙いましょう！\n\n👇予想はプロフィールから👇"
+    promo_text = "AIの最新予想を使って\n高額当選を狙いましょう！\n\n予想はプロフィールから"
     draw.multiline_text((width/2, 1280), promo_text, font=font_desc, fill=(255, 255, 255), align="center", anchor="ma")
     
     output_path = "story_lucky_day.jpg"
