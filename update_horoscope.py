@@ -648,12 +648,6 @@ def build_html(date_str, daily_data):
     </div>
 </div>
 
-    <!-- (中略) タロットと星座占いのブロックの下に追加 -->
-        <div class="section-card">
-            <h2 class="section-header"><span>👑</span> 本日（{date_str}）の12星座 運勢ランキング</h2>
-            {ranking_html}
-        </div>
-        
         <!-- ▼▼▼ ここに追加：吉日カレンダーブロック ▼▼▼ -->
         <div class="section-card" style="background: linear-gradient(to right, #ffffff, #fffbeb); border: 2px solid #fcd34d;">
             <h2 class="section-header" style="color: #b45309; border-bottom-color: #fde68a;">🗓️ 宝くじ購入に最適！近日の吉日カレンダー</h2>
