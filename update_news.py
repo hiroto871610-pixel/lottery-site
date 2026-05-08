@@ -242,10 +242,6 @@ def build_news_html():
     if not news_items_html:
         news_items_html = "<p style='text-align: center; color: #64748b;'>現在お知らせはありません。</p>"
 
-    # 最後に、新しく作られた個別ページのURLをサイトマップに追加
-    if new_urls_for_sitemap:
-        update_sitemap_with_news(new_urls_for_sitemap)    
-
 def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, border_color):
     """ニュースの個別記事ページを生成する（フルデザイン版）"""
     html = f"""<!DOCTYPE html>

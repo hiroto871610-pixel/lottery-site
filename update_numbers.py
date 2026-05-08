@@ -2260,7 +2260,7 @@ def build_html():
                     <span style="font-size: 22px; margin-right: 8px;">🤖</span> AI予測ロジック解説（当サイト独自）
                 </h3>
                 <p style="font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 12px;">
-                    今回の予測は、過去の膨大なデータを基に、<strong>「Random Forest」「XGBoost」「LSTM（ディープラーニング）」</strong>という3つの異なる最先端AIモデルを用いて、各桁ごとの出現確率と数字同士の共起性を多角的に算出しました。
+                    今回の予測は、過去の膨大なデータを基に、<strong>「Random Forest」「XGBoost」「Transformer（時系列予測の最高峰）」</strong>という3つの異なる最先端AIモデルを用いて、各桁ごとの出現確率と数字同士の共起性を多角的に算出しました。
                 </p>
                 <div style="background-color: #f0fdf4; padding: 12px 15px; border-radius: 6px; margin-bottom: 12px; border: 1px dashed #bbf7d0;">
                     <strong style="color: #16a34a; font-size: 16px;">🎯 ナンバーズ4 AI判定：{n4_rank}</strong><br>
