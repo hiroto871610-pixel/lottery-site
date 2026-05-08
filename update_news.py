@@ -171,30 +171,27 @@ def build_news_html():
     print("🔄 NEWS・速報ページを生成中...")
     
     manual_news = fetch_microcms_news()
-    auto_news = generate_auto_result_news() # ★ここを変更
+    auto_news = generate_auto_result_news()
 
     all_news = manual_news + auto_news
     all_news.sort(key=lambda x: x["date"], reverse=True)
 
     news_items_html = ""
     os.makedirs("news", exist_ok=True) 
-    new_urls_for_sitemap = [] 
 
     for item in all_news:
         date_str = item["date"].replace("-", "/")
         
-        # ★ファイル名を unique_id ベースにして重複を完全に防ぐ
         safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
         file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
         file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
         file_path = os.path.join("news", file_name)
-        page_url = f"https://loto-yosou-ai.com/news/{file_name}"
         
         if item["tag"] == "win":
             tag_html = '<span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block; box-shadow: 0 2px 4px rgba(239,68,68,0.3); animation: pulse 2s infinite;">🎯 的中速報</span>'
             border_color = "#fecaca"
             bg_color = "#fff1f2"
-        elif item["tag"] == "result": # ★追加：毎回の抽選結果用
+        elif item["tag"] == "result":
             tag_html = '<span style="background: #8b5cf6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block;">🔔 抽選結果</span>'
             border_color = "#ddd6fe"
             bg_color = "#f5f3ff"
@@ -223,37 +220,20 @@ def build_news_html():
         # 個別ページの生成
         if not os.path.exists(file_path):
             generate_single_news_page(item, file_path, date_str, tag_html, bg_color, border_color)
-            new_urls_for_sitemap.append(page_url)
 
     if not news_items_html:
-        news_items_html = "<p style='text-align: center; color: #64748b;'>現在お知らせはありません。</p>"
+        news_items_html = "<p style='text-align: center; color: #64748b; padding: 30px;'>現在お知らせはありません。</p>"
 
-        news_items_html += f"""
-        <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed {border_color}; padding-bottom: 10px; margin-bottom: 15px;">
-                {tag_html}
-                <span style="color: #64748b; font-size: 14px; font-weight: bold;">{date_str}</span>
-            </div>
-            <h3 style="margin: 0 0 10px 0; color: #1e293b; font-size: 18px;">{item["title"]}</h3>
-            <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">{item["content"]}</p>
-        </div>
-        """
-
-    if not news_items_html:
-        news_items_html = "<p style='text-align: center; color: #64748b;'>現在お知らせはありません。</p>"
-
-def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, border_color):
-    """ニュースの個別記事ページを生成する（フルデザイン版）"""
-    html = f"""<!DOCTYPE html>
+    # === ▼ 欠落していた news.html 本体を生成するコード ▼ ===
+    html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="p:domain_verify" content="b6a1103d19d23b8a2a3c377f1352fb0c"/>
     <meta name="google-site-verification" content="j3Smi9nkNu6GZJ0TbgFNi8e_w9HwUt_dGuSia8RDX3Y" />
-    <title>{item['title']} | ロト＆ナンバーズ攻略局🎯</title>
-    <link rel="icon" type="image/png" href="../favicon.icon.png">
-    <link rel="apple-touch-icon" href="../favicon.icon.png">
+    <title>NEWS・的中速報 | ロト＆ナンバーズ攻略局🎯</title>
+    <link rel="icon" type="image/png" href="favicon.icon.png">
+    <link rel="apple-touch-icon" href="favicon.icon.png">
     <style>
         body {{ font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 0; padding: 0; background-color: #f0f4f8; color: #333; line-height: 1.6; }}
         header {{ background-color: #1e3a8a; padding: 10px 0; text-align: center; }}
@@ -262,8 +242,6 @@ def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, bord
         nav a.active {{ border-bottom: 3px solid #1e3a8a; color: #1e3a8a; }}
         nav a:hover {{ background-color: #f0f4f8; }}
         .container {{ max-width: 800px; margin: 30px auto; padding: 0 20px; }}
-        .news-box {{ background: {bg_color}; border: 1px solid {border_color}; border-radius: 12px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
-        
         footer {{ background-color: #1e293b; color: #94a3b8; text-align: center; padding: 40px 20px; margin-top: 60px; font-size: 13px; border-top: 4px solid #3b82f6; }}
         .footer-links {{ margin-bottom: 15px; }}
         .footer-links a {{ color: #cbd5e1; text-decoration: none; margin: 0 10px; transition: color 0.2s; }}
@@ -278,65 +256,53 @@ def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, bord
 </head>
 <body>
     <header>
-        <a href="../index.html" style="text-decoration: none;">
-            <img src="../Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
+        <a href="index.html" style="text-decoration: none;">
+            <img src="Lotologo001.png" alt="宝くじ当選予想・データ分析ポータル" style="max-width: 100%; height: auto; max-height: 180px;">
             <div style="color: white; font-size: 32px; font-weight: bold; margin-top: 5px; letter-spacing: 1px;">NEWS・的中速報</div>
         </a>
     </header>
     <nav>
-        <a href="../index.html">トップ</a>
-        <a href="../loto7.html">ロト7</a>
-        <a href="../loto6.html">ロト6</a>
-        <a href="../numbers.html">ナンバーズ</a>
-        <a href="../jumbo.html">ジャンボ</a>
-        <a href="../column.html">攻略ガイド🔰</a>
-        <a href="../horoscope.html">占い🔮</a>
-        <a href="../archive.html" >YOUTUBE🎥</a>
-        <a href="../news.html" class="active">NEWS📰</a>
+        <a href="index.html">トップ</a>
+        <a href="loto7.html">ロト7</a>
+        <a href="loto6.html">ロト6</a>
+        <a href="numbers.html">ナンバーズ</a>
+        <a href="jumbo.html">ジャンボ</a>
+        <a href="column.html">攻略ガイド🔰</a>
+        <a href="horoscope.html">占い🔮</a>
+        <a href="archive.html" >YOUTUBE🎥</a>
+        <a href="news.html" class="active">NEWS📰</a>
     </nav>
 
     <div class="container">
-        <a href="../news.html" style="color: #3b82f6; text-decoration: none; font-weight: bold;">◀ NEWS一覧に戻る</a>
+        <h1 style="color: #1e3a8a; text-align: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 30px;">📰 NEWS・お知らせ一覧</h1>
         
         <div style="text-align: center; margin: 20px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{{imobile_ad2_pc}}</div>
-            <div class="ad-sp">{{imobile_ad2_sp}}</div>
+            <div class="ad-pc">{imobile_ad2_pc}</div>
+            <div class="ad-sp">{imobile_ad2_sp}</div>
         </div>
 
-        <div class="news-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed {border_color}; padding-bottom: 15px; margin-bottom: 20px;">
-                {tag_html}
-                <span style="color: #64748b; font-weight: bold;">{date_str}</span>
-            </div>
-            <h1 style="color: #1e293b; font-size: 24px; margin-top: 0;">{item['title']}</h1>
-            <div style="font-size: 16px; line-height: 1.8; color: #475569; white-space: pre-wrap;">
-                {item['content']}
-            </div>
-            
-            <!-- アーカイブリンクの挿入 -->
-            {f'<div style="margin-top: 30px; text-align: center;"><a href="{item.get("archive_link", "#")}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">🎯 この回の詳細分析を見る ＞</a></div>' if 'archive_link' in item else ''}
-        </div>
+        {news_items_html}
 
         <div style="text-align: center; margin: 30px 0;">
             <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">スポンサーリンク</span>
-            <div class="ad-pc">{{imobile_ad3_pc}}</div>
-            <div class="ad-sp">{{imobile_ad3_sp}}</div>
+            <div class="ad-pc">{imobile_ad3_pc}</div>
+            <div class="ad-sp">{imobile_ad3_sp}</div>
         </div>
     </div>
     
     <footer>
         <div class="footer-links">
-            <a href="../about.html">運営者情報</a> |
-            <a href="../privacy.html">プライバシーポリシー</a> | 
-            <a href="../disclaimer.html">免責事項</a> | 
-            <a href="../contact.html">お問い合わせ</a>
+            <a href="about.html">運営者情報</a> |
+            <a href="privacy.html">プライバシーポリシー</a> | 
+            <a href="disclaimer.html">免責事項</a> | 
+            <a href="contact.html">お問い合わせ</a>
         </div>
         <p>※当サイトの予想・データは当選を保証するものではありません。宝くじの購入は自己責任でお願いいたします。</p>
         <p style="margin-top: 10px; color: #64748b;">&copy; 2026 ロト＆ナンバーズ攻略局🎯完全無料のAI予想 All Rights Reserved.</p>
     </footer>
 
-    {{imobile_overlay}}
+    {imobile_overlay}
 </body>
 </html>"""
 
@@ -347,6 +313,7 @@ def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, bord
     html = html.replace("{imobile_ad3_sp}", imobile_ad3_sp)
     html = html.replace("{imobile_overlay}", imobile_overlay)
 
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(html)
+    with open("news.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("✅ NEWS一覧ページ(news.html)の生成が完了しました！")
 
