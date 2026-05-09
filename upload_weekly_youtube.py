@@ -445,7 +445,7 @@ def upload_long_video():
         payload = {
             "text": x_msg,
             "image_url": shared_img_url if shared_img_url else "",
-            "link": site_url
+            "link": youtube_url
         }
         try:
             res = requests.post(make_webhook_url, json=payload, timeout=10)
