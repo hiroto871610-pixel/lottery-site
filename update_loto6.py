@@ -893,20 +893,29 @@ def create_result_image(loto6_nums, carryover_info, base_image_path, output_imag
             
             digit = loto6_nums[idx]
 
-            # ボールの影を描画
-            draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
-            # ボール本体を描画
-            draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=ball_color)
+            # ▼▼▼ チラ見せ（寸止め）ロジック ▼▼▼
+            if idx < 4:  # 最初の4個は見せる
+                display_text = str(digit)
+                current_ball_color = (37, 99, 235) # 元の鮮やかなブルー
+            else:        # 残りの2個は隠す
+                display_text = "?"
+                current_ball_color = (80, 80, 80)  # 隠す用のグレー
             
-            # ★数字がボールのド真ん中に来るように計算
-            left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+            # ボールの影を描画（そのまま）
+            draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
+            
+            # ▼ ボール本体を描画（色を current_ball_color に変更！）
+            draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=current_ball_color)
+            
+            # ▼ ★数字がボールのド真ん中に来るように計算（digit を display_text に変更！）
+            left, top, right, bottom = draw.textbbox((0, 0), display_text, font=font_num)
             num_w = right - left
             num_h = bottom - top
             num_x = ball_x + (ball_dia - num_w) / 2
             num_y = current_y + (ball_dia - num_h) / 2 - 18 # 縦位置の微調整
 
-            # 数字をボールの中心に描画
-            draw.text((num_x, num_y), digit, font=font_num, fill=white)
+            # ▼ 数字をボールの中心に描画（digit を display_text に変更！）
+            draw.text((num_x, num_y), display_text, font=font_num, fill=white)
             
             # 次のボール（右）へ移動
             ball_x += ball_dia + ball_space_x

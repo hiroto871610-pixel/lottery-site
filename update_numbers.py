@@ -633,22 +633,32 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path, ta
     total_ball_w_4 = (ball_dia * 4) + (ball_space * 3)
     ball_x = (W - total_ball_w_4) / 2 # 列の開始X位置
 
-    for digit in n4_text:
+    # ▼ enumerate を使って「何個目か(i)」を取得できるように変更
+    for i, digit in enumerate(n4_text):
+        # ▼▼▼ チラ見せ（寸止め）ロジック ▼▼▼
+        if i < 3:  # 最初の3個は見せる
+            display_text = str(digit)
+            current_ball_color = n4_color  # 元の緑色
+        else:      # 最後の1個は隠す
+            display_text = "?"
+            current_ball_color = (80, 80, 80)  # 隠す用のグレー
+
         # ボールの影を描画
         draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
-        # ボール本体を描画
-        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=n4_color)
         
-        # ★数字もボール内の中央に来るように計算
-        left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+        # ▼ ボール本体を描画（色を current_ball_color に変更！）
+        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=current_ball_color)
+        
+        # ▼ ★数字がボールのド真ん中に来るように計算（digit を display_text に変更！）
+        left, top, right, bottom = draw.textbbox((0, 0), display_text, font=font_num)
         num_w = right - left
         num_h = bottom - top
         num_x = ball_x + (ball_dia - num_w) / 2
         # Y位置はフォントのベースラインによって微調整が必要な場合あり
         num_y = current_y + (ball_dia - num_h) / 2 - 12 
 
-        # 数字をボールの中心に描画
-        draw.text((num_x, num_y), digit, font=font_num, fill=white)
+        # ▼ 数字をボールの中心に描画（digit を display_text に変更！）
+        draw.text((num_x, num_y), display_text, font=font_num, fill=white)
         ball_x += ball_dia + ball_space # 次のボールへの間隔
 
     # ------------------------------------------------
@@ -676,18 +686,30 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path, ta
     total_ball_w_3 = (ball_dia * 3) + (ball_space * 2)
     ball_x = (W - total_ball_w_3) / 2
 
-    for digit in n3_text:
+    # ▼ enumerate を使って「何個目か(i)」を取得できるように変更
+    for i, digit in enumerate(n3_text):
+        # ▼▼▼ チラ見せ（寸止め）ロジック ▼▼▼
+        if i < 2:  # 最初の2個は見せる
+            display_text = str(digit)
+            current_ball_color = n3_color  # 元のオレンジ色
+        else:      # 最後の1個は隠す
+            display_text = "?"
+            current_ball_color = (80, 80, 80)  # 隠す用のグレー
+
         draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
-        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=n3_color)
         
-        # 数字の中央位置を計算
-        left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+        # ▼ ボール本体を描画（色を current_ball_color に変更！）
+        draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=current_ball_color)
+        
+        # ▼ 数字の中央位置を計算（digit を display_text に変更！）
+        left, top, right, bottom = draw.textbbox((0, 0), display_text, font=font_num)
         num_w = right - left
         num_h = bottom - top
         num_x = ball_x + (ball_dia - num_w) / 2
         num_y = current_y + (ball_dia - num_h) / 2 - 12
 
-        draw.text((num_x, num_y), digit, font=font_num, fill=white)
+        # ▼ 数字を描画（digit を display_text に変更！）
+        draw.text((num_x, num_y), display_text, font=font_num, fill=white)
         ball_x += ball_dia + ball_space
 
     # --- 共通処理（以前の修正を維持） ---

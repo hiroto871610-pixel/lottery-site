@@ -761,29 +761,42 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
         loto7_nums[4:7]  # 残りの3個
     ]
 
+    # ▼▼▼ 追加：今全体の何個目のボールかを数えるカウンター ▼▼▼
+    ball_count = 0 
+
     for row_nums in rows:
         # ★その段のボールの数に合わせて全体幅を計算し、中央寄せにする
         total_ball_w = (ball_dia * len(row_nums)) + (ball_space_x * (len(row_nums) - 1))
         ball_x = (W - total_ball_w) / 2 
 
         for digit in row_nums:
+            # ▼▼▼ チラ見せ（寸止め）ロジック ▼▼▼
+            if ball_count < 5:  # 最初の5個（上段4つ＋下段の最初1つ）は見せる
+                display_text = str(digit)
+                current_ball_color = (217, 119, 6) # 元のオレンジ色
+            else:               # 残りの2個（下段の最後2つ）は隠す
+                display_text = "?"
+                current_ball_color = (80, 80, 80)  # 隠す用のグレー
+            
             # ボールの影を描画
             draw.ellipse([ball_x + shadow_offset, current_y + shadow_offset, ball_x + ball_dia + shadow_offset, current_y + ball_dia + shadow_offset], fill=shadow_color)
-            # ボール本体を描画
-            draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=ball_color)
             
-            # ★数字がボールのド真ん中に来るように計算
-            left, top, right, bottom = draw.textbbox((0, 0), digit, font=font_num)
+            # ▼ ボール本体を描画（色を current_ball_color に変更！）
+            draw.ellipse([ball_x, current_y, ball_x + ball_dia, current_y + ball_dia], fill=current_ball_color)
+            
+            # ▼ ★数字がボールのド真ん中に来るように計算（digit を display_text に変更！）
+            left, top, right, bottom = draw.textbbox((0, 0), display_text, font=font_num)
             num_w = right - left
             num_h = bottom - top
             num_x = ball_x + (ball_dia - num_w) / 2
             num_y = current_y + (ball_dia - num_h) / 2 - 15 # 縦位置の微調整
 
-            # 数字をボールの中心に描画
-            draw.text((num_x, num_y), digit, font=font_num, fill=white)
+            # ▼ 数字をボールの中心に描画（digit を display_text に変更！）
+            draw.text((num_x, num_y), display_text, font=font_num, fill=white)
             
-            # 次のボール（右）へ移動
+            # 次のボール（右）へ移動し、カウンターを1増やす
             ball_x += ball_dia + ball_space_x
+            ball_count += 1 # ← これがとても重要です！
 
         # 1段終わったら、次の段（下）へ移動
         current_y += ball_dia + ball_space_y

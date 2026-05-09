@@ -106,7 +106,15 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg", target_
             if t > appear_t:
                 progress = min(1.0, (t - appear_t) * 3.3)
                 y_off = int(50 * (1.0 - progress))
-                draw_sphere_ball(draw, 120 + i * 210, 780 + y_off, ball_r, num, (22, 163, 74))
+
+                if i < 3:  # ナンバーズ4は3個見せる
+                        display_text = str(num)
+                        ball_color = (22, 163, 74)
+                else:
+                        display_text = "?"
+                        ball_color = (80, 80, 80)
+
+                draw_sphere_ball(draw, 120 + i * 210, 780 + y_off, ball_r, display_text, ball_color)
 
         if t > 3.0:
             draw.text((120, 1150), "■ ナンバーズ3", font=FONT_SUB, fill=(251, 146, 60))
@@ -115,13 +123,19 @@ def generate_numbers_reel(n4_yosou, n3_yosou, bg_image="bg_numbers.jpg", target_
                 if t > appear_t:
                     progress = min(1.0, (t - appear_t) * 3.3)
                     y_off = int(50 * (1.0 - progress))
-                    draw_sphere_ball(draw, 200 + i * 210, 1230 + y_off, ball_r, num, (217, 119, 6))
+                    if i < 2:  # ナンバーズ3は2個見せる
+                        display_text = str(num)
+                        ball_color = (217, 119, 6)
+                    else:
+                        display_text = "?"
+                        ball_color = (80, 80, 80)
+                    draw_sphere_ball(draw, 200 + i * 210, 1230 + y_off, ball_r, display_text, ball_color)
 
                     # ▼▼▼ 追加：すべてのボールが出た後にプロフ誘導テキストをフワッと表示 ▼▼▼
         # ▼▼▼ プロフ誘導テキスト（改行対応版） ▼▼▼
         if t > 2.5:
             # ① \n を入れて好きな位置で改行する
-            promo_text = "最新予想B～Eは\nプロフィールのリンクをチェック！"
+            promo_text = "完全版予想A～Eは\nプロフィールのリンクをチェック！"
             
             # ② textbbox を multiline_textbbox に変更し、align="center" を追加
             bbox = draw.multiline_textbbox((0, 0), promo_text, font=FONT_PROMO, align="center")
@@ -176,13 +190,19 @@ def generate_loto6_reel(numbers, carryover="0円", has_carryover=False, bg_image
                 row = i // 3
                 col = i % 3
                 base_y = 900 if has_carryover else 750
-                draw_sphere_ball(draw, 150 + col * 260, base_y + row * 230 + y_off, ball_r, num, (14, 165, 233))
+                if i < 4:  # ロト6は4個見せる
+                        display_text = str(num)
+                        ball_color = (14, 165, 233)
+                else:
+                        display_text = "?"
+                        ball_color = (80, 80, 80)
+                draw_sphere_ball(draw, 150 + col * 260, base_y + row * 230 + y_off, ball_r, display_text, ball_color)
 
                 # ▼▼▼ 追加：すべてのボールが出た後にプロフ誘導テキストをフワッと表示 ▼▼▼
         # ▼▼▼ プロフ誘導テキスト（改行対応版） ▼▼▼
         if t > 2.5:
             # ① \n を入れて好きな位置で改行する
-            promo_text = "最新予想B～Eは\nプロフィールのリンクをチェック！"
+            promo_text = "完全版予想A～Eは\nプロフィールのリンクをチェック！"
             
             # ② textbbox を multiline_textbbox に変更し、align="center" を追加
             bbox = draw.multiline_textbbox((0, 0), promo_text, font=FONT_PROMO, align="center")
@@ -235,16 +255,23 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
                 progress = min(1.0, (t - appear_t) * 3.3)
                 y_off = int(50 * (1.0 - progress))
                 base_y = 850 if has_carryover else 700
-                if i < 4:
-                    draw_sphere_ball(draw, 100 + i * 220, base_y + y_off, ball_r, num, (217, 119, 6))
+                if i < 5:  # ロト7は5個見せる
+                        display_text = str(num)
+                        ball_color = (217, 119, 6)
                 else:
-                    draw_sphere_ball(draw, 210 + (i-4) * 220, base_y + 200 + y_off, ball_r, num, (217, 119, 6))
+                        display_text = "?"
+                        ball_color = (80, 80, 80)
+
+                if i < 4:
+                    draw_sphere_ball(draw, 100 + i * 220, base_y + y_off, ball_r, num, display_text, ball_color)
+                else:
+                    draw_sphere_ball(draw, 210 + (i-4) * 220, base_y + 200 + y_off, ball_r, display_text, ball_color)
 
                     # ▼▼▼ 追加：すべてのボールが出た後にプロフ誘導テキストをフワッと表示 ▼▼▼
         # ▼▼▼ プロフ誘導テキスト（改行対応版） ▼▼▼
         if t > 2.5:
             # ① \n を入れて好きな位置で改行する
-            promo_text = "最新予想B～Eは\nプロフィールのリンクをチェック！"
+            promo_text = "完全版予想A～Eは\nプロフィールのリンクをチェック！"
             
             # ② textbbox を multiline_textbbox に変更し、align="center" を追加
             bbox = draw.multiline_textbbox((0, 0), promo_text, font=FONT_PROMO, align="center")
