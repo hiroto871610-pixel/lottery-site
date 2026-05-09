@@ -136,7 +136,9 @@ def create_ig_announcements(thumbnail_path):
     draw_ig_text(draw_f, 1130, "ご視聴はプロフィールの", font_large, (255, 255, 255))
     draw_ig_text(draw_f, 1220, "リンクから今すぐチェック👇", font_large, (250, 204, 21))
     
+    # ▼ 修正後（保存する直前に1行追加！）
     feed_path = "ig_announcement.jpg"
+    img_feed = img_feed.convert("RGB")  # 👈 ★この1行を追加！
     img_feed.save(feed_path, "JPEG", quality=95)
 
     def make_reel_frame(t):

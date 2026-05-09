@@ -1023,37 +1023,5 @@ def generate_weekly_video():
     if os.path.exists("temp_graph.png"): os.remove("temp_graph.png")
     print(f"\n🎉🎉🎉 究極版 1週間まとめ動画が完成しました！ => {output_filename} 🎉🎉🎉")
 
-    # ==========================================
-    # 🚀 YouTubeへのアップロードとサイト自動更新の実行
-    # ==========================================
-    yt_title = f"【1週間まとめ】ロト＆ナンバーズ AI予想結果と最新トレンド ({op_end_date} 最新版)"
-    yt_desc = "今週のロト6、ロト7、ナンバーズのAI予想と実際の抽選結果の答え合わせ動画です！\n\n🎯完全無料のAI予想サイトはこちら\n👉 https://loto-yosou-ai.com/"
-    yt_tags = ["ロト6", "ロト7", "ナンバーズ", "宝くじ", "AI予想"]
-    
-    # YouTubeにアップロードして、動画のIDを取得
-    video_id = upload_weekly_to_youtube(output_filename, yt_title, yt_desc, yt_tags)
-    
-    # アップロードに成功したら、archive.html を書き換え、Instagramにも投稿する
-    if video_id:
-        display_date = f"📅 {op_start_date} 〜 {op_end_date}"
-        update_archive_html(video_id, yt_title, display_date)
-        
-        # --- ここから追加：Instagramへの告知画像投稿 ---
-        try:
-            thumbnail_path = "weekly_thumbnail.jpg"
-            
-            # 作成した動画の5秒目（タイトル画面）を切り取って画像として保存
-            final_video.save_frame(thumbnail_path, t=5.0)
-            
-            ig_caption = f"📺 今週のまとめ動画をYouTubeに公開しました！\n\n🎯 {op_start_date} 〜 {op_end_date} のロト＆ナンバーズ AI予想結果と最新トレンドを一挙公開中！\n\nプロフィールのリンク（またはYouTubeで「ロトナンバーズ攻略局」と検索）からフル動画をチェックしてください✨\n\n#ロト6 #ロト7 #ナンバーズ #宝くじ #AI予想"
-            
-            print("\n📸 Instagramへの告知画像投稿を開始します...")
-            image_url = upload_image_to_server(thumbnail_path)
-            if image_url:
-                post_to_instagram(image_url, ig_caption)
-        except Exception as e:
-            print(f"❌ Instagramへの告知投稿中にエラーが発生しました: {e}")
-        # --- 追加ここまで ---
-
 if __name__ == "__main__":
     generate_weekly_video()
