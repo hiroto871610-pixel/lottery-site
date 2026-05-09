@@ -24,6 +24,59 @@ if not hasattr(PIL.Image, 'ANTIALIAS'):
 load_dotenv()
 
 # ==========================================
+# 🎨 サムネイル自動生成職人（ここから追加）
+# ==========================================
+def create_thumbnail():
+    print("🎨 YouTube用のサムネイル画像を生成中...")
+    width, height = 1280, 720
+    thumbnail_path = "weekly_thumbnail.jpg"
+    
+    # 背景を紺色のグラデーション風に（1280x720のキャンバス）
+    img = Image.new('RGB', (width, height), color=(15, 23, 42))
+    draw = ImageDraw.Draw(img)
+    
+    # フォントの準備
+    font_path = "assets/font.ttf"
+    try:
+        font_huge = ImageFont.truetype(font_path, 110)
+        font_large = ImageFont.truetype(font_path, 80)
+        font_medium = ImageFont.truetype(font_path, 60)
+    except:
+        font_huge = font_large = font_medium = ImageFont.load_default()
+
+    def draw_text_with_outline(d, x, y, text, font, fill_color, outline_color=(0,0,0), outline_width=5):
+        for adj_x in range(-outline_width, outline_width+1):
+            for adj_y in range(-outline_width, outline_width+1):
+                d.text((x+adj_x, y+adj_y), text, font=font, fill=outline_color)
+        d.text((x, y), text, font=font, fill=fill_color)
+
+    def draw_centered(d, y, text, font, fill_color, outline_color=(0,0,0)):
+        bbox = d.textbbox((0, 0), text, font=font)
+        x = (width - (bbox[2] - bbox[0])) / 2
+        draw_text_with_outline(d, x, y, text, font, fill_color, outline_color)
+
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    monday = now - timedelta(days=now.weekday())
+    friday = monday + timedelta(days=4)
+    date_str = f"{monday.month}月{monday.day}日 〜 {friday.month}月{friday.day}日"
+
+    # テキストの描画
+    draw_centered(draw, 80, "＼ 1週間データまとめ ／", font_large, (56, 189, 248))
+    draw_centered(draw, 220, "ロト＆ナンバーズ", font_huge, (255, 255, 255))
+    draw_centered(draw, 360, "AI予想 答え合わせ", font_huge, (250, 204, 21))
+    draw_centered(draw, 520, f"【 {date_str} 】", font_medium, (52, 211, 153))
+    
+    draw.rectangle([0, 640, width, 720], fill=(220, 38, 38))
+    draw_centered(draw, 645, "HOT＆COLD分析グラフも完全公開中！", font_medium, (255, 255, 255))
+
+    img.save(thumbnail_path, "JPEG", quality=95)
+    print(f"✅ サムネイル作成完了: {thumbnail_path}")
+    return thumbnail_path
+# ==========================================
+# ▲▲▲ ここまで追加 ▲▲▲
+
+# ==========================================
 # 📺 まとめ動画専用：YouTubeアップロード機能
 # ==========================================
 def upload_weekly_to_youtube(video_path, title, description, tags):
@@ -65,6 +118,18 @@ def upload_weekly_to_youtube(video_path, title, description, tags):
         response = request.execute()
         video_id = response.get('id')
         print(f"🎉🎉🎉 YouTubeへのアップロードが完了しました！ URL: https://youtu.be/{video_id}")
+
+        # ▼▼▼ ココにサムネイル設定処理を追加 ▼▼▼
+        thumbnail_path = create_thumbnail() # 👈 サムネイル画像を生成
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            print("🖼️ サムネイル画像を動画に設定中...")
+            youtube.thumbnails().set(
+                videoId=video_id,
+                media_body=MediaFileUpload(thumbnail_path, mimetype='image/jpeg')
+            ).execute()
+            print("✅ サムネイルの設定完了！")
+        # ▲▲▲ 追加ここまで ▲▲▲
+
         return video_id
     except Exception as e:
         print(f"❌ YouTubeアップロードエラー: {e}")
