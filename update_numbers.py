@@ -220,7 +220,7 @@ def auto_refresh_threads_token():
 # Threads API設定
 # =========================================================
 
-def post_to_threads(message):
+def post_to_threads(message, image_url=None):
     """Threadsへ自動投稿する機能（2ステップ方式）"""
     # ★投稿する前に、毎回必ずトークンの寿命を60日に回復させる！
     auto_refresh_threads_token()
@@ -232,11 +232,20 @@ def post_to_threads(message):
     try:
         # ステップ1：メディアコンテナ（下書き）を作成する
         create_url = f"https://graph.threads.net/v1.0/me/threads"
-        payload = {
-            "media_type": "TEXT",
-            "text": message,
-            "access_token": THREADS_ACCESS_TOKEN
-        }
+        
+        if image_url:
+            payload = {
+                "media_type": "IMAGE",
+                "image_url": image_url,
+                "text": message,
+                "access_token": THREADS_ACCESS_TOKEN
+            }
+        else:
+            payload = {
+                "media_type": "TEXT",
+                "text": message,
+                "access_token": THREADS_ACCESS_TOKEN
+            }
         res_create = requests.post(create_url, data=payload)
         
         if res_create.status_code != 200:
@@ -2012,7 +2021,7 @@ def generate_sitemap():
         news_urls = [f"https://loto-yosou-ai.com/news/{os.path.basename(f)}" for f in news_files]
     # ▲▲▲ 追加ここまで ▲▲▲
         
-    all_urls = base_urls + archive_urls
+    all_urls = base_urls + archive_urls + news_urls
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     
     xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -2660,7 +2669,6 @@ def build_html():
     # ② 既存のSNS（動画・画像・Threads・TikTok）の送信処理
     if sns_send_flag and sns_msg:
         print(f"📅 本日はSNS投稿タイミング（曜日:{today_weekday}、{current_hour}時台）のため、SNSへ投稿します。")
-        post_to_threads(sns_msg)
         
         base_image = "base_image.png"     
         image_path = "numbers_result.jpg"
@@ -2692,8 +2700,13 @@ def build_html():
             shared_image_url = upload_image_to_server(image_path)
             if shared_image_url:
                 post_to_instagram(shared_image_url, caption)
+                # ▼▼▼ 追加：画像URLと一緒にThreadsへ送る ▼▼▼
+                post_to_threads(sns_msg, image_url=shared_image_url)
             else:
                 print("⚠️ 画像のURL化に失敗しました。")
+                post_to_threads(sns_msg) # 画像失敗時は文字だけ送る
+        else:
+            post_to_threads(sns_msg) # 画像失敗時は文字だけ送る
     else:
         print("💤 ナンバーズ：SNS動画配信対象外のためスキップしました。")
 

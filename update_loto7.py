@@ -2087,7 +2087,7 @@ def generate_sitemap():
         news_urls = [f"https://loto-yosou-ai.com/news/{os.path.basename(f)}" for f in news_files]
     # ▲▲▲ 追加ここまで ▲▲▲
         
-    all_urls = base_urls + archive_urls
+    all_urls = base_urls + archive_urls + news_urls
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     
     xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
