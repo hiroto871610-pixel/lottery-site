@@ -263,7 +263,7 @@ def generate_loto7_reel(numbers, carryover="0円", has_carryover=False, bg_image
                         ball_color = (80, 80, 80)
 
                 if i < 4:
-                    draw_sphere_ball(draw, 100 + i * 220, base_y + y_off, ball_r, num, display_text, ball_color)
+                    draw_sphere_ball(draw, 100 + i * 220, base_y + y_off, ball_r,display_text, ball_color)
                 else:
                     draw_sphere_ball(draw, 210 + (i-4) * 220, base_y + 200 + y_off, ball_r, display_text, ball_color)
 
