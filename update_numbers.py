@@ -344,6 +344,50 @@ def post_to_instagram(image_url, caption_text):
 
 # ↑↑↑ ここまで ↑↑↑
 
+def post_to_instagram_story(image_url):
+    """Instagramストーリーズへ画像を自動投稿する機能"""
+    ig_account_id = os.environ.get("IG_ACCOUNT_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    
+    if not ig_account_id or not access_token:
+        print("⚠️ Instagram API設定がないため、ストーリー投稿をスキップしました。")
+        return
+        
+    # 【ステップ1】メディアコンテナの作成
+    container_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media"
+    container_payload = {
+        'image_url': image_url,
+        'media_type': 'STORIES',
+        'access_token': access_token
+    }
+    print("☁️ Instagramストーリーへ画像をアップロード中...")
+    container_response = requests.post(container_url, data=container_payload)
+    container_data = container_response.json()
+    
+    if 'id' not in container_data:
+        print(f"❌ ストーリー コンテナ作成エラー: {container_data}")
+        return
+        
+    creation_id = container_data['id']
+
+    print("⏳ Instagram側の画像処理完了を30秒待ちます...")
+    time.sleep(30) 
+    
+    # 【ステップ2】メディアの公開
+    publish_url = f"https://graph.facebook.com/v19.0/{ig_account_id}/media_publish"
+    publish_payload = {
+        'creation_id': creation_id,
+        'access_token': access_token
+    }
+    print("☁️ Instagramストーリーへ投稿を公開中...")
+    publish_response = requests.post(publish_url, data=publish_payload)
+    publish_data = publish_response.json()
+    
+    if 'id' in publish_data:
+        print("✅ Instagramストーリーへの自動投稿が完了しました！")
+    else:
+        print(f"❌ ストーリー 公開エラー: {publish_data}")
+
 # =========================================================
 # 🎬 リール動画用：Cloudinaryアップロード＆Instagram投稿機能
 # =========================================================
@@ -2642,7 +2686,7 @@ def build_html():
         x_send_flag = True
         x_msg = f"【本日は #ナンバーズ 抽選日🎯】\nいよいよ本日 {next_kai} 抽選！\n\n👇当サイトの最新AI予想をチェック！\n{site_url}\n\n#{next_kai} #ナンバーズ #AI予想 #宝くじ"
 
-    # ③ 月〜金曜 の「夜」（抽選結果速報 ※的中した時のみ配信！）
+    # ③ 月〜金曜 の「夜」（抽選結果速報 ※必ず配信！）
     elif today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
         finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
         finished_kai = finished_record['target_kai']
@@ -2650,11 +2694,12 @@ def build_html():
         best_n4 = finished_record.get('result_n4', 'ハズレ')
         best_n3 = finished_record.get('result_n3', 'ハズレ')
         
-        # どちらかに「🎯」が含まれている場合のみXへ投稿
         is_hit = "🎯" in best_n4 or "🎯" in best_n3
         
+        # ▼▼▼ 修正：的中・ハズレ問わず、必ず抽選速報を投稿する ▼▼▼
+        x_send_flag = True
+        
         if is_hit:
-            x_send_flag = True
             
             # ストレートが含まれている場合は超高額！
             if "ストレート" in best_n4 or "ストレート" in best_n3:
@@ -2749,6 +2794,17 @@ def build_html():
                 print(f"❌ Makeへの送信エラー: {res.status_code}")
         except Exception as e:
             print(f"❌ Make通信エラー: {e}")
+
+        # ▼▼▼ 新規追加：月〜金曜夜（抽選速報）のとき、ストーリーとスレッズにも速報を追加投稿する ▼▼▼
+        if today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
+            print("📣 抽選速報をInstagramストーリーとThreadsにも追加投稿します！")
+            if shared_image_url:
+                post_to_instagram_story(shared_image_url)
+                post_to_threads(x_msg, image_url=shared_image_url)
+            else:
+                post_to_threads(x_msg)
+        # ▲▲▲ 新規追加ここまで ▲▲▲
+
     else:
         print("💤 ナンバーズ：X投稿の対象タイミングではないためスキップしました。")
 
