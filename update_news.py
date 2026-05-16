@@ -164,7 +164,7 @@ def generate_auto_result_news():
     return auto_news
 
 def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, border_color):
-    """ニュースの個別記事ページを生成する（フルデザイン版）"""
+    # （※ここは現在の generate_single_news_page と全く同じで変更ありません）
     archive_btn = f'<div style="margin-top: 30px; text-align: center;"><a href="{item.get("archive_link", "#")}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">🎯 この回の詳細分析を見る ＞</a></div>' if 'archive_link' in item else ''
     
     html = f"""<!DOCTYPE html>
@@ -263,25 +263,87 @@ def generate_single_news_page(item, filepath, date_str, tag_html, bg_color, bord
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html)
 
+# ▼▼▼ 追加：すでに生成されている過去のニュースを読み込んで記憶する機能 ▼▼▼
+import glob
+def get_existing_news():
+    """newsフォルダ内にすでに生成されている過去のHTMLを読み込んでリスト化する"""
+    existing = []
+    if os.path.exists("news"):
+        for filepath in glob.glob("news/news_*.html"):
+            filename = os.path.basename(filepath)
+            # ファイル名形式: news_{date}_{tag}_{unique_id}.html
+            parts = filename.replace(".html", "").split('_')
+            if len(parts) >= 4:
+                date_str = parts[1]
+                tag = parts[2]
+                unique_id = "_".join(parts[3:])
+                try:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        soup = BeautifulSoup(f.read(), "html.parser")
+                        title_tag = soup.find('h1')
+                        title = title_tag.text if title_tag else "お知らせ"
+                        
+                        content_div = soup.find('div', style=lambda v: v and 'white-space: pre-wrap' in v)
+                        content = content_div.text.strip() if content_div else ""
+                        
+                        existing.append({
+                            "date": date_str,
+                            "tag": tag,
+                            "title": title,
+                            "content": content,
+                            "unique_id": unique_id,
+                            "file_name": filename
+                        })
+                except Exception:
+                    pass
+    return existing
+# ▲▲▲ 追加ここまで ▲▲▲
 
 def build_news_html():
     print("🔄 NEWS・速報ページを生成中...")
     
+    # 1. 過去のニュースの記憶を読み込む（これで過去のデータが消えなくなります）
+    existing_news = get_existing_news()
+    
+    # 2. 最新の1回分のニュースを取得する
     manual_news = fetch_microcms_news()
     auto_news = generate_auto_result_news()
+    new_items = manual_news + auto_news
 
-    all_news = manual_news + auto_news
+    # 3. 過去のニュースに最新のニュースを結合する（重複はスキップ）
+    all_news = existing_news.copy()
+    for new_item in new_items:
+        is_duplicate = False
+        for old_item in all_news:
+            if "unique_id" in new_item and "unique_id" in old_item and new_item["unique_id"] == old_item["unique_id"]:
+                is_duplicate = True
+                break
+            elif "unique_id" not in new_item and new_item["title"] == old_item["title"]:
+                is_duplicate = True
+                break
+        
+        if not is_duplicate:
+            all_news.append(new_item)
+
+    # 4. 日付順に並び替え（最新の30件を表示）
     all_news.sort(key=lambda x: x["date"], reverse=True)
+    all_news = all_news[:30]
 
     news_items_html = ""
     os.makedirs("news", exist_ok=True) 
 
+    # 5. すべてのニュースからHTMLを組み立てる
     for item in all_news:
         date_str = item["date"].replace("-", "/")
         
-        safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
-        file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
-        file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+        # 既存のファイルがあればその名前を使い、無ければ新しく名前を付ける
+        if "file_name" in item:
+            file_name = item["file_name"]
+        else:
+            safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
+            file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
+            file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+            
         file_path = os.path.join("news", file_name)
         
         if item["tag"] == "win":
@@ -320,7 +382,7 @@ def build_news_html():
     if not news_items_html:
         news_items_html = "<p style='text-align: center; color: #64748b; padding: 30px;'>現在お知らせはありません。</p>"
 
-    # === ▼ 欠落していた news.html 本体を生成するコード ▼ ===
+    # === ▼ news.html 本体の生成 ▼ ===
     html_content = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>

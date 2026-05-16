@@ -2654,19 +2654,22 @@ def build_html():
     else:
         send_flag = False
 
-    # ▼▼▼ 追加：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
+    # ▼▼▼ 修正：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
     sns_send_flag = False
-    sns_msg = msg  # 基本はLINEと同じメッセージを使う
+    sns_msg = ""  # LINE用の結果メッセージとは完全に分け、AI予想専用の文章にします
 
     if today_weekday == 4 and current_hour >= 19:
         sns_send_flag = True
+        sns_msg = f"【次回 #ロト7 の最新予想🎯】\n次回の {next_kai} に向けたAI予想を公開しました！\n"
+        if carryover_text:
+            sns_msg += f"現在、{carryover_text}\n"
+        sns_msg += f"\n過去データから厳選したAI予想はこちら👇\n{site_url}"
     elif today_weekday == 3 and current_hour < 19:
         sns_send_flag = True
-        if not sns_msg:
-            sns_msg = f"【明日は #ロト7 抽選日🎯】\n最高12億円のチャンス！明日 {next_kai} の最新予想を無料公開中。\n"
-            if carryover_text:
-                sns_msg += f"現在、{carryover_text}\n"
-            sns_msg += f"\n過去の傾向からAIが導き出した最新予想はこちら👇\n{site_url}"
+        sns_msg = f"【明日は #ロト7 抽選日🎯】\n最高12億円のチャンス！明日 {next_kai} の最新予想を無料公開中。\n"
+        if carryover_text:
+            sns_msg += f"現在、{carryover_text}\n"
+        sns_msg += f"\n過去の傾向からAIが導き出した最新予想はこちら👇\n{site_url}"
 
     # ========================================================
     # 🌟 新規追加：X (旧Twitter) 専用の配信判定とメッセージ作成 (ロト7版)
@@ -2727,7 +2730,7 @@ def build_html():
         base_image = "base_image.png"     
         image_path = "loto7_result.jpg"
         yosou_a_list = history_record[0]['predictions'][0]
-        caption = f"🎯最新のロト7 AI予想です！\n\n{sns_msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        caption = f"{sns_msg}\n\n#ロト7 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         is_created = create_result_image(yosou_a_list, carryover_text, base_image, image_path, target_kai=next_kai, target_date=next_date_str, confidence_rank=confidence_rank)
 
