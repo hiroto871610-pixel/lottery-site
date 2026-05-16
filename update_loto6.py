@@ -2766,21 +2766,21 @@ def build_html():
     x_send_flag = False
     x_msg = ""
 
-    # ① 日曜・水曜の朝 (明日の予告) ※YouTubeの告知は別ファイルで自動実行されます
-    if today_weekday in [2, 6] and current_hour < 19:
+    # ① 日・水曜の夜 (明日の予告)
+    if today_weekday in [6, 2] and current_hour >= 19:
         x_send_flag = True
         x_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
         if carryover_text: x_msg += f"現在、{carryover_text}\n"
-        x_msg += f"👇過去データから導き出した予想はこちら\n{site_url}"
+        x_msg += f"👇最高6億円のチャンス！過去データからの予想\n{site_url}\n\n#{next_kai} #ロト6 #AI予想 #宝くじ"
 
-    # ② 月曜・木曜の朝 (本日抽選の予告)
+    # ② 月・木曜の朝 (本日抽選の予告)
     elif today_weekday in [0, 3] and current_hour < 19:
         x_send_flag = True
         x_msg = f"【本日は #ロト6 抽選日🎯】\nいよいよ本日 {next_kai} 抽選！\n"
         if carryover_text: x_msg += f"{carryover_text}\n"
-        x_msg += f"👇当サイトの最新AI予想をチェック！\n{site_url}"
+        x_msg += f"👇当サイトの最新AI予想をチェック！\n{site_url}\n\n#{next_kai} #ロト6 #AI予想 #宝くじ"
 
-    # ③ 月曜・木曜の夜 (抽選結果速報 ※的中した時のみ配信！)
+    # ③ 月・木曜の夜 (抽選結果速報 ※的中した時のみ配信！)
     elif today_weekday in [0, 3] and current_hour >= 19:
         finished_record = history_record[1] if len(history_record) > 1 else history_record[0]
         finished_kai = finished_record['target_kai']
@@ -2790,16 +2790,16 @@ def build_html():
         if "等" in best_res:
             x_send_flag = True
         if any(prize in best_res for prize in ["1等", "2等", "3等"]):
-            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト6 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}"
+            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト6 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}\n\n#{finished_kai} #{next_kai} #ロト6 #AI予想 #宝くじ"
         elif "等" in best_res:
             x_msg = f"🚨【#ロト6 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・成績：【{best_res}】\n"
             if carryover_text: x_msg += f"\n{carryover_text}\n"
-            x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}"
+            x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}\n\n#{finished_kai} #{next_kai} #ロト6 #AI予想 #宝くじ"
         else:
             # ハズレの場合の正直なメッセージ
             x_msg = f"【#ロト6 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！"
             if carryover_text: x_msg += f"\n{carryover_text}\n"
-            x_msg += f"\nAIはさらに学習し進化します！次回({next_kai})の最新予想はこちら👇\n{site_url}"
+            x_msg += f"\n👇次回({next_kai})の最新予想はこちら\n{site_url}\n\n#{finished_kai} #{next_kai} #ロト6 #AI予想 #宝くじ"
     # --- 配信の実行 ---
     
     # ① LINEの送信処理

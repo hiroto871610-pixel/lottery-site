@@ -2682,14 +2682,14 @@ def build_html():
         x_send_flag = True
         x_msg = f"【明日は #ロト7 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
         if carryover_text: x_msg += f"現在、{carryover_text}\n"
-        x_msg += f"👇最高12億円のチャンス！過去データからの予想\n{site_url}"
+        x_msg += f"👇最高12億円のチャンス！過去データからの予想\n{site_url}\n\n#{next_kai} #ロト7 #AI予想 #宝くじ"
 
     # ② 金曜の朝 (本日抽選の予告)
     elif today_weekday == 4 and current_hour < 19:
         x_send_flag = True
         x_msg = f"【本日は #ロト7 抽選日🎯】\nいよいよ本日 {next_kai} 抽選！\n"
         if carryover_text: x_msg += f"{carryover_text}\n"
-        x_msg += f"👇当サイトの最新AI予想をチェック！\n{site_url}"
+        x_msg += f"👇当サイトの最新AI予想をチェック！\n{site_url}\n\n#{next_kai} #ロト7 #AI予想 #宝くじ"
 
     # ③ 金曜の夜 (抽選結果速報 ※的中した時のみ配信！)
     elif today_weekday == 4 and current_hour >= 19:
@@ -2701,15 +2701,16 @@ def build_html():
         if "等" in best_res:
             x_send_flag = True
         if any(prize in best_res for prize in ["1等", "2等", "3等"]):
-            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト7 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}"
+            x_msg = f"🚨【超高額的中ニュース】🚨\n本日発表の #ロト7 {finished_kai} で\n当サイトのAI予想が…\n🎉👑【 {best_res} 】👑🎉\nを見事的中！！！\n\n👇詳細と次回({next_kai})の最新AI予想\n{site_url}\n\n#{finished_kai} #{next_kai} #ロト7 #AI予想 #宝くじ"
         elif "等" in best_res:
             x_msg = f"🚨【#ロト7 的中速報】🚨\n本日 {finished_kai} でAI予想が見事的中！🎉\n\n・成績：【{best_res}】\n"
             if carryover_text: x_msg += f"\n{carryover_text}\n"
-            x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}"
+            x_msg += f"\n👇次回({next_kai})の最新AI予想はこちら\n{site_url}\n\n#{finished_kai} #{next_kai} #ロト7 #AI予想 #宝くじ"
         else:
             # ハズレの場合の正直なメッセージ
             x_msg = f"【#ロト7 抽選結果速報🔔】\n本日 {finished_kai} の結果発表！"
             if carryover_text: x_msg += f"\n{carryover_text}\n"
+            x_msg += f"\n👇次回({next_kai})の最新予想はこちら\n{site_url}\n\n#{finished_kai} #{next_kai} #ロト7 #AI予想 #宝くじ"
 
     # --- 配信の実行 ---
     
