@@ -2611,16 +2611,20 @@ def build_html():
     else:
         pass
 
-    # ▼▼▼ 追加：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
+    # ▼▼▼ 修正：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
     sns_send_flag = False
-    sns_msg = msg  
+    sns_msg = ""  # LINE用の結果メッセージとは完全に分け、AI予想専用の文章にします
 
-    # 抽選日は月〜金。SNS投稿はその「前日の夜（日・月・火・水・木）」に行う
-    if today_weekday in [6, 0, 1, 2, 3] and current_hour < 19:
+    # ① 日曜・月曜・火曜・水曜・木曜 の「夜」（明日の抽選に向けた予想）
+    if today_weekday in [6, 0, 1, 2, 3] and current_hour >= 19:
         sns_send_flag = True
-        if not sns_msg:
-            sns_msg = f"【明日は #ナンバーズ 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"
-    # ▲▲▲ ここまで ▲▲▲
+        sns_msg = f"【明日 #ナンバーズ の最新予想🎯】\n明日の {next_kai} に向けたAI予想を公開しました！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"
+        
+    # ② 月〜金曜 の「朝〜夕方」（本日抽選の予想）
+    elif today_weekday in [0, 1, 2, 3, 4] and current_hour < 19:
+        sns_send_flag = True
+        sns_msg = f"【本日は #ナンバーズ 抽選日🎯】\nいよいよ本日 {next_kai} 抽選！\n\n各桁の出現傾向を解析したAIの「激アツ数字」はこちら👇\n{site_url}"
+    # ▲▲▲ 修正ここまで ▲▲▲
 
     # ========================================================
     # 🌟 新規追加：X (旧Twitter) 専用の配信判定とメッセージ作成 (ナンバーズ版)
@@ -2674,7 +2678,7 @@ def build_html():
         image_path = "numbers_result.jpg"
         n4_yosou_a = history_record[0]['n4_preds'][0]
         n3_yosou_a = history_record[0]['n3_preds'][0]
-        caption = f"🎯最新のナンバーズ AI予想です！\n\n{sns_msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        caption = f"{sns_msg}\n\n#ナンバーズ #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         # ★ 安全対策：ナンバーズ専用の引数渡し
         is_created = create_result_image(n4_yosou_a, n3_yosou_a, base_image, image_path, target_kai=next_kai, target_date=next_date_str, n4_rank=n4_rank, n3_rank=n3_rank)
