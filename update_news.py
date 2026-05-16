@@ -108,53 +108,58 @@ def get_carryover(lottery_type):
     return "キャリーオーバー：なし"
 
 def generate_auto_result_news():
-    """JSONBinの履歴から抽選速報を自動作成する"""
+    """JSONBinの履歴から抽選速報を自動作成する（過去の履歴も消えずに複数表示する修正版）"""
     auto_news = []
     today_str = datetime.date.today().strftime("%Y-%m-%d")
 
+    # --- ロト7のNEWS生成 ---
     l7_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID_LOTO7"))
-    if l7_history and len(l7_history) > 1 and l7_history[1].get('status') == 'finished':
-        latest = l7_history[1]
-        kai_str = latest['target_kai']
-        kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
-        carryover = get_carryover("loto7")
-        auto_news.append({
-            "date": today_str,
-            "tag": "result",
-            "title": f"【速報】ロト7 {kai_str} 抽選結果とAI予想成績",
-            "content": f"ロト7 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{latest.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
-            "archive_link": f"../archive/loto7_{kai_num}.html",
-            "unique_id": f"loto7_{kai_num}" 
-        })
+    # 過去3回分までループしてニュースを生成
+    for record in l7_history[:4]:
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
+            # 最新回(l7_history[1])の時だけキャリーオーバーを取得
+            carryover = get_carryover("loto7") if record == l7_history[1] else ""
+            auto_news.append({
+                "date": today_str,
+                "tag": "result",
+                "title": f"【速報】ロト7 {kai_str} 抽選結果とAI予想成績",
+                "content": f"ロト7 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{record.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
+                "archive_link": f"../archive/loto7_{kai_num}.html",
+                "unique_id": f"loto7_{kai_num}" 
+            })
 
+    # --- ロト6のNEWS生成 ---
     l6_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID"))
-    if l6_history and len(l6_history) > 1 and l6_history[1].get('status') == 'finished':
-        latest = l6_history[1]
-        kai_str = latest['target_kai']
-        kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
-        carryover = get_carryover("loto6")
-        auto_news.append({
-            "date": today_str,
-            "tag": "result",
-            "title": f"【速報】ロト6 {kai_str} 抽選結果とAI予想成績",
-            "content": f"ロト6 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{latest.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
-            "archive_link": f"../archive/loto6_{kai_num}.html",
-            "unique_id": f"loto6_{kai_num}"
-        })
+    for record in l6_history[:4]:
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
+            carryover = get_carryover("loto6") if record == l6_history[1] else ""
+            auto_news.append({
+                "date": today_str,
+                "tag": "result",
+                "title": f"【速報】ロト6 {kai_str} 抽選結果とAI予想成績",
+                "content": f"ロト6 {kai_str} の抽選結果が発表されました！\n当サイトのAI予想成績は【{record.get('best_result', '----')}】です。\n\n{carryover}\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
+                "archive_link": f"../archive/loto6_{kai_num}.html",
+                "unique_id": f"loto6_{kai_num}"
+            })
 
+    # --- ナンバーズのNEWS生成 ---
     nm_history = fetch_history_from_jsonbin(os.environ.get("JSONBIN_BIN_ID_NUMBERS"))
-    if nm_history and len(nm_history) > 1 and nm_history[1].get('status') == 'finished':
-        latest = nm_history[1]
-        kai_str = latest['target_kai']
-        kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
-        auto_news.append({
-            "date": today_str,
-            "tag": "result",
-            "title": f"【速報】ナンバーズ {kai_str} 抽選結果とAI予想成績",
-            "content": f"ナンバーズ {kai_str} の抽選結果が発表されました！\n\n・ナンバーズ4 AI成績：【{latest.get('result_n4', '----')}】\n・ナンバーズ3 AI成績：【{latest.get('result_n3', '----')}】\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
-            "archive_link": f"../archive/numbers_{kai_num}.html",
-            "unique_id": f"numbers_{kai_num}"
-        })
+    for record in nm_history[:4]:
+        if record.get('status') == 'finished':
+            kai_str = record.get('target_kai', '')
+            kai_num = re.search(r'\d+', kai_str).group().zfill(4) if re.search(r'\d+', kai_str) else "0000"
+            auto_news.append({
+                "date": today_str,
+                "tag": "result",
+                "title": f"【速報】ナンバーズ {kai_str} 抽選結果とAI予想成績",
+                "content": f"ナンバーズ {kai_str} の抽選結果が発表されました！\n\n・ナンバーズ4 AI成績：【{record.get('result_n4', '----')}】\n・ナンバーズ3 AI成績：【{record.get('result_n3', '----')}】\n\n詳細な出目分析とすべての予想結果は、以下のアーカイブページよりご確認ください。",
+                "archive_link": f"../archive/numbers_{kai_num}.html",
+                "unique_id": f"numbers_{kai_num}"
+            })
 
     return auto_news
 
