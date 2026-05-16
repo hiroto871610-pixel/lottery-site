@@ -1746,7 +1746,7 @@ def generate_archive_detail_pages(history_record):
             for i, pred in enumerate(record.get('predictions', [])):
                 labels = ['予想A(本命)', '予想B', '予想C', '予想D', '予想E']
                 balls = "".join([f'<span class="ball">{n}</span>' for n in pred])
-                preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0e7ff; padding:5px 15px; border-radius:4px; margin-right:20px;"><div class="ball-container" style="display:flex; gap:8px;">{labels[i]}</div><div class="ball-container">{balls}</div></div>\n'
+                preds_html += f'<div class="numbers-row" style="background:#fff; border:2px solid #cbd5e1; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap;"><div class="row-label" style="font-weight:bold; color:#1e3a8a; background:#e0e7ff; padding:5px 15px; border-radius:4px; margin-right:20px;">{labels[i]}</div><div class="ball-container" style="display:flex; gap:8px;">{balls}</div></div>\n'
 
             # ▼▼▼ 修正：HTMLの組み立て部分。 <head>内にChart.jsのCDNを追加し、末尾にグラフ描画JSを追加 ▼▼▼
             # ▼▼▼ 修正：HTMLの組み立て部分。ヘッダー・ナビ・フッターを追加 ▼▼▼
