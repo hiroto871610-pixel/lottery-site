@@ -2743,19 +2743,22 @@ def build_html():
     else:
         send_flag = False
 
-    # ▼▼▼ 追加：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
+    # ▼▼▼ 修正：SNS（動画・画像）用の配信判定を独立させる ▼▼▼
     sns_send_flag = False
-    sns_msg = msg  
+    sns_msg = ""  # LINE用の結果メッセージとは完全に分け、AI予想専用の文章にします
 
     if today_weekday in [0, 3] and current_hour >= 19:
         sns_send_flag = True
+        sns_msg = f"【次回 #ロト6 の最新予想🎯】\n次回の {next_kai} に向けたAI予想を公開しました！\n"
+        if carryover_text:
+            sns_msg += f"現在、{carryover_text}\n"
+        sns_msg += f"\n過去データから厳選したAI予想はこちら👇\n{site_url}"
     elif today_weekday in [2, 6] and current_hour < 19:
         sns_send_flag = True
-        if not sns_msg:
-            sns_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
-            if carryover_text:
-                sns_msg += f"現在、{carryover_text}\n"
-            sns_msg += f"\n過去の傾向からAIが導き出した最新予想はこちら👇\n{site_url}"
+        sns_msg = f"【明日は #ロト6 抽選日🎯】\n明日 {next_kai} の最新AI予想を無料公開中！\n"
+        if carryover_text:
+            sns_msg += f"現在、{carryover_text}\n"
+        sns_msg += f"\n過去の傾向からAIが導き出した最新予想はこちら👇\n{site_url}"
 
     # ========================================================
     # 🌟 新規追加：X (旧Twitter) 専用の配信判定とメッセージ作成 (ロト6版)
@@ -2814,7 +2817,7 @@ def build_html():
         print(f"📅 本日はSNS投稿タイミング（曜日:{today_weekday}、{current_hour}時台）のため、SNSへ投稿します。")
         
         yosou_a_list = history_record[0]['predictions'][0]
-        caption = f"🎯最新のロト6 AI予想です！\n\n{sns_msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
+        caption = f"{sns_msg}\n\n#ロト6 #宝くじ #AI予想 #ロトナンバーズ攻略局"
         
         base_image = "base_image.png"     
         image_path = "loto6_result.jpg"
