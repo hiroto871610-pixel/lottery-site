@@ -868,7 +868,8 @@ def get_numbers_full_detail():
     # ==========================================
     try:
         # fetch_both_history() はすでに同じファイル内で定義されているため呼び出せます
-        base_data = fetch_both_history()[0] 
+        if base_data is None:
+            base_data = fetch_both_history()[0]
         result_data["round"] = base_data["kai"]
         result_data["date"] = base_data["date"]
         result_data["n4_numbers"] = list(base_data["n4_win"])
@@ -2880,7 +2881,7 @@ def build_html():
         print("📣 独立処理：抽選速報の専用画像を生成し、ストーリー・Threads・Xへ投稿します！")
         
         # ★ここで速報用の本物データを取得する（前回案内した②の代わりです）
-        real_data = get_numbers_full_detail()
+        real_data = get_numbers_full_detail(latest_data)
         
         if real_data:
             sokuho_path = "numbers_sokuho.jpg"
