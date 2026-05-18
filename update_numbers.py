@@ -772,6 +772,83 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path, ta
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
+
+# ▼▼▼ 追加箇所①：速報専用の画像を作る関数（ナンバーズ版） ▼▼▼
+def create_sokuho_image(real_data, base_image_path, output_image_path):
+    """ナンバーズ専用：抽選速報（回号・当せん番号・N4ストレート金額）を画像化する機能"""
+    print("🎨 ナンバーズ 抽選速報用の画像を生成中...")
+    try:
+        img = Image.open(base_image_path)
+        W, H = img.size
+    except FileNotFoundError:
+        print(f"❌ 背景画像({base_image_path})が見つかりません！")
+        return False
+
+    from PIL import ImageDraw, ImageFont
+    draw = ImageDraw.Draw(img)
+    font_path = "NotoSansJP-Bold.ttf"
+
+    shadow_color = (100, 100, 100)
+    white = (255, 255, 255)
+    shadow_offset = 6
+    
+    font_title = ImageFont.truetype(font_path, 75)
+    font_sub = ImageFont.truetype(font_path, 50)
+    font_detail = ImageFont.truetype(font_path, 60)
+
+    title = "🚨 ナンバーズ 抽選結果速報 🚨"
+    target_kai = real_data.get("round", "第----回")
+    target_date = real_data.get("date", "----/--/--")
+    subtitle = f"{target_kai} ({target_date})"
+    
+    # N4とN3の当せん番号を結合
+    n4_nums = "".join(real_data.get("n4_numbers", []))
+    n3_nums = "".join(real_data.get("n3_numbers", []))
+    
+    # N4ストレートの金額を取得
+    prize_n4 = "該当なし"
+    for p in real_data.get("n4_prizes", []):
+        if "ストレート" in p.get("grade", ""):
+            prize_n4 = p["prize"]
+            break
+            
+    current_y = 350
+    
+    # 1. タイトル
+    left, top, right, bottom = draw.textbbox((0, 0), title, font=font_title)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), title, font=font_title, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), title, font=font_title, fill=(255, 215, 0)) # タイトルはゴールド
+    current_y += 150
+
+    # 2. サブタイトル
+    left, top, right, bottom = draw.textbbox((0, 0), subtitle, font=font_sub)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), subtitle, font=font_sub, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), subtitle, font=font_sub, fill=white)
+    current_y += 180
+
+    # 3. 当せん番号 (N4とN3)
+    text_nums = f"🎯 N4: {n4_nums} ／ N3: {n3_nums}"
+    left, top, right, bottom = draw.textbbox((0, 0), text_nums, font=font_detail)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), text_nums, font=font_detail, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), text_nums, font=font_detail, fill=(100, 255, 100)) # 番号は目立つ薄緑
+    current_y += 180
+
+    # 4. ストレート金額
+    text_1st = f"🏆 N4ストレート : {prize_n4}"
+    left, top, right, bottom = draw.textbbox((0, 0), text_1st, font=font_detail)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), text_1st, font=font_detail, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), text_1st, font=font_detail, fill=white)
+
+    img = img.convert("RGB")
+    img.save(output_image_path, "JPEG", quality=95)
+    print(f"✅ 速報画像の生成が完了しました！: {output_image_path}")
+    return True
+# ▲▲▲ 追加箇所①：ここまで ▲▲▲
+
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -2794,19 +2871,57 @@ def build_html():
                 print(f"❌ Makeへの送信エラー: {res.status_code}")
         except Exception as e:
             print(f"❌ Make通信エラー: {e}")
-
-        # ▼▼▼ 新規追加：月〜金曜夜（抽選速報）のとき、ストーリーとスレッズにも速報を追加投稿する ▼▼▼
-        if today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
-            print("📣 抽選速報をInstagramストーリーとThreadsにも追加投稿します！")
-            if shared_image_url:
-                post_to_instagram_story(shared_image_url)
-                post_to_threads(x_msg, image_url=shared_image_url)
-            else:
-                post_to_threads(x_msg)
-        # ▲▲▲ 新規追加ここまで ▲▲▲
-
     else:
         print("💤 ナンバーズ：X投稿の対象タイミングではないためスキップしました。")
+
+    # ▼▼▼ 追加箇所：夜の「抽選速報画像」独立投稿ブロック（ナンバーズ版） ▼▼▼
+    # ナンバーズは月曜〜金曜が抽選日
+    if today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
+        print("📣 独立処理：抽選速報の専用画像を生成し、ストーリー・Threads・Xへ投稿します！")
+        
+        # ★ここで速報用の本物データを取得する（前回案内した②の代わりです）
+        real_data = get_numbers_full_detail()
+        
+        if real_data:
+            sokuho_path = "numbers_sokuho.jpg"
+            is_sokuho_created = create_sokuho_image(real_data, "base_image.png", sokuho_path)
+            
+            if is_sokuho_created:
+                sokuho_image_url = upload_image_to_server(sokuho_path)
+                if sokuho_image_url:
+                    # 1等金額の取得
+                    prize_1st_text = "該当なし"
+                    for p in real_data.get("n4_prizes", []):
+                        if "ストレート" in p.get("grade", ""):
+                            prize_1st_text = p["prize"]
+                            break
+
+                    # 当せん番号の取得
+                    n4_nums = "".join(real_data.get("n4_numbers", []))
+                    n3_nums = "".join(real_data.get("n3_numbers", []))
+                    
+                    # 速報用のシンプルなテキスト
+                    sokuho_msg = f"【🚨#ナンバーズ 抽選結果速報】\n{real_data.get('round', '')} ({real_data.get('date', '')})の抽選結果が発表されました！\n\n🎯 N4: {n4_nums}\n🎯 N3: {n3_nums}\n🏆 N4ストレート: {prize_1st_text}\n\n詳細と次回予想はこちら👇\n{site_url}\n\n#宝くじ #結果発表"
+                    
+                    # 1. Instagramストーリーへ
+                    post_to_instagram_story(sokuho_image_url)
+                    
+                    # 2. Threadsへ追加投稿
+                    post_to_threads(sokuho_msg, image_url=sokuho_image_url)
+                    
+                    # 3. X(Make経由)へ もう一度送信（速報画像の追加ポスト）
+                    sokuho_payload = {
+                        "text": sokuho_msg,
+                        "image_url": sokuho_image_url,
+                        "link": site_url
+                    }
+                    try:
+                        res = requests.post("https://hook.eu1.make.com/fdih3wfbnmazwrgdb1l2j43fdj2z5wgc", json=sokuho_payload, timeout=10)
+                        if res.status_code == 200:
+                            print("🎉 Xへの速報画像投稿（Make送信）が完了しました！")
+                    except Exception as e:
+                        print(f"❌ Make通信エラー(速報用): {e}")
+    # ▲▲▲ 追加箇所ここまで ▲▲▲
 
     return html
 
