@@ -853,7 +853,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-def get_numbers_full_detail():
+def get_numbers_full_detail(base_data=None):
     """ベースページで大成功しているロジックを呼び出し、確実に番号を同期する完全決着版"""
     print("☁️ 詳細ページ用のデータを同期中...")
     
