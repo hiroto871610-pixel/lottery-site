@@ -878,6 +878,86 @@ def create_result_image(loto7_nums, carryover_info, base_image_path, output_imag
     print(f"✅ 画像の生成が完了しました！: {output_image_path}")
     return True
 # =========================================================
+
+# ▼▼▼ 追加箇所①：速報専用の画像を作る関数 ▼▼▼
+def create_sokuho_image(real_data, base_image_path, output_image_path):
+    """ロト7専用：抽選速報（回号・日付・1等金額・キャリーオーバー）を画像化する機能"""
+    print("🎨 ロト7 抽選速報用の画像を生成中...")
+    try:
+        img = Image.open(base_image_path)
+        W, H = img.size
+    except FileNotFoundError:
+        print(f"❌ 背景画像({base_image_path})が見つかりません！")
+        return False
+
+    from PIL import ImageDraw, ImageFont
+    draw = ImageDraw.Draw(img)
+    font_path = "NotoSansJP-Bold.ttf"
+
+    shadow_color = (100, 100, 100)
+    white = (255, 255, 255)
+    shadow_offset = 6
+    
+    font_title = ImageFont.truetype(font_path, 75)
+    font_sub = ImageFont.truetype(font_path, 50)
+    font_detail = ImageFont.truetype(font_path, 60)
+
+    title = "🚨 ロト7 抽選結果速報 🚨"
+    target_kai = real_data.get("round", "第----回")
+    target_date = real_data.get("date", "----/--/--")
+    subtitle = f"{target_kai} ({target_date})"
+    
+    prize_1st = "該当なし"
+    for p in real_data.get("prizes", []):
+        if p["grade"] == "1等":
+            prize_1st = p["prize"]
+            break
+            
+    carryover = real_data.get("carryover", "0円")
+    
+    current_y = 350
+    
+    # 1. タイトル
+    left, top, right, bottom = draw.textbbox((0, 0), title, font=font_title)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), title, font=font_title, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), title, font=font_title, fill=(255, 215, 0))
+    current_y += 150
+
+    # 2. サブタイトル
+    left, top, right, bottom = draw.textbbox((0, 0), subtitle, font=font_sub)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), subtitle, font=font_sub, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), subtitle, font=font_sub, fill=white)
+    current_y += 200
+
+    # 3. 1等金額
+    text_1st = f"🏆 1等金額 : {prize_1st}"
+    left, top, right, bottom = draw.textbbox((0, 0), text_1st, font=font_detail)
+    text_w = right - left
+    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), text_1st, font=font_detail, fill=shadow_color)
+    draw.text(((W - text_w)/2, current_y), text_1st, font=font_detail, fill=white)
+    current_y += 200
+
+    # 4. キャリーオーバー
+    if "0円" not in carryover and carryover != "":
+        text_co = f"💰 キャリーオーバー :\n{carryover}"
+        color_co = (255, 100, 100)
+    else:
+        text_co = "キャリーオーバー : なし"
+        color_co = white
+
+    left, top, right, bottom = draw.multiline_textbbox((0, 0), text_co, font=font_detail, align="center")
+    text_w = right - left
+    draw.multiline_text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), text_co, font=font_detail, fill=shadow_color, align="center")
+    draw.multiline_text(((W - text_w)/2, current_y), text_co, font=font_detail, fill=color_co, align="center")
+
+    img = img.convert("RGB")
+    img.save(output_image_path, "JPEG", quality=95)
+    print(f"✅ 速報画像の生成が完了しました！: {output_image_path}")
+    return True
+# ▲▲▲ 追加箇所①：ここまで ▲▲▲
+
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -2177,9 +2257,14 @@ def build_html():
     
     print(f"📡 データ取得成功: 最新回 {latest_data['kai']} ({latest_data['date']})")
     
-    # キャリーオーバー情報の取得とHTMLパーツ作成
-    carryover_text = check_loto7_carryover(history_record)
+    # ▼▼▼ 修正箇所②：ここで実際の抽選データを取得し、画像生成やキャリーオーバー判定に使い回す ▼▼▼
+    real_data = get_loto7_full_detail()
+    carryover_text = ""
+    if real_data and real_data.get("has_carryover"):
+        carryover_text = f"💰 キャリーオーバー発生中！({real_data.get('carryover')})"
+    
     carryover_html = f'<div class="carryover-badge">{carryover_text}</div>' if carryover_text else ''
+    # ▲▲▲ 修正箇所②：ここまで ▲▲▲
 
     next_date_str = get_next_loto7_date()
 
@@ -2837,19 +2922,51 @@ def build_html():
                 print(f"❌ Makeへの送信エラー: {res.status_code}")
         except Exception as e:
             print(f"❌ Make通信エラー: {e}")
-
-        # ▼▼▼ 新規追加：金曜夜（抽選速報）のとき、ストーリーとスレッズにも速報を追加投稿する ▼▼▼
-        if today_weekday == 4 and current_hour >= 19:
-            print("📣 抽選速報をInstagramストーリーとThreadsにも追加投稿します！")
-            if shared_image_url:
-                post_to_instagram_story(shared_image_url)
-                post_to_threads(x_msg, image_url=shared_image_url)
-            else:
-                post_to_threads(x_msg)
-        # ▲▲▲ 新規追加ここまで ▲▲▲
-
     else:
         print("💤 ロト7：X投稿の対象タイミングではないためスキップしました。")
+
+    # ▼▼▼ 追加箇所③：夜の「抽選速報画像」独立投稿ブロック ▼▼▼
+    if today_weekday == 4 and current_hour >= 19:
+        print("📣 独立処理：抽選速報の専用画像を生成し、ストーリー・Threads・Xへ投稿します！")
+        if real_data:
+            sokuho_path = "loto7_sokuho.jpg"
+            is_sokuho_created = create_sokuho_image(real_data, "base_image.png", sokuho_path)
+            
+            if is_sokuho_created:
+                sokuho_image_url = upload_image_to_server(sokuho_path)
+                if sokuho_image_url:
+                    # 1等金額の取得
+                    prize_1st_text = "該当なし"
+                    for p in real_data.get("prizes", []):
+                        if p["grade"] == "1等":
+                            prize_1st_text = p["prize"]
+                            break
+                    
+                    # 速報用のシンプルなテキスト
+                    sokuho_msg = f"【🚨#ロト7 抽選結果速報】\n{real_data.get('round', '')} ({real_data.get('date', '')})の抽選結果が発表されました！\n\n🏆1等金額: {prize_1st_text}\n"
+                    if carryover_text:
+                        sokuho_msg += f"{carryover_text}\n"
+                    sokuho_msg += f"\n詳細と次回予想はこちら👇\n{site_url}\n\n#宝くじ #結果発表"
+                    
+                    # 1. Instagramストーリーへ
+                    post_to_instagram_story(sokuho_image_url)
+                    
+                    # 2. Threadsへ追加投稿
+                    post_to_threads(sokuho_msg, image_url=sokuho_image_url)
+                    
+                    # 3. X(Make経由)へ もう一度送信（速報画像の追加ポスト）
+                    sokuho_payload = {
+                        "text": sokuho_msg,
+                        "image_url": sokuho_image_url,
+                        "link": site_url
+                    }
+                    try:
+                        res = requests.post("https://hook.eu1.make.com/fdih3wfbnmazwrgdb1l2j43fdj2z5wgc", json=sokuho_payload, timeout=10)
+                        if res.status_code == 200:
+                            print("🎉 Xへの速報画像投稿（Make送信）が完了しました！")
+                    except Exception as e:
+                        print(f"❌ Make通信エラー(速報用): {e}")
+    # ▲▲▲ 追加箇所③：ここまで ▲▲▲
 
     return html
 
