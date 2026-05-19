@@ -206,12 +206,26 @@ def build_index_html():
     print("📰 トップページ用に最新NEWSを取得中...")
     top_news_html = ""
     try:
-        # 手動ニュースと自動速報を合体
-        manual_news = fetch_microcms_news()
-        auto_news = generate_auto_result_news()
+        # 1. どちらかの関数が None を返してもエラー（TypeError）にならないよう、or [] で空リストとして受ける
+        manual_news = []
+        auto_news = []
+        if 'fetch_microcms_news' in globals():
+            manual_news = fetch_microcms_news() or []
+        if 'generate_auto_result_news' in globals():
+            auto_news = generate_auto_result_news() or []
+            
         all_news = manual_news + auto_news
         
         if all_news:
+            # 2. 辞書内に "date" や "tag" キーが無い場合（microCMS等）のエラー（KeyError）を確実に防ぐ
+            for item in all_news:
+                if "date" not in item:
+                    item["date"] = item.get("publishedAt", item.get("createdAt", "1970-01-01T00:00:00Z"))[:10]
+                if "tag" not in item:
+                    item["tag"] = "info" # タグが無い場合はデフォルトでinfoにする
+                if "title" not in item:
+                    item["title"] = "お知らせ"
+
             # 日付順でソートして上から2件だけ取得
             all_news.sort(key=lambda x: x["date"], reverse=True)
             latest_2_news = all_news[:2]
