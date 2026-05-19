@@ -773,81 +773,108 @@ def create_result_image(n4_text, n3_text, base_image_path, output_image_path, ta
     return True
 # =========================================================
 
-# ▼▼▼ 追加箇所①：速報専用の画像を作る関数（ナンバーズ版） ▼▼▼
-def create_sokuho_image(real_data, base_image_path, output_image_path):
-    """ナンバーズ専用：抽選速報（回号・当せん番号・N4ストレート金額）を画像化する機能"""
-    print("🎨 ナンバーズ 抽選速報用の画像を生成中...")
-    try:
-        img = Image.open(base_image_path)
-        W, H = img.size
-    except FileNotFoundError:
-        print(f"❌ 背景画像({base_image_path})が見つかりません！")
-        return False
+# ▼▼▼ 修正箇所①：速報専用の画像を作る関数（SNS別にサイズ自動生成版） ▼▼▼
+def create_sokuho_image_for_sns(real_data, output_image_path, size_type="normal"):
+    """
+    ナンバーズ専用：抽選速報画像（絵文字なし・番号なし・背景自動生成）
+    size_type: "normal" (1200x675, X/Threads用), "story" (1080x1920, Instagramストーリー用)
+    """
+    print(f"🎨 ナンバーズ 抽選速報用の画像({size_type})を生成中...")
+    from PIL import Image, ImageDraw, ImageFont
+    import os
+    import urllib.request
 
-    from PIL import ImageDraw, ImageFont
+    if size_type == "story":
+        W, H = 1080, 1920
+    else:
+        W, H = 1200, 675
+
+    # 1. 見やすい背景を自動生成（文字が映えるダークブルーのグラデーション）
+    img = Image.new('RGB', (W, H))
     draw = ImageDraw.Draw(img)
+    for y in range(H):
+        r = int(15 + (30 - 15) * (y / H))
+        g = int(23 + (58 - 23) * (y / H))
+        b = int(42 + (138 - 42) * (y / H))
+        draw.line([(0, y), (W, y)], fill=(r, g, b))
+
+    # 2. フォントの準備
     font_path = "NotoSansJP-Bold.ttf"
+    if not os.path.exists(font_path):
+        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf"
+        urllib.request.urlretrieve(font_url, font_path)
 
-    shadow_color = (100, 100, 100)
-    white = (255, 255, 255)
-    shadow_offset = 6
-    
-    font_title = ImageFont.truetype(font_path, 75)
-    font_sub = ImageFont.truetype(font_path, 50)
-    font_detail = ImageFont.truetype(font_path, 60)
+    # 縦横比（SNS）に合わせたレイアウト調整
+    if size_type == "story":
+        font_title = ImageFont.truetype(font_path, 80)
+        font_sub = ImageFont.truetype(font_path, 50)
+        font_detail = ImageFont.truetype(font_path, 65)
+        font_action = ImageFont.truetype(font_path, 75)
+        current_y = 550
+        spacing = 150
+    else:
+        font_title = ImageFont.truetype(font_path, 70)
+        font_sub = ImageFont.truetype(font_path, 45)
+        font_detail = ImageFont.truetype(font_path, 50)
+        font_action = ImageFont.truetype(font_path, 60)
+        current_y = 90
+        spacing = 80
 
-    title = "🚨 ナンバーズ 抽選結果速報 🚨"
+    # 3. 描画データの準備（文字化けを防ぐため、絵文字は一切使わない！）
+    title = "ナンバーズ 抽選結果速報"
     target_kai = real_data.get("round", "第----回")
     target_date = real_data.get("date", "----/--/--")
     subtitle = f"{target_kai} ({target_date})"
     
-    # N4とN3の当せん番号を結合
-    n4_nums = "".join(real_data.get("n4_numbers", []))
-    n3_nums = "".join(real_data.get("n3_numbers", []))
-    
-    # N4ストレートの金額を取得
+    # 金額の取得 (N4とN3の両方)
     prize_n4 = "該当なし"
     for p in real_data.get("n4_prizes", []):
         if "ストレート" in p.get("grade", ""):
             prize_n4 = p["prize"]
             break
             
-    current_y = 350
-    
-    # 1. タイトル
-    left, top, right, bottom = draw.textbbox((0, 0), title, font=font_title)
-    text_w = right - left
-    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), title, font=font_title, fill=shadow_color)
-    draw.text(((W - text_w)/2, current_y), title, font=font_title, fill=(255, 215, 0)) # タイトルはゴールド
-    current_y += 150
+    prize_n3 = "該当なし"
+    for p in real_data.get("n3_prizes", []):
+        if "ストレート" in p.get("grade", ""):
+            prize_n3 = p["prize"]
+            break
+            
+    text_n4 = f"N4 ストレート : {prize_n4}"
+    text_n3 = f"N3 ストレート : {prize_n3}"
+    text_action = "当せん番号はサイトをチェック!"
 
-    # 2. サブタイトル
-    left, top, right, bottom = draw.textbbox((0, 0), subtitle, font=font_sub)
-    text_w = right - left
-    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), subtitle, font=font_sub, fill=shadow_color)
-    draw.text(((W - text_w)/2, current_y), subtitle, font=font_sub, fill=white)
-    current_y += 180
+    # 中央揃えで描画し、ドロップシャドウで文字をハッキリさせる関数
+    def draw_text_centered(text, y, font, text_color):
+        left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
+        text_w = right - left
+        x = (W - text_w) / 2
+        # ドロップシャドウ（黒色で斜め右下に影を落とす）
+        shadow_offset = 5
+        draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0))
+        # 文字本体
+        draw.text((x, y), text, font=font, fill=text_color)
+        return bottom - top
 
-    # 3. 当せん番号 (N4とN3)
-    text_nums = f"🎯 N4: {n4_nums} ／ N3: {n3_nums}"
-    left, top, right, bottom = draw.textbbox((0, 0), text_nums, font=font_detail)
-    text_w = right - left
-    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), text_nums, font=font_detail, fill=shadow_color)
-    draw.text(((W - text_w)/2, current_y), text_nums, font=font_detail, fill=(100, 255, 100)) # 番号は目立つ薄緑
-    current_y += 180
+    # 4. 順次描画
+    h = draw_text_centered(title, current_y, font_title, (255, 215, 0)) # タイトルはゴールド
+    current_y += h + (80 if size_type == "story" else 30)
 
-    # 4. ストレート金額
-    text_1st = f"🏆 N4ストレート : {prize_n4}"
-    left, top, right, bottom = draw.textbbox((0, 0), text_1st, font=font_detail)
-    text_w = right - left
-    draw.text(((W - text_w)/2 + shadow_offset, current_y + shadow_offset), text_1st, font=font_detail, fill=shadow_color)
-    draw.text(((W - text_w)/2, current_y), text_1st, font=font_detail, fill=white)
+    h = draw_text_centered(subtitle, current_y, font_sub, (255, 255, 255)) # サブタイトルは白
+    current_y += h + spacing
+
+    h = draw_text_centered(text_n4, current_y, font_detail, (255, 255, 255))
+    current_y += h + (60 if size_type == "story" else 30)
+
+    h = draw_text_centered(text_n3, current_y, font_detail, (255, 255, 255))
+    current_y += h + spacing
+
+    h = draw_text_centered(text_action, current_y, font_action, (134, 239, 172)) # アクションは薄緑色で目立たせる
 
     img = img.convert("RGB")
     img.save(output_image_path, "JPEG", quality=95)
-    print(f"✅ 速報画像の生成が完了しました！: {output_image_path}")
+    print(f"✅ 速報画像({size_type})の生成が完了しました！: {output_image_path}")
     return True
-# ▲▲▲ 追加箇所①：ここまで ▲▲▲
+# ▲▲▲ 修正箇所①：ここまで ▲▲▲
 
 import re
 import requests
@@ -2880,40 +2907,35 @@ def build_html():
     if today_weekday in [0, 1, 2, 3, 4] and current_hour >= 19:
         print("📣 独立処理：抽選速報の専用画像を生成し、ストーリー・Threads・Xへ投稿します！")
         
-        # ★ここで速報用の本物データを取得する（前回案内した②の代わりです）
         real_data = get_numbers_full_detail(latest_data)
         
         if real_data:
-            sokuho_path = "numbers_sokuho.jpg"
-            is_sokuho_created = create_sokuho_image(real_data, "base_image.png", sokuho_path)
+            # 1. SNSの縦横比に合わせて2つのサイズの画像を生成
+            sokuho_path_normal = "numbers_sokuho.jpg"
+            sokuho_path_story = "numbers_sokuho_story.jpg"
             
-            if is_sokuho_created:
-                sokuho_image_url = upload_image_to_server(sokuho_path)
-                if sokuho_image_url:
-                    # 1等金額の取得
-                    prize_1st_text = "該当なし"
-                    for p in real_data.get("n4_prizes", []):
-                        if "ストレート" in p.get("grade", ""):
-                            prize_1st_text = p["prize"]
-                            break
-
-                    # 当せん番号の取得
-                    n4_nums = "".join(real_data.get("n4_numbers", []))
-                    n3_nums = "".join(real_data.get("n3_numbers", []))
+            is_normal_created = create_sokuho_image_for_sns(real_data, sokuho_path_normal, "normal")
+            is_story_created = create_sokuho_image_for_sns(real_data, sokuho_path_story, "story")
+            
+            if is_normal_created and is_story_created:
+                # 2. 両方の画像をアップロード
+                sokuho_url_normal = upload_image_to_server(sokuho_path_normal)
+                sokuho_url_story = upload_image_to_server(sokuho_path_story)
+                
+                if sokuho_url_normal and sokuho_url_story:
+                    # 3. 投稿用テキストをシンプルに（番号・金額は記載せずサイトへ誘導）
+                    sokuho_msg = f"【#ナンバーズ 抽選結果速報】\n{real_data.get('round', '')} ({real_data.get('date', '')})の抽選結果が発表されました！\n\n気になる当せん番号とAIの次回予想はサイトをチェック👇\n{site_url}\n\n#ナンバーズ #宝くじ #結果発表"
                     
-                    # 速報用のシンプルなテキスト
-                    sokuho_msg = f"【🚨#ナンバーズ 抽選結果速報】\n{real_data.get('round', '')} ({real_data.get('date', '')})の抽選結果が発表されました！\n\n🎯 N4: {n4_nums}\n🎯 N3: {n3_nums}\n🏆 N4ストレート: {prize_1st_text}\n\n詳細と次回予想はこちら👇\n{site_url}\n\n#宝くじ #結果発表"
+                    # 1. Instagramストーリーへ（ストーリー用の 16:9 縦長画像を使用）
+                    post_to_instagram_story(sokuho_url_story)
                     
-                    # 1. Instagramストーリーへ
-                    post_to_instagram_story(sokuho_image_url)
+                    # 2. Threadsへ追加投稿（通常の 16:9 横長画像を使用）
+                    post_to_threads(sokuho_msg, image_url=sokuho_url_normal)
                     
-                    # 2. Threadsへ追加投稿
-                    post_to_threads(sokuho_msg, image_url=sokuho_image_url)
-                    
-                    # 3. X(Make経由)へ もう一度送信（速報画像の追加ポスト）
+                    # 3. X(Make経由)へ もう一度送信（通常の 16:9 横長画像を使用）
                     sokuho_payload = {
                         "text": sokuho_msg,
-                        "image_url": sokuho_image_url,
+                        "image_url": sokuho_url_normal,
                         "link": site_url
                     }
                     try:
@@ -2922,7 +2944,7 @@ def build_html():
                             print("🎉 Xへの速報画像投稿（Make送信）が完了しました！")
                     except Exception as e:
                         print(f"❌ Make通信エラー(速報用): {e}")
-    # ▲▲▲ 追加箇所ここまで ▲▲▲
+    # ▲▲▲ 修正箇所②：ここまで ▲▲▲
 
     return html
 
