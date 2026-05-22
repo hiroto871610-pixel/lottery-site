@@ -4,6 +4,7 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
+import glob
 # ▼▼▼ 追加：news.pyから関数を呼び出す ▼▼▼
 try:
     from update_news import fetch_microcms_news, generate_auto_result_news
@@ -222,8 +223,11 @@ def build_index_html():
                     item["title"] = "お知らせ"
 
             # 【修正1】全データの中から日付でソートし、最新2件を取得する
-            all_news.sort(key=lambda x: x["date"], reverse=True)
+            all_news.sort(key=lambda x: str(x.get("date", "")), reverse=True)
             latest_2_news = all_news[:2]
+
+            # 【修正】既存のファイル名を取得してリンク切れを防ぐ
+            existing_files = {os.path.basename(f): f for f in glob.glob("news/news_*.html")}
 
             top_news_html = f"""
             <div class="section-card" style="margin-bottom: 30px; padding: 20px;">
@@ -236,10 +240,14 @@ def build_index_html():
 
             for item in latest_2_news:
                 date_str = item["date"].replace("-", "/")
-                # 【修正2】NEWSページ側と一致するファイル名生成（unique_idまたはハッシュ値）
                 safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
-                file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
-                file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+                
+                # 検索用ファイル名のベースを作成
+                file_id = item.get("unique_id", f"{abs(hash(safe_title)) % 10000}")
+                expected_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+                
+                # 実際にフォルダにあるファイル名と一致させる（これで404を回避）
+                file_name = next((name for name in existing_files if expected_name in name), expected_name)
                 
                 # タグの色分け
                 if item["tag"] == "win":
