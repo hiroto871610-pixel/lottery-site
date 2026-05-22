@@ -234,11 +234,15 @@ def build_index_html():
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
             """
+            # 最新の2件を、NEWSページと同様のロジックで安全に取得・ソートする
+            latest_2_news = sorted(all_news, key=lambda x: x["date"], reverse=True)[:2]
+
             for item in latest_2_news:
                 date_str = item["date"].replace("-", "/")
-                # news/{file_name} の形式を news.html に合わせるため、unique_id を使ったファイル名構築ロジックを再利用
+                # ファイル名の生成ロジックを NEWSページ側と統一
                 safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
-                file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
+                # unique_id を優先し、なければハッシュ値を使う命名規則を統一
+                file_id = item.get("unique_id", f"{abs(hash(safe_title)) % 10000}")
                 file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
                 
                 top_news_html = f"""
