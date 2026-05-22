@@ -202,35 +202,46 @@ def build_index_html():
     l6_json = load_latest_data(FILES['loto6'])
     nm_json = load_latest_data(FILES['numbers'])
 
-    # ▼▼▼ ここから追加：最新NEWSを2件取得する ▼▼▼
+    # ▼▼▼ 修正：トップページ用ニュース取得ロジック ▼▼▼
     print("📰 トップページ用に最新NEWSを取得中...")
     top_news_html = ""
     try:
-        # 1. どちらかの関数が None を返してもエラー（TypeError）にならないよう、or [] で空リストとして受ける
-        manual_news = []
-        auto_news = []
-        if 'fetch_microcms_news' in globals():
-            manual_news = fetch_microcms_news() or []
-        if 'generate_auto_result_news' in globals():
-            auto_news = generate_auto_result_news() or []
-            
+        manual_news = fetch_microcms_news() or []
+        auto_news = generate_auto_result_news() or []
         all_news = manual_news + auto_news
         
         if all_news:
-            # 2. 辞書内に "date" や "tag" キーが無い場合（microCMS等）のエラー（KeyError）を確実に防ぐ
+            # データの安全な整形（日付がない場合は公開日時等を補完）
             for item in all_news:
                 if "date" not in item:
-                    item["date"] = item.get("publishedAt", item.get("createdAt", "1970-01-01T00:00:00Z"))[:10]
+                    # 取得元の仕様に合わせて publishedAt 等から日付を抽出
+                    raw_date = item.get("date") or item.get("publishedAt") or item.get("createdAt") or "1970-01-01"
+                    item["date"] = str(raw_date)[:10]
                 if "tag" not in item:
-                    item["tag"] = "info" # タグが無い場合はデフォルトでinfoにする
+                    item["tag"] = "info"
                 if "title" not in item:
                     item["title"] = "お知らせ"
 
-            # 日付順でソートして上から2件だけ取得
-            all_news.sort(key=lambda x: x["date"], reverse=True)
+            # 日付順でソート（文字列比較で安全に行う）
+            all_news.sort(key=lambda x: str(x["date"]), reverse=True)
             latest_2_news = all_news[:2]
 
             top_news_html = f"""
+            <div class="section-card" style="margin-bottom: 30px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 20px; color: #1e3a8a;">📢 最新のNEWS</h2>
+                    <a href="news.html" style="font-size: 14px; color: #3b82f6; text-decoration: none; font-weight: bold;">すべて見る ＞</a>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+            """
+            for item in latest_2_news:
+                date_str = item["date"].replace("-", "/")
+                # news/{file_name} の形式を news.html に合わせるため、unique_id を使ったファイル名構築ロジックを再利用
+                safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
+                file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
+                file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+                
+                top_news_html = f"""
             <div class="section-card" style="margin-bottom: 30px; padding: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
                     <h2 style="margin: 0; font-size: 20px; color: #1e3a8a;">📢 最新のNEWS</h2>
@@ -271,9 +282,9 @@ def build_index_html():
                 </div>
             </div>
             """
+            top_news_html += "</div></div>"
     except Exception as e:
-        print(f"⚠️ トップページ用NEWS取得エラー: {e}")
-    # ▲▲▲ 追加ここまで ▲▲▲
+        print(f"⚠️ トップページ用NEWS生成エラー: {e}")
     
     # トップページの表示用に、最新の抽選結果をWebから直接取得する
     print("📡 トップページ用の最新当選番号を取得中...")
