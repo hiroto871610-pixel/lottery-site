@@ -207,27 +207,35 @@ def build_index_html():
     print("📰 トップページ用に最新NEWSを取得中...")
     top_news_html = ""
     try:
-        manual_news = fetch_microcms_news() or []
-        auto_news = generate_auto_result_news() or []
-        all_news = manual_news + auto_news
-        
-        if all_news:
-            # データの安全な整形
-            for item in all_news:
-                if "date" not in item:
-                    raw_date = item.get("publishedAt", item.get("createdAt", "1970-01-01"))[:10]
-                    item["date"] = str(raw_date)
-                if "tag" not in item:
-                    item["tag"] = "info"
-                if "title" not in item:
-                    item["title"] = "お知らせ"
+        # newsフォルダ内にある実際のHTMLファイルをすべて検索
+        existing_files = glob.glob("news/news_*.html")
+        all_news_items = []
 
-            # 【修正1】全データの中から日付でソートし、最新2件を取得する
-            all_news.sort(key=lambda x: str(x.get("date", "")), reverse=True)
-            latest_2_news = all_news[:2]
+        for filepath in existing_files:
+            filename = os.path.basename(filepath)
+            # ファイル名形式: news_{date}_{tag}_{unique_id}.html
+            parts = filename.replace(".html", "").split('_')
+            if len(parts) >= 4:
+                raw_date = parts[1]
+                tag = parts[2]
+                
+                # 実際のHTMLファイルを解析してタイトルを取得（NEWSページ側のget_existing_newsと完全同期）
+                with open(filepath, "r", encoding="utf-8") as f:
+                    soup = BeautifulSoup(f.read(), "html.parser")
+                    title_tag = soup.find('h1')
+                    title = title_tag.text if title_tag else "お知らせ"
+                
+                all_news_items.append({
+                    "date": raw_date,
+                    "tag": tag,
+                    "title": title,
+                    "file_name": filename
+                })
 
-            # 【修正】既存のファイル名を取得してリンク切れを防ぐ
-            existing_files = {os.path.basename(f): f for f in glob.glob("news/news_*.html")}
+        if all_news_items:
+            # 実際のファイル名に刻まれた日付文字列で確実に降順ソート
+            all_news_items.sort(key=lambda x: x["date"], reverse=True)
+            latest_2_news = all_news_items[:2]
 
             top_news_html = f"""
             <div class="section-card" style="margin-bottom: 30px; padding: 20px;">
@@ -240,21 +248,9 @@ def build_index_html():
 
             for item in latest_2_news:
                 date_str = item["date"].replace("-", "/")
+                file_name = item["file_name"]
                 
-                # 【根拠】動的なハッシュ生成をやめ、newsフォルダ内の実在するファイルを探す
-                # これにより、NEWSページ側で生成されたファイル名と100%一致します
-                pattern = f"news/news_{item['date']}_{item['tag']}_*.html"
-                matches = glob.glob(pattern)
-                
-                # ファイルが見つかればその名前を、なければ予想される名前を使用
-                if matches:
-                    file_name = os.path.basename(matches[0])
-                else:
-                    safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
-                    file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
-                    file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
-                
-                # タグの色分け
+                # タグの色分け（元のデザイン構造と一言一句一致）
                 if item["tag"] == "win":
                     tag_span = '<span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; min-width: 60px; text-align: center;">🎯 的中</span>'
                 elif item["tag"] == "result":
