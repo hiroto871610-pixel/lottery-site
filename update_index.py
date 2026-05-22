@@ -211,19 +211,18 @@ def build_index_html():
         all_news = manual_news + auto_news
         
         if all_news:
-            # データの安全な整形（日付がない場合は公開日時等を補完）
+            # データの安全な整形
             for item in all_news:
                 if "date" not in item:
-                    # 取得元の仕様に合わせて publishedAt 等から日付を抽出
-                    raw_date = item.get("date") or item.get("publishedAt") or item.get("createdAt") or "1970-01-01"
-                    item["date"] = str(raw_date)[:10]
+                    raw_date = item.get("publishedAt", item.get("createdAt", "1970-01-01"))[:10]
+                    item["date"] = str(raw_date)
                 if "tag" not in item:
                     item["tag"] = "info"
                 if "title" not in item:
                     item["title"] = "お知らせ"
 
-            # 日付順でソート（文字列比較で安全に行う）
-            all_news.sort(key=lambda x: str(x["date"]), reverse=True)
+            # 【修正1】全データの中から日付でソートし、最新2件を取得する
+            all_news.sort(key=lambda x: x["date"], reverse=True)
             latest_2_news = all_news[:2]
 
             top_news_html = f"""
@@ -234,28 +233,10 @@ def build_index_html():
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
             """
-            # 最新の2件を、NEWSページと同様のロジックで安全に取得・ソートする
-            latest_2_news = sorted(all_news, key=lambda x: x["date"], reverse=True)[:2]
 
             for item in latest_2_news:
                 date_str = item["date"].replace("-", "/")
-                # ファイル名の生成ロジックを NEWSページ側と統一
-                safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
-                # unique_id を優先し、なければハッシュ値を使う命名規則を統一
-                file_id = item.get("unique_id", f"{abs(hash(safe_title)) % 10000}")
-                file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
-                
-                top_news_html = f"""
-            <div class="section-card" style="margin-bottom: 30px; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
-                    <h2 style="margin: 0; font-size: 20px; color: #1e3a8a;">📢 最新のNEWS</h2>
-                    <a href="news.html" style="font-size: 14px; color: #3b82f6; text-decoration: none; font-weight: bold;">すべて見る ＞</a>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-            """
-
-            for item in latest_2_news:
-                date_str = item["date"].replace("-", "/")
+                # 【修正2】NEWSページ側と一致するファイル名生成（unique_idまたはハッシュ値）
                 safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
                 file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
                 file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
