@@ -240,14 +240,19 @@ def build_index_html():
 
             for item in latest_2_news:
                 date_str = item["date"].replace("-", "/")
-                safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
                 
-                # 検索用ファイル名のベースを作成
-                file_id = item.get("unique_id", f"{abs(hash(safe_title)) % 10000}")
-                expected_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
+                # 【根拠】動的なハッシュ生成をやめ、newsフォルダ内の実在するファイルを探す
+                # これにより、NEWSページ側で生成されたファイル名と100%一致します
+                pattern = f"news/news_{item['date']}_{item['tag']}_*.html"
+                matches = glob.glob(pattern)
                 
-                # 実際にフォルダにあるファイル名と一致させる（これで404を回避）
-                file_name = next((name for name in existing_files if expected_name in name), expected_name)
+                # ファイルが見つかればその名前を、なければ予想される名前を使用
+                if matches:
+                    file_name = os.path.basename(matches[0])
+                else:
+                    safe_title = item["title"].replace(" ", "_").replace("：", "_").replace("！", "")
+                    file_id = item.get("unique_id", f"{hash(safe_title) % 10000}")
+                    file_name = f"news_{item['date']}_{item['tag']}_{file_id}.html"
                 
                 # タグの色分け
                 if item["tag"] == "win":
