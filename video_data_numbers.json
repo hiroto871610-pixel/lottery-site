@@ -1,117 +1,117 @@
 {
-    "round": "第7015回",
-    "date": "2026/06/29",
+    "round": "第7016回",
+    "date": "2026/06/30",
     "n4_win": [
-        "1",
-        "3",
-        "1",
-        "9"
+        "8",
+        "9",
+        "6",
+        "4"
     ],
     "n4_prizes": [
         {
             "grade": "ストレート",
-            "winners": "328口",
-            "prize": "266,100円"
+            "winners": "24口",
+            "prize": "687,700円"
         },
         {
             "grade": "ボックス",
-            "winners": "196口",
-            "prize": "22,100円"
+            "winners": "465口",
+            "prize": "28,600円"
         },
         {
             "grade": "セット(ストレート)",
-            "winners": "64口",
-            "prize": "144,100円"
+            "winners": "85口",
+            "prize": "358,100円"
         },
         {
             "grade": "セット(ボックス)",
-            "winners": "703口",
-            "prize": "11,000円"
+            "winners": "1,733口",
+            "prize": "14,300円"
         }
     ],
     "n4_preds": [
         {
             "name": "予想A",
-            "nums": "8419",
+            "nums": "4891",
             "result": "ハズレ"
         },
         {
             "name": "予想B",
-            "nums": "2819",
+            "nums": "2981",
             "result": "ハズレ"
         },
         {
             "name": "予想C",
-            "nums": "2879",
+            "nums": "9581",
             "result": "ハズレ"
         },
         {
             "name": "予想D",
-            "nums": "8519",
+            "nums": "9781",
             "result": "ハズレ"
         },
         {
             "name": "予想E",
-            "nums": "7819",
+            "nums": "4181",
             "result": "ハズレ"
         }
     ],
     "n3_win": [
-        "5",
-        "5",
-        "4"
+        "6",
+        "2",
+        "9"
     ],
     "n3_prizes": [
         {
             "grade": "ストレート",
-            "winners": "532口",
-            "prize": "54,700円"
+            "winners": "121口",
+            "prize": "65,600円"
         },
         {
             "grade": "ボックス",
-            "winners": "220口",
-            "prize": "18,200円"
+            "winners": "453口",
+            "prize": "10,900円"
         },
         {
             "grade": "セット(ストレート)",
-            "winners": "134口",
-            "prize": "36,400円"
+            "winners": "315口",
+            "prize": "38,200円"
         },
         {
             "grade": "セット(ボックス)",
-            "winners": "210口",
-            "prize": "9,100円"
+            "winners": "912口",
+            "prize": "5,400円"
         },
         {
             "grade": "ミニ",
-            "winners": "520口",
-            "prize": "5,400円"
+            "winners": "464口",
+            "prize": "6,500円"
         }
     ],
     "n3_preds": [
         {
             "name": "予想A",
-            "nums": "924",
+            "nums": "609",
             "result": "ハズレ"
         },
         {
             "name": "予想B",
-            "nums": "136",
+            "nums": "613",
             "result": "ハズレ"
         },
         {
             "name": "予想C",
-            "nums": "940",
+            "nums": "619",
             "result": "ハズレ"
         },
         {
             "name": "予想D",
-            "nums": "964",
+            "nums": "904",
             "result": "ハズレ"
         },
         {
             "name": "予想E",
-            "nums": "941",
+            "nums": "672",
             "result": "ハズレ"
         }
     ]
