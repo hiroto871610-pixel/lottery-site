@@ -336,6 +336,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://loto-yosou-ai.com/archive/numbers_7017.html</loc>
+    <lastmod>2026-07-01</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://loto-yosou-ai.com/archive/loto6_2102.html</loc>
     <lastmod>2026-07-01</lastmod>
     <priority>0.6</priority>
@@ -952,6 +957,11 @@
   </url>
   <url>
     <loc>https://loto-yosou-ai.com/news/news_2026-06-18_result_loto6_2112.html</loc>
+    <lastmod>2026-07-01</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://loto-yosou-ai.com/news/news_2026-07-01_result_numbers_7017.html</loc>
     <lastmod>2026-07-01</lastmod>
     <priority>1.0</priority>
   </url>
